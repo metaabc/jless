@@ -160,7 +160,7 @@ h1{
   transition:background .15s,color .15s,opacity .15s;
 }
 .wnav .ar{font-size:calc(15px * var(--fs,1));line-height:1;font-weight:700;color:#b09aa4}
-.wnav:active{background:var(--accent-soft);color:#a83258}
+.wnav:active{background:var(--accent-soft);color:var(--accent2)}
 .wnav:disabled{opacity:.34}
 .wnav:disabled:active{background:var(--card)}
 /* 下拉選單：白底膠囊＋粉色箭頭 */
@@ -178,7 +178,7 @@ h1{
   border:1px solid #f0c9d8;
   border-radius:11px;
   background:var(--accent-soft);
-  color:#a83258;
+  color:var(--accent2);
   font-family:inherit;
   font-size:calc(14px * var(--fs,1));
   font-weight:800;
@@ -288,7 +288,7 @@ h1{
   height:100%;
   width:0;
   border-radius:99px;
-  background:linear-gradient(90deg,#e884ab,var(--accent));
+  background:linear-gradient(90deg,var(--accent-soft),var(--accent));
   transition:width .35s ease;
 }
 .sum-sub{
@@ -613,7 +613,7 @@ h1{
   color:#fff;
   box-shadow:0 3px 12px rgba(63,106,91,.22);
 }
-.btn.ghost{background:var(--accent-soft);color:#a83258;border:1px solid #f7d7e3}
+.btn.ghost{background:var(--accent-soft);color:var(--accent2);border:1px solid var(--accent-line)}
 .btn.small{padding:11px 15px;font-size:calc(13px * var(--fs,1));background:var(--accent);color:#fff;flex:0 0 auto;border-radius:12px}
 .btn.danger{
   display:block;
@@ -988,8 +988,8 @@ h1{
 }
 .chip.on{
   background:var(--accent-soft);
-  border-color:#f7d7e3;
-  color:#a83258;
+  border-color:var(--accent-line);
+  color:var(--accent2);
 }
 .chip.on::before{
   content:"✓";
@@ -1026,9 +1026,9 @@ h1{
 .sec-tag{
   font-size:calc(9.5px * var(--fs,1));
   font-weight:800;
-  color:#a83258;
+  color:var(--accent2);
   background:var(--accent-soft);
-  border:1px solid #f7d7e3;
+  border:1px solid var(--accent-line);
   border-radius:6px;
   padding:1.5px 6px;
   letter-spacing:.2px;
@@ -1459,6 +1459,12 @@ h1{
 <script>
 (function(){
 'use strict';
+/* 主題色：與 theme.js 同一份色表，直接讀 localStorage，不受載入時序影響（canvas 無法用 CSS 變數） */
+var JLESS_T={rose:{a:'#c23b6a',a2:'#a8305c',s:'#fdeaf2',l:'#f4c9da'},blue:{a:'#2563eb',a2:'#1d4ed8',s:'#e8efff',l:'#cdddff'},green:{a:'#0f766e',a2:'#0b5d56',s:'#e3f3f1',l:'#bfe6e1'},purple:{a:'#7c3aed',a2:'#6d28d9',s:'#f1e9ff',l:'#d9c7ff'},amber:{a:'#d97706',a2:'#b45309',s:'#fdf0dd',l:'#f3d9a8'}};
+function THEME_ACCENT(){var s=null;try{s=JSON.parse(localStorage.getItem('jless_skin_v1')||'{}');}catch(e){}var t=JLESS_T[(s&&s.theme)||'rose']||JLESS_T.rose;return t.a;}
+function THEME_ACCENT2(){var s=null;try{s=JSON.parse(localStorage.getItem('jless_skin_v1')||'{}');}catch(e){}var t=JLESS_T[(s&&s.theme)||'rose']||JLESS_T.rose;return t.a2;}
+function THEME_SOFT(){var s=null;try{s=JSON.parse(localStorage.getItem('jless_skin_v1')||'{}');}catch(e){}var t=JLESS_T[(s&&s.theme)||'rose']||JLESS_T.rose;return t.s;}
+function THEME_LINE(){var s=null;try{s=JSON.parse(localStorage.getItem('jless_skin_v1')||'{}');}catch(e){}var t=JLESS_T[(s&&s.theme)||'rose']||JLESS_T.rose;return t.l;}
 
 var DEF_PAYS=['中銀','工商','國際','廣發','大豐','支付寶','MPay','UePay'];
 var PAYS=DEF_PAYS.slice();          /* 動態鏡像 S.pays：隨增刪／改名同步 */
@@ -2597,7 +2603,7 @@ function imgBG(ctx,W,H){
 }
 function imgStrip(ctx,W){
   var g=ctx.createLinearGradient(0,0,W,0);
-  g.addColorStop(0,'#c23b6a'); g.addColorStop(.58,'#e0a63a'); g.addColorStop(1,'#59bfb0');
+  g.addColorStop(0,THEME_SOFT()); g.addColorStop(.5,THEME_ACCENT()); g.addColorStop(1,THEME_ACCENT2());
   ctx.fillStyle=g; ctx.fillRect(0,0,W,4);
 }
 function imgDot(ctx,x,y,c){
@@ -2639,10 +2645,10 @@ function buildImage(){
   var chipTxt=w.name;
   var chipW=ctx.measureText(chipTxt).width+24;
   var chipX=W-PAD-chipW, chipY=y0+4;
-  ctx.fillStyle='#fdeaf2';
+  ctx.fillStyle=THEME_SOFT();
   rr(ctx,chipX,chipY,chipW,26,13); ctx.fill();
-  ctx.strokeStyle='#f7d7e3'; ctx.lineWidth=1; ctx.stroke();
-  ctx.fillStyle='#a83258';
+  ctx.strokeStyle=THEME_LINE(); ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle=THEME_ACCENT2();
   ctx.textAlign='center';
   ctx.fillText(chipTxt,chipX+chipW/2,chipY+13.5);
 
@@ -2670,7 +2676,7 @@ function buildImage(){
   ctx.fillStyle='#967f89';
   ctx.font='800 12.5px '+IMG_FONT;
   ctx.fillText('抽到總額',cxR-14,cardY+24);
-  imgDot(ctx,cxR-3,cardY+23,'#c23b6a');
+  imgDot(ctx,cxR-3,cardY+23,THEME_ACCENT());
 
   ctx.textAlign='left';
   ctx.fillStyle='#21665a';
@@ -2678,7 +2684,7 @@ function buildImage(){
   ctx.fillText(money(g.left),cxL,cardY+56);
 
   ctx.textAlign='right';
-  ctx.fillStyle='#c23b6a';
+  ctx.fillStyle=THEME_ACCENT();
   ctx.fillText(money(g.t),cxR,cardY+56);
 
   var pct=g.t>0?(g.u/g.t):0;
@@ -2687,7 +2693,7 @@ function buildImage(){
   rr(ctx,barX,barY,barW,barH,4); ctx.fill();
   if(pct>0){
     var bg2=ctx.createLinearGradient(barX,0,barX+barW,0);
-    bg2.addColorStop(0,'#e884ab'); bg2.addColorStop(1,'#c23b6a');
+    bg2.addColorStop(0,THEME_SOFT()); bg2.addColorStop(1,THEME_ACCENT());
     ctx.fillStyle=bg2;
     rr(ctx,barX,barY,Math.max(barW*pct,7),barH,4); ctx.fill();
   }
@@ -2896,8 +2902,8 @@ function buildFavImage(){
     var textTop=y+it.h/2-(it.lines.length-1)*LH/2;
 
     ctx.beginPath(); ctx.arc(CX+11,textTop,11,0,Math.PI*2);
-    ctx.fillStyle='#fdeaf2'; ctx.fill();
-    ctx.fillStyle='#c23b6a'; ctx.font='700 11px '+IMG_FONT;
+    ctx.fillStyle=THEME_SOFT(); ctx.fill();
+    ctx.fillStyle=THEME_ACCENT(); ctx.font='700 11px '+IMG_FONT;
     ctx.textAlign='center';
     ctx.fillText(String(i+1),CX+11,textTop+.5);
 
@@ -3001,11 +3007,11 @@ function buildStatsImage(){
 
     if(d.t>0){
       var wpx=Math.max(barW*(d.t/maxT),5);
-      ctx.fillStyle='#f2c9d8';                 /* 淺綠＝未用（全長） */
+      ctx.fillStyle=THEME_SOFT();                 /* 淺色＝未用（全長） */
       rr(ctx,barX,by,wpx,10,5); ctx.fill();
       var uw=barW*(d.u/maxT);
       if(uw>0){
-        ctx.fillStyle='#c23b6a';               /* 深色＝已消（疊左邊） */
+        ctx.fillStyle=THEME_ACCENT();               /* 深色＝已消（疊左邊） */
         rr(ctx,barX,by,Math.max(uw,4),10,5); ctx.fill();
       }
     }

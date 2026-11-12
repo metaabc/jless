@@ -678,7 +678,7 @@ h1{font-size:calc(17px * var(--fs))}
     <div class="heatlab" id="hHeatLab"></div>
     <div class="heatgrid" id="hHeatGrid"></div>
   </div>
-  <div class="legend">未打卡 <i style="background:#f6f2ec"></i> 已打卡 <i style="background:#c23b6a"></i></div>
+  <div class="legend">未打卡 <i style="background:#f6f2ec"></i> 已打卡 <i style="background:var(--accent)"></i></div>
   <div class="hheat-stats" id="hHeatStats"></div>
   <button class="set-btn" id="hHeatLog" type="button">打卡紀錄 ⏱</button>
   <button class="set-btn" data-close type="button" style="text-align:center;background:var(--accent);border-color:var(--accent);color:#fff">完成</button>
@@ -703,6 +703,12 @@ h1{font-size:calc(17px * var(--fs))}
 (function(){
 'use strict';
 var $=function(id){return document.getElementById(id);};
+/* 主題色：與 theme.js 同一份色表，直接讀 localStorage，不受載入時序影響（canvas 無法用 CSS 變數） */
+var JLESS_T={rose:{a:'#c23b6a',a2:'#a8305c',s:'#fdeaf2',l:'#f4c9da'},blue:{a:'#2563eb',a2:'#1d4ed8',s:'#e8efff',l:'#cdddff'},green:{a:'#0f766e',a2:'#0b5d56',s:'#e3f3f1',l:'#bfe6e1'},purple:{a:'#7c3aed',a2:'#6d28d9',s:'#f1e9ff',l:'#d9c7ff'},amber:{a:'#d97706',a2:'#b45309',s:'#fdf0dd',l:'#f3d9a8'}};
+function THEME_ACCENT(){var s=null;try{s=JSON.parse(localStorage.getItem('jless_skin_v1')||'{}');}catch(e){}var t=JLESS_T[(s&&s.theme)||'rose']||JLESS_T.rose;return t.a;}
+function THEME_ACCENT2(){var s=null;try{s=JSON.parse(localStorage.getItem('jless_skin_v1')||'{}');}catch(e){}var t=JLESS_T[(s&&s.theme)||'rose']||JLESS_T.rose;return t.a2;}
+function THEME_SOFT(){var s=null;try{s=JSON.parse(localStorage.getItem('jless_skin_v1')||'{}');}catch(e){}var t=JLESS_T[(s&&s.theme)||'rose']||JLESS_T.rose;return t.s;}
+function THEME_LINE(){var s=null;try{s=JSON.parse(localStorage.getItem('jless_skin_v1')||'{}');}catch(e){}var t=JLESS_T[(s&&s.theme)||'rose']||JLESS_T.rose;return t.l;}
 var KEY='habit_checkin_v1';
 /* ============ v3.3：四語介面（繁／簡／英／葡） ============ */
 var LANG_KEY='habit_ui_lang_v1';
@@ -1420,11 +1426,11 @@ function metricChart(m){
   });
   if(pts.length>1){
     g+='<path d="'+pts.map(function(p,i2){return (i2?'L ':'M ')+X(p.d)+' '+Y(p.v);}).join(' ')
-      +'" fill="none" stroke="#c23b6a" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+      +'" fill="none" style="stroke:var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
   }
   pts.forEach(function(p){
     var tg=targetAt(m,p.d),ok=metricHit(m,p.v,tg);
-    g+='<circle cx="'+X(p.d)+'" cy="'+Y(p.v)+'" r="3.2" fill="'+(ok?'#fff':'#f6f2ec')+'" stroke="#c23b6a" stroke-width="2">'
+    g+='<circle cx="'+X(p.d)+'" cy="'+Y(p.v)+'" r="3.2" fill="'+(ok?'#fff':'#f6f2ec')+'" style="stroke:var(--accent)" stroke-width="2">'
       +'<title>'+fmtMD(p.d)+' · '+fmtNum(p.v)+' '+esc(m.unit)+' · '+tx(ok?'達標':'未達標')+'</title></circle>';
   });
   g+='<text x="'+L+'" y="'+(H-5)+'" font-size="8" fill="#967f89">'+fmtMD(d0)+'</text>'
@@ -1819,8 +1825,8 @@ function drawShare(kind){
     shText(c,fmtDate(t),P,86,34,'#3b2530',800,'left',CW-150);
     var cx=W-P-46,cy=84,r=34,p=tot?done/tot:0;
     c.lineWidth=9;c.strokeStyle='#f8efe7';c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.stroke();
-    if(p>0){c.strokeStyle='#c23b6a';c.lineCap='round';c.beginPath();c.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*p);c.stroke();}
-    shText(c,done+'/'+tot,cx,cy,24,'#c23b6a',800,'center');
+    if(p>0){c.strokeStyle=THEME_ACCENT();c.lineCap='round';c.beginPath();c.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*p);c.stroke();}
+    shText(c,done+'/'+tot,cx,cy,24,THEME_ACCENT(),800,'center');
     shText(c,F('今日完成 {0} / {1} · 🔥 全勤連續 {2} 日 · 累計打卡 {3} 次',done,tot,allDoneStreak(),totalChecks()),P,140,17,'#5f4b55',700,'left',CW);
   }else{
     shText(c,tx('習慣清單'),P,86,36,'#3b2530',800);
@@ -1843,10 +1849,10 @@ function drawShare(kind){
       shText(c,F('累計 {0} 次{1}{2}',ci.total,ci.cycle?F(' · 循環第 {0} 輪 {1}/{2}',ci.round,ci.inRound,ci.cycle):'',le?F(' · 最近 {0} {1}',fmtMD(le.iso),fmtClock(le.t)):tx(' · 未打卡')),P+62,y+62,15,'#967f89',600,'left',CW-100);
       var bw=CW-82,bx=P+62,by=y+84;
       c.fillStyle='#f8efe7';rr(c,bx,by,bw,7,4);c.fill();
-      if(ci.cycle&&ci.p>0){c.fillStyle='#c23b6a';rr(c,bx,by,Math.max(5,bw*ci.p),7,4);c.fill();}
+      if(ci.cycle&&ci.p>0){c.fillStyle=THEME_ACCENT();rr(c,bx,by,Math.max(5,bw*ci.p),7,4);c.fill();}
     }else{
       shText(c,h.name,P+62,y+30,21,'#3b2530',800,'left',CW-180,true);
-      shText(c,F('累計 {0} 次',ci.total),W-P-18,y+30,16,'#c23b6a',800,'right');
+      shText(c,F('累計 {0} 次',ci.total),W-P-18,y+30,16,THEME_ACCENT(),800,'right');
       shText(c,F('每週 {0} 次 · {1} · 🔥 {2} 日{3}',h.goal,ci.cycle?F('循環 {0} 次一輪',ci.cycle):tx('不循環'),streak(h),le?F(' · 最近 {0} {1}',fmtMD(le.iso),fmtClock(le.t)):''),P+62,y+60,14.5,'#967f89',600,'left',CW-100);
     }
     y+=rowH;
