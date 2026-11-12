@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#fffaf3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>我的工具箱 · 應用首頁</title>
+<!-- Google Analytics（統計使用，ID 取自 bookmark.html） -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-G7H3M2VW8T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-G7H3M2VW8T');
+</script>
+<style>
+  :root{
+    --bg:#fffaf3; --panel:#ffffff; --line:#f0e2d8; --line2:#f8efe7;
+    --ink:#3b2530; --ink2:#5f4b55; --muted:#967f89;
+    --accent:#c23b6a; --accent2:#a8305c; --accent-soft:#fdeaf2; --accent-line:#f4c9da;
+    --teal:#0f766e; --gold:#e0a93b;
+  --shadow:0 6px 22px rgba(120,60,80,.10);
+  --shadow-sm:0 2px 8px rgba(120,60,80,.08);
+  --fs:1;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:
+      radial-gradient(120% 60% at 50% -10%, #fdeef4 0%, rgba(253,238,244,0) 60%),
+      var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%;text-size-adjust:100%;
+    overflow-x:hidden;
+    overscroll-behavior-y:contain;
+    touch-action:manipulation;
+    font-size:calc(15px * var(--fs));
+    line-height:1.5;
+  }
+  .app{max-width:560px;margin:0 auto;min-height:100vh;position:relative;
+    padding-bottom:calc(env(safe-area-inset-bottom) + 86px);background:transparent;}
+
+  /* ===== Header ===== */
+  header{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg, rgba(255,250,243,.96), rgba(255,250,243,.86));
+    backdrop-filter:saturate(140%) blur(10px);
+    border-bottom:1px solid var(--line);
+    padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  }
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .brand{display:flex;align-items:center;gap:8px;min-width:0}
+  .brand .logo{width:30px;height:30px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--accent),#e0729a);
+    display:flex;align-items:center;justify-content:center;font-size:17px;
+    box-shadow:var(--shadow-sm)}
+  .brand h1{font-size:calc(16px * var(--fs));margin:0;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+  .brand .sub{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap}
+  .gear{
+    flex:0 0 auto;width:38px;height:38px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel);display:flex;align-items:center;justify-content:center;
+    font-size:18px;cursor:pointer;color:var(--ink2);box-shadow:var(--shadow-sm);
+    transition:transform .12s ease, background .12s ease;
+  }
+  .gear:active{transform:scale(.94);background:var(--line2)}
+  .gear.spin{animation:spin .5s ease}
+  @keyframes spin{to{transform:rotate(90deg)}}
+
+  .fav-label{display:flex;align-items:center;gap:6px;margin:12px 2px 6px;font-size:calc(12px * var(--fs));color:var(--muted);font-weight:600}
+  .fav-label .dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none;
+    scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{
+    flex:0 0 auto;display:flex;align-items:center;gap:7px;min-height:38px;
+    background:var(--panel);border:1px solid var(--line);border-radius:999px;
+    padding:7px 14px 7px 10px;font-size:calc(13px * var(--fs));font-weight:600;color:var(--ink2);
+    text-decoration:none;box-shadow:var(--shadow-sm);white-space:nowrap;
+    line-height:1;user-select:none;-webkit-user-select:none;scroll-snap-align:start;
+    transition:transform .1s ease,border-color .1s ease;
+  }
+  .chip:active{transform:scale(.96)}
+  .chip .ci{font-size:calc(16px * var(--fs))}
+  .chips-empty{font-size:calc(12px * var(--fs));color:var(--muted);padding:6px 4px;line-height:1.6}
+
+  /* ===== Views ===== */
+  main{padding:16px}
+  .view{display:none;animation:fade .22s ease}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .sec-title{display:flex;align-items:center;justify-content:space-between;margin:2px 4px 12px}
+  .sec-title h2{font-size:calc(15px * var(--fs));margin:0;font-weight:700}
+  .sec-title .hint{font-size:calc(11px * var(--fs));color:var(--muted)}
+
+  /* ===== Card grid ===== */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px}
+  @media (max-width:380px){
+    .grid{gap:12px}
+    .card{padding:13px}
+    .card .ic{width:40px;height:40px;font-size:21px;border-radius:12px}
+  }
+  .card{
+    position:relative;display:flex;flex-direction:column;gap:9px;
+    background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    padding:14px;box-shadow:var(--shadow);text-decoration:none;color:inherit;
+    transition:transform .12s ease, box-shadow .12s ease;
+    overflow:hidden;min-height:120px;user-select:none;-webkit-user-select:none;
+  }
+  .card:active{transform:translateY(2px) scale(.985);box-shadow:var(--shadow-sm)}
+  .card::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;
+    background:linear-gradient(90deg,var(--accent),#e0729a)}
+  .card .ic{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;
+    justify-content:center;font-size:calc(23px * var(--fs));background:var(--accent-soft);border:1px solid var(--accent-line)}
+  .card .nm{font-size:calc(15px * var(--fs));font-weight:700;line-height:1.3}
+  .card .ds{font-size:calc(12px * var(--fs));color:#7a6670;line-height:1.55;flex:1}
+  .card .tag{display:inline-flex;align-self:flex-start;font-size:calc(10.5px * var(--fs));font-weight:600;
+    color:var(--teal);background:#e3f3f1;border-radius:999px;padding:2px 8px}
+  .card .go{position:absolute;right:12px;bottom:12px;font-size:calc(13px * var(--fs));color:var(--accent);opacity:.55}
+  .grip{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;font-size:calc(15px * var(--fs));color:var(--muted);
+    cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;z-index:3;line-height:1}
+  .grip:active{cursor:grabbing;background:var(--line2);color:var(--accent)}
+  .grip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .card.dragging{opacity:.55;box-shadow:0 10px 30px rgba(120,60,80,.25);transform:scale(1.02);z-index:5}
+
+  .empty{text-align:center;color:var(--muted);padding:48px 20px;font-size:calc(13px * var(--fs));line-height:1.8}
+  .empty .big{font-size:calc(34px * var(--fs));margin-bottom:8px}
+
+  /* ===== Settings ===== */
+  .set-list{display:flex;flex-direction:column;gap:10px}
+  .set-row{display:flex;align-items:center;gap:12px;background:var(--panel);
+    border:1px solid var(--line);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow-sm)}
+  .set-row .ic{width:40px;height:40px;border-radius:11px;flex:0 0 auto;display:flex;
+    align-items:center;justify-content:center;font-size:20px;background:var(--accent-soft);border:1px solid var(--accent-line)}
+  .set-row .meta{flex:1;min-width:0}
+  .set-row .nm{font-size:calc(14px * var(--fs));font-weight:700}
+  .set-row .ds{font-size:calc(11px * var(--fs));color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .toggles{display:flex;gap:8px;flex:0 0 auto}
+  .tg{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .tg span{font-size:calc(9.5px * var(--fs));color:var(--muted);font-weight:600}
+  .switch{position:relative;width:42px;height:24px;flex:0 0 auto}
+  .switch input{opacity:0;width:0;height:0;position:absolute}
+  .slider{position:absolute;inset:0;background:#e7d8cf;border-radius:999px;cursor:pointer;transition:.18s}
+  .slider::before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;
+    background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.18s}
+  .switch input:checked + .slider{background:var(--accent)}
+  .switch input:checked + .slider::before{transform:translateX(18px)}
+
+  .reset{margin:18px 0 6px;width:100%;border:1px solid var(--line);background:var(--panel);
+    color:var(--ink2);border-radius:14px;padding:13px;font-size:calc(13px * var(--fs));font-weight:600;cursor:pointer;
+    box-shadow:var(--shadow-sm);user-select:none;-webkit-user-select:none}
+  .reset:active{background:var(--line2)}
+  .note{font-size:calc(11px * var(--fs));color:var(--muted);text-align:center;margin-top:10px;line-height:1.6}
+
+  /* ===== Bottom tab bar (phone menu) ===== */
+  nav{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:560px;z-index:30;
+    background:linear-gradient(180deg, rgba(255,250,243,0), rgba(255,250,243,.96) 30%);
+    padding:8px 10px calc(env(safe-area-inset-bottom) + 8px);
+  }
+  .tabbar{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    box-shadow:var(--shadow);padding:6px;gap:4px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px;min-height:50px;
+    border-radius:13px;cursor:pointer;color:var(--muted);font-size:calc(10.5px * var(--fs));font-weight:600;
+    position:relative;transition:background .15s ease,color .15s ease;user-select:none;-webkit-user-select:none}
+  .tab .ti{font-size:calc(19px * var(--fs));line-height:1}
+  .tab.active{color:var(--accent);background:var(--accent-soft)}
+  .tab .badge{position:absolute;top:2px;right:calc(50% - 22px);min-width:16px;height:16px;padding:0 4px;
+    border-radius:999px;background:var(--accent);color:#fff;font-size:calc(9px * var(--fs));font-weight:700;
+    display:flex;align-items:center;justify-content:center}
+  .tab:active{transform:scale(.95)}
+  a:focus-visible,button:focus-visible,.gear:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ===== 進階功能密碼彈窗 ===== */
+  .adv-modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    background:rgba(59,37,48,.45);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);padding:20px}
+  .adv-box{width:100%;max-width:320px;background:var(--panel);border:1px solid var(--line);
+    border-radius:18px;padding:20px;box-shadow:var(--shadow);text-align:center}
+  .adv-title{font-size:calc(16px * var(--fs));font-weight:700}
+  .adv-sub{font-size:calc(12px * var(--fs));color:var(--muted);margin:6px 0 14px;line-height:1.5}
+  .adv-input{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:calc(15px * var(--fs));
+    text-align:center;background:var(--bg);color:var(--ink);outline:none;-webkit-appearance:none}
+  .adv-input:focus{border-color:var(--accent)}
+  .adv-err{color:var(--accent);font-size:calc(12px * var(--fs));margin-top:8px}
+  .adv-btns{display:flex;gap:10px;margin-top:16px}
+  .adv-btns button{flex:1;border:none;border-radius:12px;padding:12px;font-size:calc(14px * var(--fs));font-weight:600;
+    cursor:pointer;user-select:none;-webkit-user-select:none}
+  .adv-cancel{background:var(--line2);color:var(--ink2)}
+  .adv-ok{background:var(--accent);color:#fff}
+  .adv-btns button:active{transform:scale(.97)}
+
+  /* ===== 首頁佈局（網格／列表） ===== */
+  .app.layout-list .grid{grid-template-columns:1fr;gap:10px}
+  .app.layout-list .card.list{flex-direction:row;align-items:center;min-height:0;gap:12px;padding:12px 14px}
+  .app.layout-list .card.list .ic{width:42px;height:42px;font-size:calc(22px * var(--fs));border-radius:12px;flex:0 0 auto}
+  .app.layout-list .card.list .txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .app.layout-list .card.list .nm{line-height:1.25}
+  .app.layout-list .card.list .ds{line-height:1.4}
+  .app.layout-list .card.list .go{position:static;opacity:1;flex:0 0 auto;font-weight:600}
+  .app.layout-list .grip{position:static;flex:0 0 auto;align-self:center}
+
+  /* ===== 皮膚設定 ===== */
+  .skin-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:12px}
+  .skin-row{display:flex;align-items:center;gap:12px}
+  .skin-lab{flex:0 0 auto;width:64px;font-size:calc(13px * var(--fs));font-weight:600;color:var(--ink2)}
+  .sw-row{display:flex;gap:10px;flex-wrap:wrap}
+  .sw{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;box-shadow:var(--shadow-sm)}
+  .sw.on{border-color:var(--ink);transform:scale(1.08)}
+  .sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .fs-row{display:flex;gap:8px;flex-wrap:wrap}
+  .fs-btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 14px;font-size:calc(13px * var(--fs));font-weight:600;color:var(--ink2);cursor:pointer;user-select:none;-webkit-user-select:none}
+  .fs-btn.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
+  .fs-btn:active{transform:scale(.97)}
+
+  /* ===== 首頁工具列（佈局切換） ===== */
+  .home-tools{display:flex;align-items:center;gap:10px}
+  .layout-sw{display:inline-flex;background:var(--line2);border-radius:10px;padding:2px;gap:2px}
+  .layout-sw button{border:none;background:transparent;width:32px;height:28px;border-radius:8px;
+    font-size:calc(15px * var(--fs));cursor:pointer;color:var(--ink2);display:flex;align-items:center;justify-content:center}
+  .layout-sw button.on{background:var(--panel);color:var(--accent);box-shadow:var(--shadow-sm)}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">🧰</div>
+        <div>
+          <h1>我的工具箱</h1>
+        </div>
+      </div>
+      <div class="gear" id="gearBtn" title="設定" onclick="go('settings')">⚙️</div>
+    </div>
+    <div class="fav-label"><span class="dot"></span>常用功能</div>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <main>
+    <!-- Home -->
+    <section class="view active" id="view-home">
+      <div class="sec-title">
+        <h2>應用卡片</h2>
+        <span class="home-tools">
+          <span class="hint" id="homeCount"></span>
+          <span class="layout-sw" id="layoutSw">
+            <button type="button" data-l="grid" onclick="setLayout('grid')" aria-label="網格佈局">▦</button>
+            <button type="button" data-l="list" onclick="setLayout('list')" aria-label="列表佈局">☰</button>
+          </span>
+        </span>
+      </div>
+      <div class="grid" id="homeGrid"></div>
+    </section>
+
+    <!-- All -->
+    <section class="view" id="view-all">
+      <div class="sec-title"><h2>全部應用</h2><span class="hint">資料夾內現有 HTML 工具</span></div>
+      <div class="grid" id="allGrid"></div>
+    </section>
+
+    <!-- Favorites -->
+    <section class="view" id="view-fav">
+      <div class="sec-title"><h2>常用功能</h2><span class="hint">頂部快捷列同步</span></div>
+      <div class="grid" id="favGrid"></div>
+    </section>
+
+    <!-- Settings -->
+    <section class="view" id="view-settings">
+      <div class="sec-title"><h2>設定</h2><span class="hint">選擇首頁顯示的卡片</span></div>
+      <div class="set-list" id="setList"></div>
+      <div class="sec-title" style="margin-top:20px"><h2>皮膚設定</h2><span class="hint">顏色與字型大小</span></div>
+      <div class="skin-box" id="skinBox"></div>
+      <button class="reset" onclick="resetSettings()">重設為預設顯示</button>
+      <div class="note">開啟「首頁卡片」→ 在首頁以卡片形式進入；<br>開啟「常用功能」→ 同時出現在頂部快捷列。</div>
+    </section>
+  </main>
+
+  <nav>
+    <div class="tabbar">
+      <div class="tab active" data-view="home" onclick="go('home')"><span class="ti">🏠</span>首頁</div>
+      <div class="tab" data-view="all" onclick="go('all')"><span class="ti">📚</span>全部</div>
+      <div class="tab" data-view="fav" onclick="go('fav')"><span class="ti">⭐</span>常用<span class="badge" id="favBadge" style="display:none">0</span></div>
+      <div class="tab" data-view="settings" onclick="go('settings')"><span class="ti">⚙️</span>設定</div>
+    </div>
+  </nav>
+</div>
+
+<script>
+/* ===== 資料夾中已有的 HTML 應用清單 ===== */
+const APPS = [
+  {file:'ocr.html',       name:'圖文翻譯',   icon:'🌐', desc:'拍照辨識文字並覆蓋譯文', cat:'生活', home:true,  fav:true,  adv:true },
+  {file:'voucher.html',   name:'團購券',     icon:'🎟️', desc:'管理團購優惠券',       cat:'生活', home:true,  fav:false},
+  {file:'bookmark.html',  name:'書籤管理',   icon:'🔖', desc:'收藏與整理網址書籤',     cat:'工作', home:true,  fav:false},
+  {file:'consume.html',   name:'消費連環賞', icon:'💰', desc:'簡易記錄消費券使用',     cat:'生活', home:true,  fav:false},
+  {file:'habit.html',     name:'小習慣打卡', icon:'✅', desc:'每日習慣追蹤與統計',     cat:'生活', home:true,  fav:true },
+  {file:'remember.html',  name:'記憶卡清單', icon:'🗂️', desc:'雙面列印與逐張朗讀',   cat:'工作', home:true,  fav:true },
+];
+
+const KEY = 'jless_launcher_v1';
+const ADV_KEY = 'jless_adv_v1';
+let advUnlocked = false;
+try{ advUnlocked = localStorage.getItem(ADV_KEY) === '1'; }catch(e){}
+/* 進階功能（如「圖文翻譯」）在解鎖前對所有視圖隱藏 */
+function isVisible(a){ return !(a.adv && !advUnlocked); }
+
+const ORDER_KEY = 'jless_order_v1';
+function loadOrder(){ try{ const o=JSON.parse(localStorage.getItem(ORDER_KEY)); if(Array.isArray(o)) return o; }catch(e){} return []; }
+function saveOrder(arr){ try{ localStorage.setItem(ORDER_KEY, JSON.stringify(arr)); }catch(e){} }
+
+/* ===== 皮膚（顏色＋字型大小）與首頁佈局 ===== */
+const SKIN_KEY = 'jless_skin_v1';
+const LAYOUT_KEY = 'jless_layout_v1';
+const THEMES = {
+  rose:  {accent:'#c23b6a',accent2:'#a8305c',soft:'#fdeaf2',line:'#f4c9da'},
+  blue:  {accent:'#2563eb',accent2:'#1d4ed8',soft:'#e8efff',line:'#cdddff'},
+  green: {accent:'#0f766e',accent2:'#0b5d56',soft:'#e3f3f1',line:'#bfe6e1'},
+  purple:{accent:'#7c3aed',accent2:'#6d28d9',soft:'#f1e9ff',line:'#d9c7ff'},
+  amber: {accent:'#d97706',accent2:'#b45309',soft:'#fdf0dd',line:'#f3d9a8'}
+};
+const FONTS = [{k:0,label:'小',v:0.9},{k:1,label:'中',v:1},{k:2,label:'大',v:1.15},{k:3,label:'特大',v:1.3}];
+let skin = {theme:'rose', fkey:1};
+try{ const s = JSON.parse(localStorage.getItem(SKIN_KEY)); if(s && s.theme) skin = s; }catch(e){}
+let layout = 'grid';
+try{ layout = localStorage.getItem(LAYOUT_KEY) || 'grid'; }catch(e){}
+function applySkin(){
+  const t = THEMES[skin.theme] || THEMES.rose;
+  const r = document.documentElement.style;
+  r.setProperty('--accent', t.accent);
+  r.setProperty('--accent2', t.accent2);
+  r.setProperty('--accent-soft', t.soft);
+  r.setProperty('--accent-line', t.line);
+  r.setProperty('--fs', (FONTS.find(f=>f.k===skin.fkey) || FONTS[1]).v);
+}
+function saveSkin(){ try{ localStorage.setItem(SKIN_KEY, JSON.stringify(skin)); }catch(e){} }
+function renderSkin(){
+  const sw = Object.keys(THEMES).map(k =>
+    `<span class="sw ${k===skin.theme?'on':''}" role="button" tabindex="0" data-theme="${k}" aria-label="${k}" onclick="setTheme('${k}')" style="background:${THEMES[k].accent}"></span>`
+  ).join('');
+  const fb = FONTS.map(f => `<button class="fs-btn ${f.k===skin.fkey?'on':''}" type="button" onclick="setFont(${f.k})">${f.label}</button>`).join('');
+  document.getElementById('skinBox').innerHTML =
+    `<div class="skin-row"><span class="skin-lab">顏色</span><div class="sw-row">${sw}</div></div>
+     <div class="skin-row"><span class="skin-lab">字型大小</span><div class="fs-row">${fb}</div></div>`;
+}
+function setTheme(k){ skin.theme = k; saveSkin(); applySkin(); renderSkin(); }
+function setFont(k){ skin.fkey = k; saveSkin(); applySkin(); renderSkin(); }
+function setLayout(l){
+  layout = l;
+  try{ localStorage.setItem(LAYOUT_KEY, l); }catch(e){}
+  applyLayout(); renderHome();
+}
+function applyLayout(){
+  document.getElementById('app').classList.toggle('layout-list', layout==='list');
+  document.querySelectorAll('#layoutSw button').forEach(b => b.classList.toggle('on', b.dataset.l===layout));
+}
+
+/* 讀取／寫入設定（覆寫每個 app 的 home / fav） */
+function load(){
+  let saved = {};
+  try{ saved = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){}
+  return APPS.map(a => ({
+    ...a,
+    home: (a.file in saved) ? !!saved[a.file].home : a.home,
+    fav:  (a.file in saved) ? !!saved[a.file].fav  : a.fav,
+  }));
+}
+function save(state){
+  const o = {};
+  state.forEach(a => o[a.file] = {home:a.home, fav:a.fav});
+  localStorage.setItem(KEY, JSON.stringify(o));
+}
+
+let state = load();
+
+/* ===== 渲染 ===== */
+function cardHTML(a){
+  return `<a class="card" href="${a.file}" target="_blank" rel="noopener">
+    <div class="ic">${a.icon}</div>
+    <div class="nm">${a.name}</div>
+    <span class="tag">${a.cat}</span>
+  </a>`;
+}
+function emptyHTML(text){
+  return `<div class="empty"><div class="big">📭</div>${text}</div>`;
+}
+
+/* 首頁卡片自訂排序 */
+function orderedHomeList(){
+  const home = state.filter(a => a.home && isVisible(a));
+  const order = loadOrder();
+  const rank = f => { const k = order.indexOf(f); return k < 0 ? 1e9 : k; };
+  return home.sort((a,b)=> rank(a.file) - rank(b.file));
+}
+function homeCardHTML(a){
+  const grip = `<span class="grip" title="拖動排序" aria-label="拖動排序" onpointerdown="startDrag(event,'${a.file}')" onclick="event.preventDefault();event.stopPropagation()">⋮⋮</span>`;
+  if(layout === 'list'){
+    return `<a class="card list" href="${a.file}" target="_blank" rel="noopener" data-f="${a.file}">
+      <div class="ic">${a.icon}</div>
+      <div class="txt"><div class="nm">${a.name}</div></div>
+      ${grip}
+    </a>`;
+  }
+  return `<a class="card" href="${a.file}" target="_blank" rel="noopener" data-f="${a.file}">
+    <div class="ic">${a.icon}</div>
+    <div class="nm">${a.name}</div>
+    <span class="tag">${a.cat}</span>
+    ${grip}
+  </a>`;
+}
+
+function renderChips(){
+  const favs = state.filter(a => a.fav && isVisible(a));
+  const el = document.getElementById('chips');
+  if(!favs.length){
+    el.innerHTML = `<div class="chips-empty">尚未選取常用功能。<br>到「設定」開啟「常用功能」即可在此顯示快捷列。</div>`;
+    return;
+  }
+  el.innerHTML = favs.map(a =>
+    `<a class="chip" href="${a.file}" target="_blank" rel="noopener"><span class="ci">${a.icon}</span>${a.name}</a>`
+  ).join('');
+}
+
+function renderHome(){
+  const list = orderedHomeList();
+  document.getElementById('homeCount').textContent = list.length + ' 個';
+  document.getElementById('homeGrid').innerHTML =
+    list.length ? list.map(a=>homeCardHTML(a)).join('') :
+    emptyHTML('首頁尚未顯示任何卡片。<br>請到「設定」開啟「首頁卡片」。');
+}
+function renderAll(){
+  document.getElementById('allGrid').innerHTML = state.filter(isVisible).map(cardHTML).join('');
+}
+function renderFav(){
+  const list = state.filter(a => a.fav && isVisible(a));
+  document.getElementById('favGrid').innerHTML =
+    list.length ? list.map(cardHTML).join('') :
+    emptyHTML('還沒有常用功能。<br>請到「設定」開啟「常用功能」開關。');
+}
+function renderSettings(){
+  const advRow = `<div class="set-row">
+      <div class="ic">🔓</div>
+      <div class="meta">
+        <div class="nm">開啟進階功能</div>
+        <div class="ds">以密碼解鎖</div>
+      </div>
+      <div class="toggles">
+        <label class="tg"><span>進階</span>
+          <span class="switch"><input type="checkbox" ${advUnlocked?'checked':''} onchange="toggleAdv(this.checked,this)"><span class="slider"></span></span>
+        </label>
+      </div>
+    </div>`;
+  const rows = state.map((a,idx) =>
+    isVisible(a) ? `<div class="set-row">
+      <div class="ic">${a.icon}</div>
+      <div class="meta">
+        <div class="nm">${a.name}</div>
+        <div class="ds">${a.desc} · ${a.cat}</div>
+      </div>
+      <div class="toggles">
+        <label class="tg"><span>首頁卡片</span>
+          <span class="switch"><input type="checkbox" ${a.home?'checked':''} onchange="toggle(${idx},'home',this.checked)"><span class="slider"></span></span>
+        </label>
+        <label class="tg"><span>常用功能</span>
+          <span class="switch"><input type="checkbox" ${a.fav?'checked':''} onchange="toggle(${idx},'fav',this.checked)"><span class="slider"></span></span>
+        </label>
+      </div>
+    </div>` : ''
+  ).join('');
+  document.getElementById('setList').innerHTML = advRow + rows;
+}
+function renderBadge(){
+  const n = state.filter(a => a.fav && isVisible(a)).length;
+  const b = document.getElementById('favBadge');
+  if(n){ b.style.display='flex'; b.textContent=n; } else { b.style.display='none'; }
+}
+
+function renderAllViews(){
+  renderChips(); renderHome(); renderAll(); renderFav(); renderSettings(); renderBadge(); renderSkin();
+}
+
+/* ===== 互動 ===== */
+function toggle(i, key, val){
+  state[i][key] = val;
+  save(state);
+  renderAllViews();
+}
+
+/* 首頁卡片：拖動控制點排序 */
+let dragEl=null, dragFile=null, homeGrid=null;
+function startDrag(e, file){
+  e.preventDefault();
+  const grip = e.currentTarget;
+  const card = grip.closest('.card');
+  if(!card) return;
+  dragEl = card; dragFile = file;
+  homeGrid = document.getElementById('homeGrid');
+  card.classList.add('dragging');
+  card.style.pointerEvents = 'none';
+  try{ grip.setPointerCapture(e.pointerId); }catch(err){}
+  grip.addEventListener('pointermove', onDragMove);
+  grip.addEventListener('pointerup', endDrag);
+  grip.addEventListener('pointercancel', endDrag);
+}
+function onDragMove(e){
+  if(!dragEl) return;
+  const t = homeCardAtPoint(e.clientX, e.clientY);
+  if(t){
+    const r = t.getBoundingClientRect();
+    const before = e.clientY < r.top + r.height/2;
+    if(before) homeGrid.insertBefore(dragEl, t);
+    else homeGrid.insertBefore(dragEl, t.nextSibling);
+  }
+}
+function endDrag(e){
+  if(!dragEl) return;
+  const grip = e.currentTarget;
+  grip.removeEventListener('pointermove', onDragMove);
+  grip.removeEventListener('pointerup', endDrag);
+  grip.removeEventListener('pointercancel', endDrag);
+  dragEl.classList.remove('dragging');
+  dragEl.style.pointerEvents = '';
+  const files = [];
+  homeGrid.querySelectorAll('.card').forEach(c=>{ const f=c.getAttribute('data-f'); if(f) files.push(f); });
+  const homeFiles = state.filter(a=>a.home).map(a=>a.file);
+  const order = loadOrder();
+  homeFiles.forEach(f=>{ if(!order.includes(f)) order.push(f); });
+  const nonHome = order.filter(f=>!homeFiles.includes(f));
+  const newOrder = nonHome.concat(homeFiles.filter(f=>files.includes(f)));
+  homeFiles.forEach(f=>{ if(!newOrder.includes(f)) newOrder.push(f); });
+  saveOrder(newOrder);
+  dragEl=null; dragFile=null; homeGrid=null;
+  renderHome();
+}
+function homeCardAtPoint(x,y){
+  const els = document.elementsFromPoint(x,y);
+  for(const el of els){
+    const card = el.closest ? el.closest('.card') : null;
+    if(card && card !== dragEl && card.parentNode === homeGrid) return card;
+  }
+  return null;
+}
+function resetSettings(){
+  if(!confirm('確定重設為預設顯示？')) return;
+  localStorage.removeItem(KEY);
+  localStorage.removeItem(ORDER_KEY);
+  state = load();
+  renderAllViews();
+  go('settings');
+}
+let advSwitchEl = null;
+function toggleAdv(val, el){
+  if(val){
+    advSwitchEl = el;
+    openAdvModal();
+  }else{
+    advUnlocked = false;
+    try{ localStorage.setItem(ADV_KEY,'0'); }catch(e){}
+    renderAllViews();
+  }
+}
+function openAdvModal(){
+  document.getElementById('advModal').style.display = 'flex';
+  const i = document.getElementById('advPwd');
+  i.value = ''; document.getElementById('advErr').style.display = 'none';
+  setTimeout(()=>i.focus(), 60);
+}
+function advCancel(){
+  document.getElementById('advModal').style.display = 'none';
+  if(advSwitchEl) advSwitchEl.checked = false;
+}
+function advSubmit(){
+  const i = document.getElementById('advPwd');
+  if(i.value === 'smart'){
+    advUnlocked = true;
+    try{ localStorage.setItem(ADV_KEY,'1'); }catch(e){}
+    document.getElementById('advModal').style.display = 'none';
+    renderAllViews();
+  }else{
+    document.getElementById('advErr').style.display = 'block';
+    i.select();
+  }
+}
+
+function go(view){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view===view));
+  if(view==='settings'){ const g=document.getElementById('gearBtn'); g.classList.add('spin'); setTimeout(()=>g.classList.remove('spin'),500); }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* 初始化 */
+applySkin();
+applyLayout();
+renderAllViews();
+</script>
+<div id="advModal" class="adv-modal" style="display:none">
+  <div class="adv-box">
+    <div class="adv-title">開啟進階功能</div>
+    <div class="adv-sub">請輸入密碼以解鎖進階功能</div>
+    <input id="advPwd" class="adv-input" type="password" inputmode="text" placeholder="密碼" autocomplete="off" onkeydown="if(event.key==='Enter')advSubmit()">
+    <div class="adv-err" id="advErr" style="display:none">密碼錯誤，請重試</div>
+    <div class="adv-btns">
+      <button class="adv-cancel" type="button" onclick="advCancel()">取消</button>
+      <button class="adv-ok" type="button" onclick="advSubmit()">確定</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
