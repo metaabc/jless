@@ -13,16 +13,17 @@
   gtag('config', 'G-G7H3M2VW8T');
 </script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="theme.css">
 <style>
 :root{
   /* 視覺參考「消費連環賞」：奶油底 + 桃紅 + 金黃 + 湖水綠 */
   --bg:#fbf3ea; --card:#fffdfb; --line:#f0e6df; --line-2:#e9d6c9; --txt:#3b2530; --sub:#8a6f7a;
-  --pri:#c23b6a; --pri-d:#a83258; --warn:#cf5a4c; --ok:#2e8f7e; --pin:#e0a63a;
+  --pri:var(--accent); --pri-d:var(--accent2); --warn:#cf5a4c; --ok:#2e8f7e; --pin:#e0a63a;
   --gold:#e0a63a; --green:#2e8f7e;
   --radius:16px; --r-sm:12px; --r-xs:9px;
   --hh:56px;
   --font:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Noto Sans TC","Helvetica Neue",system-ui,sans-serif;
-  --fs-scale:1;
+  --fs-scale:var(--fs,1);
   --pri-bg:rgba(194,59,106,.1);
   --sh-1:0 1px 3px rgba(180,120,90,.08);          /* 面板靜態陰影 */
   --sh-2:0 10px 28px rgba(170,110,80,.14);         /* 懸停浮起 */
@@ -471,18 +472,15 @@ body.selmode .card,body.selmode .row{cursor:pointer;touch-action:none}
 
     <div class="sec-title">🎨 外觀<span class="ln"></span><span class="reset-link" id="btnResetLook">還原預設</span></div>
 
-    <label>主題顏色（強調色）</label>
+    <label>主題顏色（與首頁共用）</label>
     <div class="swatch-row" id="swatchRow"></div>
 
     <label>字型</label>
     <select id="fFont"></select>
     <div class="font-prev">預覽：<b>書籤管理 Bookmark Manager</b> — 敏捷貓跳過懶惰狗 123</div>
 
-    <label>字型大小</label>
-    <div class="fs-row">
-      <input type="range" id="fFs" min="0.8" max="1.4" step="0.05">
-      <span class="fs-val" id="fFsVal"></span>
-    </div>
+    <label>字型大小（與首頁共用）</label>
+    <div class="fs-row" id="fsRow"></div>
 
     <div class="sec-title">📂 分類清單<span class="ln"></span></div>
     <div class="hint">分類用於頁面頂部的 Tab。每個書籤可歸屬一個或多個分類；不屬任何分類的會出現在「未分類」。</div>
@@ -664,11 +662,11 @@ function applySettings(s){
   s = s || db.settings;
   const root = document.documentElement.style;
   root.setProperty('--font', s.font);
-  root.setProperty('--fs-scale', String(s.fsScale));
-  const c = /^#[0-9a-fA-F]{6}$/.test(s.accent) ? s.accent : '#c23b6a';
-  root.setProperty('--pri', c);
-  root.setProperty('--pri-d', darkenHex(c, 0.15));
-  root.setProperty('--pri-bg', hexToRgba(c, 0.1));
+  // 主色與字型大小跟隨首頁共用皮膚（jless_skin_v1），由 theme.js / applySharedSkin 設定 --accent / --fs
+  root.setProperty('--pri', 'var(--accent)');
+  root.setProperty('--pri-d', 'var(--accent2)');
+  root.setProperty('--pri-bg', 'var(--accent-soft)');
+  root.setProperty('--fs-scale', 'var(--fs,1)');
 }
 
 /* ================= 抓取網頁（透過 CORS 代理） ================= */
@@ -1425,39 +1423,67 @@ function renderCatEditor(){
   });
 }
 document.getElementById('btnAddCat').onclick = ()=>{ tmpCats.push(''); renderCatEditor(); };
+/* ===== 共用皮膚：與首頁「我的工具箱」同步（jless_skin_v1） ===== */
+const SKIN_THEMES = {
+  rose:  {accent:'#c23b6a',accent2:'#a8305c',soft:'#fdeaf2',line:'#f4c9da'},
+  blue:  {accent:'#2563eb',accent2:'#1d4ed8',soft:'#e8efff',line:'#cdddff'},
+  green: {accent:'#0f766e',accent2:'#0b5d56',soft:'#e3f3f1',line:'#bfe6e1'},
+  purple:{accent:'#7c3aed',accent2:'#6d28d9',soft:'#f1e9ff',line:'#d9c7ff'},
+  amber: {accent:'#d97706',accent2:'#b45309',soft:'#fdf0dd',line:'#f3d9a8'}
+};
+const SKIN_FONTS = {0:0.9, 1:1, 2:1.15, 3:1.3};
+const THEME_SWATCHES = [
+  {key:'rose',color:'#c23b6a'},{key:'blue',color:'#2563eb'},{key:'green',color:'#0f766e'},
+  {key:'purple',color:'#7c3aed'},{key:'amber',color:'#d97706'}
+];
+const FS_PRESETS = [{k:0,label:'小'},{k:1,label:'中'},{k:2,label:'大'},{k:3,label:'特大'}];
+function getSkin(){ try{ return JSON.parse(localStorage.getItem('jless_skin_v1')||'{}'); }catch(e){ return {}; } }
+function setSkin(o){ try{ localStorage.setItem('jless_skin_v1', JSON.stringify(o)); }catch(e){} }
+function applySharedSkin(){
+  const sk = getSkin();
+  const t = SKIN_THEMES[sk.theme] || SKIN_THEMES.rose;
+  const r = document.documentElement.style;
+  r.setProperty('--accent', t.accent);
+  r.setProperty('--accent2', t.accent2);
+  r.setProperty('--accent-soft', t.soft);
+  r.setProperty('--accent-line', t.line);
+  const f = SKIN_FONTS[(typeof sk.fkey==='number') ? sk.fkey : 1];
+  r.setProperty('--fs', String(f == null ? 1 : f));
+  r.setAttribute('data-theme', sk.theme || 'rose');
+}
 function renderAppearance(){
+  const skin = getSkin();
+  const curTheme = skin.theme || 'rose';
+  const curFont = (typeof skin.fkey==='number') ? skin.fkey : 1;
   const s = tmpSettings;
-  // 色塊
+  // 主題顏色（與首頁共用）
   const sr = document.getElementById('swatchRow');
   sr.innerHTML = '';
-  ACCENT_PRESETS.forEach(c=>{
+  THEME_SWATCHES.forEach(t=>{
     const d = document.createElement('div');
-    d.className = 'swatch' + (s.accent.toLowerCase()===c.toLowerCase()?' sel':'');
-    d.style.background = c;
-    d.title = c;
-    d.onclick = ()=>{ s.accent = c; renderAppearance(); applySettings(s); };
+    d.className = 'swatch' + (t.key===curTheme ? ' sel' : '');
+    d.style.background = t.color; d.title = t.key;
+    d.onclick = ()=>{ const sk=getSkin(); sk.theme=t.key; setSkin(sk); applySharedSkin(); applySettings(s); };
     sr.appendChild(d);
   });
-  const cust = document.createElement('label');
-  cust.className = 'swatch custom';
-  cust.title = '自訂顏色';
-  cust.innerHTML = '<span>🎨</span><input type="color" id="fAccent" value="'+s.accent+'">';
-  sr.appendChild(cust);
-  const ci = document.getElementById('fAccent');
-  ci.addEventListener('input', e=>{ s.accent = e.target.value; renderAppearance(); applySettings(s); });
-  ci.addEventListener('change', e=>{ s.accent = e.target.value; renderAppearance(); applySettings(s); });
-  // 字型
+  // 字型大小（與首頁共用）
+  const fr = document.getElementById('fsRow');
+  fr.innerHTML = '';
+  FS_PRESETS.forEach(f=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'fs-btn' + (f.k===curFont ? ' on' : '');
+    b.textContent = f.label;
+    b.onclick = ()=>{ const sk=getSkin(); sk.fkey=f.k; setSkin(sk); applySharedSkin(); applySettings(s); };
+    fr.appendChild(b);
+  });
+  // 字型家族（本頁專屬，首頁不設）
   const fs = document.getElementById('fFont');
   if(!fs.options.length){
     FONT_OPTIONS.forEach(o=>{ const op=document.createElement('option'); op.value=o.value; op.textContent=o.label; fs.appendChild(op); });
   }
   fs.value = s.font;
   fs.onchange = ()=>{ s.font = fs.value; applySettings(s); };
-  // 字型大小
-  const rng = document.getElementById('fFs');
-  rng.value = s.fsScale;
-  document.getElementById('fFsVal').textContent = Math.round(s.fsScale*100)+'%';
-  rng.oninput = ()=>{ s.fsScale = parseFloat(rng.value); document.getElementById('fFsVal').textContent = Math.round(s.fsScale*100)+'%'; applySettings(s); };
 }
 document.getElementById('btnResetLook').onclick = ()=>{
   tmpSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
@@ -1809,6 +1835,7 @@ updateHH();
 window.addEventListener('resize', updateHH);
 
 render();
+applySharedSkin();
 applySettings();
 
 /* 首次進入手機：提示手勢操作，提升可操作性 */
@@ -1819,5 +1846,6 @@ if(isTouch && !localStorage.getItem(LS_KEY + '_tip')){
   }, 700);
 }
 </script>
+<script src="theme.js"></script>
 </body>
 </html>

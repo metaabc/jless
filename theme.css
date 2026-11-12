@@ -1,0 +1,24 @@
+/* 共用主題：讓所有工具頁與首頁「我的工具箱」共用同一套皮膚（顏色＋字型大小）
+   設定存於 localStorage 的 jless_skin_v1，由 theme.js 套用；
+   本檔提供預設值與五款主題色板，以及手機友善的全域規則。 */
+:root{
+  --bg:#fffaf3; --panel:#ffffff; --line:#f0e2d8; --line2:#f8efe7;
+  --ink:#3b2530; --ink2:#5f4b55; --muted:#967f89;
+  --accent:#c23b6a; --accent2:#a8305c; --accent-soft:#fdeaf2; --accent-line:#f4c9da;
+  --fs:1;
+}
+:root[data-theme="rose"]   {--accent:#c23b6a;--accent2:#a8305c;--accent-soft:#fdeaf2;--accent-line:#f4c9da}
+:root[data-theme="blue"]   {--accent:#2563eb;--accent2:#1d4ed8;--accent-soft:#e8efff;--accent-line:#cdddff}
+:root[data-theme="green"]  {--accent:#0f766e;--accent2:#0b5d56;--accent-soft:#e3f3f1;--accent-line:#bfe6e1}
+:root[data-theme="purple"] {--accent:#7c3aed;--accent2:#6d28d9;--accent-soft:#f1e9ff;--accent-line:#d9c7ff}
+:root[data-theme="amber"]  {--accent:#d97706;--accent2:#b45309;--accent-soft:#fdf0dd;--accent-line:#f3d9a8}
+
+*,*::before,*::after{box-sizing:border-box}
+img,svg,video,canvas{max-width:100%;height:auto}
+input,textarea,select,button{font-family:inherit}
+body{
+  overflow-x:hidden;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
+  overscroll-behavior-y:contain;touch-action:manipulation;
+  overflow-wrap:break-word;word-break:break-word;
+}
