@@ -276,7 +276,11 @@
       <div class="sec-title" style="margin-top:20px"><h2>皮膚設定</h2><span class="hint">顏色與字型大小</span></div>
       <div class="skin-box" id="skinBox"></div>
       <button class="reset" onclick="resetSettings()">重設為預設顯示</button>
-      <div class="note">開啟「首頁卡片」→ 在首頁以卡片形式進入；<br>開啟「常用功能」→ 同時出現在頂部快捷列。</div>
+      <div class="sec-title" style="margin-top:20px"><h2>資料備份</h2><span class="hint">全部應用的設定與資料</span></div>
+      <button class="reset" style="margin-top:0" onclick="exportAll()">⬇️ 匯出全部資料</button>
+      <button class="reset" onclick="importAll()">⬆️ 匯入全部資料（取代）</button>
+      <input type="file" id="allFile" accept="application/json,.json" style="display:none" onchange="onAllFile(event)">
+      <div class="note">匯出會包含本工具箱所有應用的設定與資料（一個 JSON 檔）。<br>匯入會以備份「取代」目前全部內容，匯入前請先匯出。</div>
     </section>
   </main>
 
@@ -290,15 +294,20 @@
   </nav>
 </div>
 
+<script src="backup.js"></script>
 <script>
 /* ===== 資料夾中已有的 HTML 應用清單 ===== */
 const APPS = [
-  {file:'ocr.html',       name:'圖文翻譯',   icon:'🌐', desc:'拍照辨識文字並覆蓋譯文', cat:'生活', home:true,  fav:true,  adv:true },
-  {file:'voucher.html',   name:'團購券',     icon:'🎟️', desc:'管理團購優惠券',       cat:'生活', home:true,  fav:false},
-  {file:'bookmark.html',  name:'書籤管理',   icon:'🔖', desc:'收藏與整理網址書籤',     cat:'工作', home:true,  fav:false},
-  {file:'consume.html',   name:'消費連環賞', icon:'💰', desc:'簡易記錄消費券使用',     cat:'生活', home:true,  fav:false},
-  {file:'habit.html',     name:'小習慣打卡', icon:'✅', desc:'每日習慣追蹤與統計',     cat:'生活', home:true,  fav:true },
-  {file:'remember.html',  name:'記憶卡清單', icon:'🗂️', desc:'雙面列印與逐張朗讀',   cat:'工作', home:true,  fav:true },
+  {file:'metric.html',    name:'指標',       icon:'📈', desc:'清單·目標值·趨勢',         cat:'工作', home:true,  fav:false},
+  {file:'quickbook.html', name:'記帳',   icon:'🧾', desc:'極簡操作·快速記帳',         cat:'生活', home:true,  fav:true },
+  {file:'consume.html',   name:'消費連環賞', icon:'💰', desc:'簡易記錄消費券使用',       cat:'生活', home:true,  fav:false},
+  {file:'habit.html',     name:'小習慣', icon:'✅', desc:'每日習慣追蹤與統計',         cat:'生活', home:true,  fav:true },
+  {file:'bookmark.html',  name:'書籤',   icon:'🔖', desc:'收藏與整理網址書籤',       cat:'工作', home:true,  fav:false},
+  {file:'todo.html',      name:'待辦清單',   icon:'✅', desc:'多清單·任務與附件',       cat:'工作', home:true,  fav:false},
+  {file:'remember.html',  name:'記憶卡', icon:'🗂️', desc:'雙面列印與逐張朗誦',       cat:'工作', home:true,  fav:true },
+  {file:'note.html',      name:'筆記',       icon:'📝', desc:'彩色便利貼·清單·圖片',     cat:'工作', home:true,  fav:false},
+  {file:'voucher.html',   name:'團購券',     icon:'🎟️', desc:'管理團購優惠券',           cat:'生活', home:false, fav:false},
+  {file:'ocr.html',       name:'圖文翻譯',   icon:'🌐', desc:'拍照辨識文字並覆蓋譯文',   cat:'生活', home:true,  fav:true,  adv:true },
 ];
 
 const KEY = 'jless_launcher_v1';
@@ -550,6 +559,33 @@ function resetSettings(){
   state = load();
   renderAllViews();
   go('settings');
+}
+
+/* ===== 全量備份／匯入（所有應用） ===== */
+function lbToast(msg){
+  var t=document.createElement('div');
+  t.textContent=msg; t.style.cssText='position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 90px);transform:translateX(-50%);background:rgba(40,20,30,.92);color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity .2s;max-width:86%;text-align:center';
+  document.body.appendChild(t);
+  requestAnimationFrame(function(){ t.style.opacity='1'; });
+  setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ if(t.parentNode)t.parentNode.removeChild(t); },250); },1900);
+}
+function exportAll(){
+  var n=JLessBackup.allKeys().length;
+  JLessBackup.export(null,'jless-all-backup-'+ (function(){var d=new Date();function p(x){return(x<10?'0':'')+x;}return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());})() +'.json');
+  lbToast('已匯出全部資料（'+n+' 項）');
+}
+function importAll(){
+  if(!confirm('匯入會「取代」目前所有應用的設定與資料。\n建議先「匯出全部資料」備份。確定匯入？')) return;
+  document.getElementById('allFile').click();
+}
+function onAllFile(ev){
+  var f=ev.target.files&&ev.target.files[0]; ev.target.value='';
+  if(!f) return;
+  JLessBackup.importFromFile(f, null, function(ok,msg){
+    if(!ok){ alert(msg||'匯入失敗'); return; }
+    lbToast('已匯入，重整中…');
+    setTimeout(function(){ location.reload(); }, 600);
+  });
 }
 let advSwitchEl = null;
 function toggleAdv(val, el){

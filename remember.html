@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f7f5f0">
-<title>記憶卡清單 · 雙面列印與逐張朗讀</title>
+<title>記憶卡 · 雙面列印與逐張朗讀</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='14' width='44' height='34' rx='6' fill='%23e8e2d8'/%3E%3Crect x='14' y='9' width='44' height='34' rx='6' fill='%23fffdf9' stroke='%230f766e' stroke-width='3'/%3E%3Cpath d='M23 22h26M23 30h18' stroke='%230f766e' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- ===== Google Analytics 4 · G-G7H3M2VW8T =====
      只記錄匿名功能使用次數，絕不上傳卡片文字、清單名稱或個人資料。
@@ -767,7 +767,7 @@ body.lock{overflow:hidden}
 <header class="top">
   <div class="brand">
     <span class="logo"><svg viewBox="0 0 64 64" fill="none"><rect x="6" y="15" width="42" height="33" rx="6" fill="#e8e2d8"/><rect x="15" y="9" width="42" height="33" rx="6" fill="#fffdf9" style="stroke:var(--accent)" stroke-width="3"/><path d="M24 22h25M24 30h17" style="stroke:var(--accent)" stroke-width="3" stroke-linecap="round"/></svg></span>
-    <div><h1>記憶卡清單</h1><p>逐張朗讀 · 雙面對齊列印 · Excel 匯入匯出</p></div>
+    <div><h1>記憶卡</h1><p>逐張朗讀 · 雙面對齊列印 · Excel 匯入匯出</p></div>
   </div>
   <div class="top-actions">
     <button class="btn icon hamb" id="btnHamb" aria-label="清單選單" title="清單選單">☰</button>
@@ -1195,7 +1195,7 @@ body.lock{overflow:hidden}
 <!-- ===== 清單選擇（手機底部，切換當前清單） ===== -->
 <div class="mask sheet" id="listPickSheet">
   <div class="actsheet">
-    <div class="as-head"><b>切換清單</b><span class="sub">點選要練習的記憶卡清單</span></div>
+    <div class="as-head"><b>切換清單</b><span class="sub">點選要練習的記憶卡</span></div>
     <div class="as-list" id="listPickList"></div>
     <button class="btn as-cancel" data-close="listPickSheet">取消</button>
   </div>
@@ -1255,7 +1255,7 @@ body.lock{overflow:hidden}
 
 <script>
 /* =====================================================================
-   記憶卡清單 · 完全離線單檔工具
+   記憶卡 · 完全離線單檔工具
    - XLSX：自寫 ZIP(stored) 寫入 + ZIP/Deflate 讀取，無外部程式庫
    - PDF ：Canvas 繪製中文 → JPEG → 手寫 PDF（DCTDecode 內嵌）
    ===================================================================== */
@@ -2144,9 +2144,9 @@ function buildCardsHtml(l){
     '.card.done{background:linear-gradient(180deg,#fdfffd,#f4fff4)}'+
     'footer{text-align:center;font-size:11px;color:#a59e92;margin-top:22px}'+
     '@media print{body{background:#fff;padding:0}main{gap:8px}.card{box-shadow:none;border:1px solid #ccc}}}</style></head><body>'+
-    '<header><h1>'+esc(l.name)+'</h1><p>'+l.cards.length+' 張卡 · 由「記憶卡清單」匯出</p></header>'+
+    '<header><h1>'+esc(l.name)+'</h1><p>'+l.cards.length+' 張卡 · 由「記憶卡」匯出</p></header>'+
     '<main>'+cards+'</main>'+
-    '<footer>由「記憶卡清單」工具產生</footer></body></html>';
+    '<footer>由「記憶卡」工具產生</footer></body></html>';
 }
 function exportHtml(){
   const l=cur();
@@ -2451,7 +2451,7 @@ function drawPrintPage(cv,page,o,listName){
   }
   /* footer */
   c.fillStyle='#a8a196'; c.font='500 7px '+FONT; c.textAlign='center';
-  c.fillText('記憶卡清單 · '+sideLabel+' · '+(page.side==='single'?'單面列印（縮放 100%）':'雙面列印時請選 100% 實際大小'),W/2,H-my-1);
+  c.fillText('記憶卡 · '+sideLabel+' · '+(page.side==='single'?'單面列印（縮放 100%）':'雙面列印時請選 100% 實際大小'),W/2,H-my-1);
 }
 function drawCardText(c,text,x,y,w,h,o,page,no,imgs,dx,dy){
   imgs=imgs||{}; dx=+dx||0; dy=+dy||0;
@@ -3617,5 +3617,27 @@ if(!localStorage.getItem(KEY))save();
 })();
 </script>
 <script src="theme.js"></script>
+
+<script src="backup.js"></script>
+<div id="jbBak" style="position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:60">
+  <div id="jbBakBtn" onclick="jbToggleBak()" style="width:46px;height:46px;border-radius:50%;background:#fff;border:1px solid rgba(0,0,0,.12);box-shadow:0 3px 10px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;color:#3b2530">🗂️</div>
+  <div id="jbBakPanel" style="display:none;margin-top:8px;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:10px;box-shadow:0 4px 14px rgba(0,0,0,.18);width:200px">
+    <div style="font-size:12px;color:#8b7380;margin-bottom:6px;font-weight:700">本應用備份</div>
+    <button onclick="jbExportBak()" style="display:block;width:100%;border:none;border-radius:10px;background:#c23b6a;color:#fff;padding:10px;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:6px">⬇️ 匯出備份</button>
+    <button onclick="jbImportBak()" style="display:block;width:100%;border:1px solid rgba(0,0,0,.15);border-radius:10px;background:#fff;color:#5f4b55;padding:10px;font-weight:700;font-size:13px;cursor:pointer">⬆️ 匯入備份</button>
+    <input type="file" id="jbBakFile" accept="application/json,.json" style="display:none" onchange="jbOnFile(event)">
+    <div style="font-size:10.5px;color:#8b7380;margin-top:6px;line-height:1.5">匯入會取代本應用資料；建議先匯出。</div>
+  </div>
+</div>
+<script>
+function jbToggleBak(){var p=document.getElementById('jbBakPanel');p.style.display=p.style.display==='none'?'block':'none';}
+function jbExportBak(){JLessBackup.export(['flashcard_list_v1'],'flashcard_list_v1-backup.json');}
+function jbImportBak(){document.getElementById('jbBakFile').click();}
+function jbOnFile(ev){var f=ev.target.files&&ev.target.files[0];ev.target.value='';if(!f)return;
+  JLessBackup.importFromFile(f,['flashcard_list_v1'],function(ok,msg){if(!ok){alert(msg||'匯入失敗');return;}
+    if(!confirm('匯入會取代本應用資料。確定？')){location.reload();return;}
+    var t=document.createElement('div');t.textContent='已匯入，重整中…';t.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:rgba(40,20,30,.92);color:#fff;padding:10px 16px;border-radius:10px;z-index:99;font-size:13px';document.body.appendChild(t);
+    setTimeout(function(){location.reload();},500);});}
+</script>
 </body>
 </html>

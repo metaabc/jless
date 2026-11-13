@@ -22,3 +22,14 @@ body{
   overscroll-behavior-y:contain;touch-action:manipulation;
   overflow-wrap:break-word;word-break:break-word;
 }
+
+/* 共用底部選單（各工具頁可掛載） */
+.bottombar{position:fixed;left:0;right:0;bottom:0;z-index:40;max-width:600px;margin:0 auto;display:flex;align-items:stretch;justify-content:space-around;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));box-shadow:0 -3px 16px rgba(0,0,0,.08)}
+.bottombar .bb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  font-size:calc(10px*var(--fs));font-weight:700;color:var(--muted);padding:6px 0;border-radius:12px;min-height:48px;
+  cursor:pointer;user-select:none;-webkit-user-select:none;border:none;background:none;line-height:1.1;text-align:center}
+.bottombar .bb:active{background:var(--line2)}
+.bottombar .bb .ic{font-size:19px;line-height:1}
+.bottombar .bb.primary{color:var(--accent)}

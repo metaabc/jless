@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>書籤管理</title>
+<title>書籤</title>
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-G7H3M2VW8T"></script>
 <script>
@@ -367,7 +367,7 @@ body.selmode .card,body.selmode .row{cursor:pointer;touch-action:none}
 <body>
 
 <header id="headerEl">
-  <h1>🔖 書籤管理</h1>
+  <h1>🔖 書籤</h1>
   <div class="search-wrap">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
     <input id="search" type="text" placeholder="搜尋標題、網址或標籤…">
@@ -477,7 +477,7 @@ body.selmode .card,body.selmode .row{cursor:pointer;touch-action:none}
 
     <label>字型</label>
     <select id="fFont"></select>
-    <div class="font-prev">預覽：<b>書籤管理 Bookmark Manager</b> — 敏捷貓跳過懶惰狗 123</div>
+    <div class="font-prev">預覽：<b>書籤 Bookmark Manager</b> — 敏捷貓跳過懶惰狗 123</div>
 
     <label>字型大小（與首頁共用）</label>
     <div class="fs-row" id="fsRow"></div>
@@ -1847,5 +1847,27 @@ if(isTouch && !localStorage.getItem(LS_KEY + '_tip')){
 }
 </script>
 <script src="theme.js"></script>
+
+<script src="backup.js"></script>
+<div id="jbBak" style="position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:60">
+  <div id="jbBakBtn" onclick="jbToggleBak()" style="width:46px;height:46px;border-radius:50%;background:#fff;border:1px solid rgba(0,0,0,.12);box-shadow:0 3px 10px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;color:#3b2530">🗂️</div>
+  <div id="jbBakPanel" style="display:none;margin-top:8px;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:10px;box-shadow:0 4px 14px rgba(0,0,0,.18);width:200px">
+    <div style="font-size:12px;color:#8b7380;margin-bottom:6px;font-weight:700">本應用備份</div>
+    <button onclick="jbExportBak()" style="display:block;width:100%;border:none;border-radius:10px;background:#c23b6a;color:#fff;padding:10px;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:6px">⬇️ 匯出備份</button>
+    <button onclick="jbImportBak()" style="display:block;width:100%;border:1px solid rgba(0,0,0,.15);border-radius:10px;background:#fff;color:#5f4b55;padding:10px;font-weight:700;font-size:13px;cursor:pointer">⬆️ 匯入備份</button>
+    <input type="file" id="jbBakFile" accept="application/json,.json" style="display:none" onchange="jbOnFile(event)">
+    <div style="font-size:10.5px;color:#8b7380;margin-top:6px;line-height:1.5">匯入會取代本應用資料；建議先匯出。</div>
+  </div>
+</div>
+<script>
+function jbToggleBak(){var p=document.getElementById('jbBakPanel');p.style.display=p.style.display==='none'?'block':'none';}
+function jbExportBak(){JLessBackup.export(['bookmark_mgr_v1'],'bookmark_mgr_v1-backup.json');}
+function jbImportBak(){document.getElementById('jbBakFile').click();}
+function jbOnFile(ev){var f=ev.target.files&&ev.target.files[0];ev.target.value='';if(!f)return;
+  JLessBackup.importFromFile(f,['bookmark_mgr_v1'],function(ok,msg){if(!ok){alert(msg||'匯入失敗');return;}
+    if(!confirm('匯入會取代本應用資料。確定？')){location.reload();return;}
+    var t=document.createElement('div');t.textContent='已匯入，重整中…';t.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:rgba(40,20,30,.92);color:#fff;padding:10px 16px;border-radius:10px;z-index:99;font-size:13px';document.body.appendChild(t);
+    setTimeout(function(){location.reload();},500);});}
+</script>
 </body>
 </html>
