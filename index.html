@@ -440,7 +440,20 @@ function appExtra(file){
         var tStr=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);
         var cand=lv.leaves.filter(function(x){return x.status==='plan' && x.date>=tStr;})
                           .sort(function(a,b){return a.date<b.date?-1:(a.date>b.date?1:0);})[0];
-        if(cand) return '<span class="tag">📅 '+cand.date+'</span>';
+        if(cand) return '<span class="tag">📅 安排：'+cand.date+'</span>';
+      }
+    }catch(e){}
+  }
+  if(file==='absence.html'){
+    try{
+      var ab=JSON.parse(localStorage.getItem('jless_absence_v1'));
+      if(ab&&Array.isArray(ab.records)){
+        var tot=0;
+        ab.records.forEach(function(x){
+          if(x.end && x.end>x.date){ var a=new Date(x.date+'T00:00:00'), b=new Date(x.end+'T00:00:00'); var d=Math.round((b-a)/864e5)+1; tot+= d>0?d:1; }
+          else tot+=1;
+        });
+        if(tot>0) return '<span class="tag">🤒 缺勤：'+tot+' 日</span>';
       }
     }catch(e){}
   }

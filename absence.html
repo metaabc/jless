@@ -52,12 +52,13 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
   <header><div class="topbar"><div class="title"><span class="logo">🤒</span>缺勤</div></div></header>
   <div class="content">
     <div class="summary">
-      <div class="box"><div class="v ill" id="sumIll">0</div><div class="l">因病缺勤</div></div>
-      <div class="box"><div class="v fam" id="sumFam">0</div><div class="l">親屬患病</div></div>
-      <div class="box"><div class="v tot" id="sumTot">0</div><div class="l">總計</div></div>
+      <div class="box"><div class="v ill" id="sumIll">0</div><div class="l">因病（日）</div></div>
+      <div class="box"><div class="v fam" id="sumFam">0</div><div class="l">親屬患病（日）</div></div>
+      <div class="box"><div class="v tot" id="sumTot">0</div><div class="l">總計（日）</div></div>
     </div>
     <div class="card">
-      <div class="field"><label>日期（預設今日）</label><input type="date" id="aDate"></div>
+      <div class="field"><label>開始日期（預設今日）</label><input type="date" id="aDate"></div>
+      <div class="field"><label>結束日期（留空＝單日；填寫＝一段日期）</label><input type="date" id="aEnd"></div>
       <div class="field"><label>缺勤原因</label>
         <select id="aReason">
           <option value="ill">因病缺勤</option>
@@ -94,29 +95,40 @@ var S=load();
 var half=false;
 function setHalf(h){half=h;document.getElementById('hFull').classList.toggle('on',!h);document.getElementById('hHalf').classList.toggle('on',h);}
 function initDate(){document.getElementById('aDate').value=todayStr();}
+function daysOf(r){
+  if(r.end && r.end>r.date){
+    var a=new Date(r.date+'T00:00:00'), b=new Date(r.end+'T00:00:00');
+    var d=Math.round((b-a)/864e5)+1; return d>0?d:1;
+  }
+  return 1;
+}
 function addAbsence(){
   var date=document.getElementById('aDate').value||todayStr();
+  var end=(document.getElementById('aEnd').value||'').trim();
+  if(end && end<date){var t=date;date=end;end=t;}
   var reason=document.getElementById('aReason').value;
   var note=(document.getElementById('aNote').value||'').trim();
-  S.records.push({id:uid(),date:date,reason:reason,half:half,note:note});
+  S.records.push({id:uid(),date:date,end:end,reason:reason,half:half,note:note});
   save();renderList();toast('已新增');
   document.getElementById('aNote').value='';
+  document.getElementById('aEnd').value='';
 }
 function delAbsence(id){S.records=S.records.filter(function(x){return x.id!==id;});save();renderList();}
 function renderList(){
-  var ill=S.records.filter(function(x){return x.reason==='ill';}).length;
-  var fam=S.records.filter(function(x){return x.reason==='family';}).length;
+  var ill=0,fam=0,tot=0;
+  S.records.forEach(function(x){var d=daysOf(x);tot+=d;if(x.reason==='ill')ill+=d;else if(x.reason==='family')fam+=d;});
   document.getElementById('sumIll').textContent=ill;
   document.getElementById('sumFam').textContent=fam;
-  document.getElementById('sumTot').textContent=S.records.length;
+  document.getElementById('sumTot').textContent=tot;
   var box=document.getElementById('list');
   if(!S.records.length){box.innerHTML='<div class="empty">尚無缺勤記錄。</div>';return;}
-  var arr=S.records.slice().sort(function(a,b){return a.date<b.date?1:-1;});
+  var arr=S.records.slice().sort(function(a,b){return a.date<b.date?1:(a.date>b.date?-1:0);});
   box.innerHTML='';
   arr.forEach(function(r){
     var reasonTxt=r.reason==='ill'?'因病缺勤':'因親屬患病而缺勤';
+    var dtTxt=(r.end && r.end>r.date)?(r.date+' ~ '+r.end):r.date;
     var d=document.createElement('div');d.className='item';
-    d.innerHTML='<div class="dt">'+r.date+'</div>'+
+    d.innerHTML='<div class="dt">'+dtTxt+'</div>'+
       '<div class="rs">'+(r.half?'半日 · ':'')+reasonTxt+(r.note?'<span class="h">'+esc(r.note)+'</span>':'')+'</div>'+
       '<div class="x" onclick="delAbsence(\''+r.id+'\')">✕</div>';
     box.appendChild(d);
@@ -124,9 +136,9 @@ function renderList(){
 }
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function shareAbsence(){
-  var ill=S.records.filter(function(x){return x.reason==='ill';}).length;
-  var fam=S.records.filter(function(x){return x.reason==='family';}).length;
-  var body='缺勤統計\n因病缺勤：'+ill+' 次\n因親屬患病而缺勤：'+fam+' 次\n總計：'+S.records.length+' 次';
+  var ill=0,fam=0,tot=0;
+  S.records.forEach(function(x){var d=daysOf(x);tot+=d;if(x.reason==='ill')ill+=d;else if(x.reason==='family')fam+=d;});
+  var body='缺勤統計\n因病缺勤：'+ill+' 日\n因親屬患病而缺勤：'+fam+' 日\n總計：'+tot+' 日';
   if(window.JLessShare){JLessShare.shareText('缺勤統計',body,function(ok){toast(ok?'已開啟分享':'已複製文字');});}
   else{navigator.clipboard&&navigator.clipboard.writeText(body);toast('已複製');}
 }
