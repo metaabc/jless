@@ -403,6 +403,46 @@ function appExtra(file){
       }
     }catch(e){}
   }
+  if(file==='consume.html'){
+    try{
+      var c=JSON.parse(localStorage.getItem('coupon_book_v1'));
+      if(c&&Array.isArray(c.weeks)){
+        var tot=0,used=0;
+        c.weeks.forEach(function(w){(w.cells||[]).forEach(function(cl){
+          if(!cl||(!((+cl.a||0)>0)&&!cl.f&&!cl.p)) return;
+          if(cl.p) return;                 /* 自訂/待抽不計入 */
+          var a=+cl.a||0; tot+=a; if(cl.u) used+=a;
+        });});
+        var left=tot-used;
+        if(left>0) return '<span class="tag">💰 未用券額：'+left.toLocaleString()+'</span>';
+      }
+    }catch(e){}
+  }
+  if(file==='quickbook.html'){
+    try{
+      var q=JSON.parse(localStorage.getItem('jless_quickbook_v1'));
+      if(q&&Array.isArray(q.txns)){
+        var now=new Date(),y=now.getFullYear(),mo=now.getMonth(),se=0;
+        q.txns.forEach(function(t){
+          var dd=new Date(t.ts);
+          if(dd.getFullYear()===y&&dd.getMonth()===mo&&t.type==='expense') se+=(+t.amount||0);
+        });
+        if(se>0) return '<span class="tag">🧾 本月開支：'+se.toLocaleString()+'</span>';
+      }
+    }catch(e){}
+  }
+  if(file==='leave.html'){
+    try{
+      var lv=JSON.parse(localStorage.getItem('jless_leave_v1'));
+      if(lv&&Array.isArray(lv.leaves)){
+        var t=new Date();
+        var tStr=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);
+        var cand=lv.leaves.filter(function(x){return x.status==='plan' && x.date>=tStr;})
+                          .sort(function(a,b){return a.date<b.date?-1:(a.date>b.date?1:0);})[0];
+        if(cand) return '<span class="tag">📅 下次年假：'+cand.date+'</span>';
+      }
+    }catch(e){}
+  }
   return '';
 }
 function cardHTML(a){

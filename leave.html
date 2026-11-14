@@ -42,6 +42,16 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .day.plan{background:#fff3da;color:#d97706;font-weight:800}
 .day .dot{position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7}
 .hint{font-size:calc(11.5px*var(--fs));color:var(--muted);line-height:1.6;margin:8px 2px 0}
+.list-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(120,60,80,.06);margin-top:12px}
+.list-card h3{margin:2px 0 4px;font-size:calc(14px*var(--fs));color:var(--ink2);font-weight:700}
+.lv-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line2);cursor:pointer}
+.lv-row:last-child{border-bottom:none}
+.lv-date{flex:0 0 auto;min-width:98px;font-size:calc(14px*var(--fs));font-weight:700;color:var(--ink)}
+.lv-status{flex:1;font-size:calc(13px*var(--fs));font-weight:700}
+.lv-status.used{color:var(--accent)}
+.lv-status.plan{color:#d97706}
+.lv-del{flex:0 0 auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lv-del:active{background:#fdecea;color:#cf5a4c;border-color:#f6d4ce}
 .mask{position:fixed;inset:0;background:rgba(40,20,30,.45);z-index:50;display:none;align-items:flex-end;justify-content:center}
 .mask.show{display:flex}
 .sheet{width:100%;max-width:560px;background:var(--bg);border-radius:20px 20px 0 0;max-height:88vh;overflow:auto;padding:14px 16px calc(env(safe-area-inset-bottom) + 20px);animation:up .2s ease}
@@ -82,6 +92,11 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
       <div class="week"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
       <div class="grid7" id="calGrid"></div>
       <div class="hint">點選日期可新增／修改年假。🟣 已使用　🟠 已安排（未扣減）。</div>
+    </div>
+    <div class="list-card">
+      <h3>所有年假（日期 · 狀態）</h3>
+      <div id="leaveList"></div>
+      <div class="hint" id="leaveEmpty" style="display:none">尚無年假記錄。</div>
     </div>
   </div>
 </div>
@@ -166,12 +181,34 @@ function saveDay(){
   if(!editDate)return;
   var lv=leaveOf(editDate);
   if(lv){lv.status=editStatus;}else{S.leaves.push({id:uid(),date:editDate,status:editStatus});}
-  save();renderSummary();renderCalendar();closeDay();toast('已儲存');
+  save();renderSummary();renderCalendar();renderLeaveList();closeDay();toast('已儲存');
 }
 function delDay(){
   if(!editDate)return;
   S.leaves=S.leaves.filter(function(x){return x.date!==editDate;});
-  save();renderSummary();renderCalendar();closeDay();toast('已刪除');
+  save();renderSummary();renderCalendar();renderLeaveList();closeDay();toast('已刪除');
+}
+/* 月曆下方：列出所有年假，按日期排序，點列可編輯，右側可快速刪除 */
+function renderLeaveList(){
+  var list=S.leaves.slice().sort(function(a,b){return a.date<b.date?-1:(a.date>b.date?1:0);});
+  var box=document.getElementById('leaveList');
+  var empty=document.getElementById('leaveEmpty');
+  if(!list.length){ box.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  box.innerHTML=list.map(function(x){
+    var used=x.status==='used';
+    var st=used?'已使用':'已安排';
+    var cls=used?'used':'plan';
+    return '<div class="lv-row" onclick="openDay(\''+x.date+'\')">'+
+      '<div class="lv-date">'+x.date+'</div>'+
+      '<div class="lv-status '+cls+'">'+st+'</div>'+
+      '<button class="lv-del" onclick="event.stopPropagation();delLeave(\''+x.date+'\')" title="刪除">🗑</button>'+
+    '</div>';
+  }).join('');
+}
+function delLeave(date){
+  S.leaves=S.leaves.filter(function(x){return x.date!==date;});
+  save();renderSummary();renderCalendar();renderLeaveList();toast('已刪除');
 }
 function shareLeave(){
   var used=S.leaves.filter(function(x){return x.status==='used';}).length;
@@ -183,11 +220,11 @@ function shareLeave(){
 }
 function resetLeave(){
   if(!confirm('清除所有年假記錄（額度保留）？'))return;
-  S.leaves=[];save();renderSummary();renderCalendar();toast('已清除記錄');
+  S.leaves=[];save();renderSummary();renderCalendar();renderLeaveList();toast('已清除記錄');
 }
 var toastTimer=null;
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},1800);}
-renderSummary();renderCalendar();
+renderSummary();renderCalendar();renderLeaveList();
 </script>
 </body>
 </html>

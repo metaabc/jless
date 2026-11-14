@@ -52,6 +52,14 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .field input{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-size:calc(15px*var(--fs));background:var(--bg);outline:none;color:var(--ink);-webkit-appearance:none}
 .field input:focus{border-color:var(--accent)}
 .hint{font-size:calc(11.5px*var(--fs));color:var(--muted);line-height:1.6;margin:2px 2px 8px}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  font-size:calc(13.5px*var(--fs));color:var(--ink2);font-weight:600;cursor:pointer;margin:2px 0}
+.switch-row input{width:46px;height:26px;-webkit-appearance:none;appearance:none;background:var(--line);
+  border-radius:999px;position:relative;cursor:pointer;transition:background .2s;flex:0 0 auto;margin:0}
+.switch-row input:checked{background:var(--accent)}
+.switch-row input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+  background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch-row input:checked::after{left:23px}
 .laps{list-style:none;margin:8px 0 0;padding:0;max-height:30vh;overflow:auto}
 .laps li{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--line2);font-size:calc(13.5px*var(--fs))}
 .laps li b{color:var(--accent)}
@@ -126,6 +134,16 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
       </div>
     </div>
 
+    <!-- 提示設定 -->
+    <div class="card" id="soundCard">
+      <h3>🔔 提示設定</h3>
+      <label class="switch-row" for="soundToggle">
+        <span>夠鐘播音提示（倒數／番茄結束時響一聲）</span>
+        <input type="checkbox" id="soundToggle" onchange="toggleSound(this.checked)">
+      </label>
+      <div class="hint" style="margin-bottom:0">關閉則只在畫面閃爍與彈出提示，不發聲；開啟時結束僅響一聲清脆提示。</div>
+    </div>
+
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -180,6 +198,7 @@ function stopTimer(){ if(timerId){clearInterval(timerId);timerId=null;} }
 /* ===== 控制 ===== */
 function startPause(){
   if(!running){
+    unlockAudio();   /* 在點擊手勢內解鎖音訊，確保夠鐘能發聲 */
     if(mode==='sw'){ swStart=Date.now(); }
     else if(mode==='cd'){
       if(cdDuration<=0){toast('請先設定倒數時間');return;}
@@ -214,7 +233,7 @@ function resetTimer(){
 
 /* ===== 階段結束（倒數／番茄） ===== */
 function onPhaseEnd(){
-  beep(mode==='pm'?3:2);
+  if(soundOn) chime();
   flash();
   if(mode==='cd'){
     running=false; stopTimer(); cdRemaining=0;
@@ -297,24 +316,41 @@ function setMode(m){
 }
 
 /* ===== 提示音與閃爍 ===== */
-function beep(times){
+var soundOn=(localStorage.getItem('timer_sound_v1')||'1')==='1';
+function unlockAudio(){
+  try{
+    var C=window.AudioContext||window.webkitAudioContext;
+    if(!C)return;
+    var ctx=window._ac||(window._ac=new C());
+    if(ctx.state==='suspended')ctx.resume();
+  }catch(e){}
+}
+/* 夠鐘響一聲：兩音上行清脆提示（聽感為一次的提醒） */
+function chime(){
   try{
     var C=window.AudioContext||window.webkitAudioContext;
     if(!C)return;
     var ctx=window._ac||(window._ac=new C());
     if(ctx.state==='suspended')ctx.resume();
     var t0=ctx.currentTime;
-    for(var i=0;i<(times||2);i++){
+    var notes=[660,990];
+    notes.forEach(function(f,idx){
       var o=ctx.createOscillator(),g=ctx.createGain();
-      o.type='sine';o.frequency.value=880;o.connect(g);g.connect(ctx.destination);
-      var s=t0+i*0.28;
+      o.type='sine';o.frequency.value=f;o.connect(g);g.connect(ctx.destination);
+      var s=t0+idx*0.16;
       g.gain.setValueAtTime(0.0001,s);
-      g.gain.exponentialRampToValueAtTime(0.3,s+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001,s+0.22);
-      o.start(s);o.stop(s+0.24);
-    }
+      g.gain.exponentialRampToValueAtTime(0.35,s+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,s+0.24);
+      o.start(s);o.stop(s+0.26);
+    });
   }catch(e){}
 }
+function toggleSound(v){
+  soundOn=v;
+  try{localStorage.setItem('timer_sound_v1',v?'1':'0');}catch(e){}
+  if(v) chime();   /* 開啟時即試播一聲，並解鎖音訊 */
+}
+function loadSound(){ var t=document.getElementById('soundToggle'); if(t) t.checked=soundOn; }
 function flash(){
   var c=document.getElementById('clock');
   c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash');
@@ -324,6 +360,7 @@ var toastTimer=null;
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},2000);}
 
 /* 初始化 */
+loadSound();
 setMode('sw');
 tick();
 </script>
