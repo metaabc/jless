@@ -317,32 +317,59 @@ function setMode(m){
 
 /* ===== 提示音與閃爍 ===== */
 var soundOn=(localStorage.getItem('timer_sound_v1')||'1')==='1';
-function unlockAudio(){
+/* ===== 音訊上下文（單例） ===== */
+var _ac=null;
+function getCtx(){
   try{
     var C=window.AudioContext||window.webkitAudioContext;
-    if(!C)return;
-    var ctx=window._ac||(window._ac=new C());
-    if(ctx.state==='suspended')ctx.resume();
+    if(!C)return null;
+    if(!_ac) _ac=new C();
+    return _ac;
+  }catch(e){ return null; }
+}
+/* 在「開始」手勢內解鎖音訊：建立/恢復 AudioContext，並播放極短靜音 buffer
+   以解鎖多數移動端瀏覽器（HyperOS / iOS Safari / Android Chrome）的播放限制 */
+function unlockAudio(){
+  var ctx=getCtx(); if(!ctx)return;
+  if(ctx.state==='suspended'){ try{ctx.resume();}catch(e){} }
+  try{
+    var buf=ctx.createBuffer(1,1,ctx.sampleRate);
+    var src=ctx.createBufferSource(); src.buffer=buf; src.connect(ctx.destination); src.start(0);
   }catch(e){}
 }
 /* 夠鐘響一聲：兩音上行清脆提示（聽感為一次的提醒） */
 function chime(){
+  var ctx=getCtx(); if(!ctx){ beepFallback(); return; }
+  function play(){
+    try{
+      var t0=ctx.currentTime;
+      var notes=[660,990];
+      notes.forEach(function(f,idx){
+        var o=ctx.createOscillator(),g=ctx.createGain();
+        o.type='sine';o.frequency.value=f;o.connect(g);g.connect(ctx.destination);
+        var s=t0+idx*0.16;
+        g.gain.setValueAtTime(0.0001,s);
+        g.gain.exponentialRampToValueAtTime(0.4,s+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001,s+0.24);
+        o.start(s);o.stop(s+0.26);
+      });
+    }catch(e){ beepFallback(); }
+  }
+  if(ctx.state==='suspended'){ try{ctx.resume().then(play).catch(play);}catch(e){play();} }
+  else { play(); }
+}
+/* WebAudio 不可用時的兜底：用內嵌短促 WAV 透過 <audio> 播放 */
+var _beepWav=null;
+function beepFallback(){
   try{
-    var C=window.AudioContext||window.webkitAudioContext;
-    if(!C)return;
-    var ctx=window._ac||(window._ac=new C());
-    if(ctx.state==='suspended')ctx.resume();
-    var t0=ctx.currentTime;
-    var notes=[660,990];
-    notes.forEach(function(f,idx){
-      var o=ctx.createOscillator(),g=ctx.createGain();
-      o.type='sine';o.frequency.value=f;o.connect(g);g.connect(ctx.destination);
-      var s=t0+idx*0.16;
-      g.gain.setValueAtTime(0.0001,s);
-      g.gain.exponentialRampToValueAtTime(0.35,s+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001,s+0.24);
-      o.start(s);o.stop(s+0.26);
-    });
+    if(!_beepWav){
+      // 0.4s / 880Hz 正弦波、單聲道 8kHz WAV（本機產生，base64）
+      var b64='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';
+      _beepWav=new Audio('data:audio/wav;base64,'+b64);
+      _beepWav.volume=0.6;
+    }
+    _beepWav.currentTime=0;
+    var p=_beepWav.play(); if(p&&p.catch)p.catch(function(){});
   }catch(e){}
 }
 function toggleSound(v){
