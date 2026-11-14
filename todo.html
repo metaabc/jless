@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#fffaf3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>待辦清單</title>
+<title>待辦</title>
 <link rel="stylesheet" href="theme.css">
 <style>
 *,*::before,*::after{box-sizing:border-box}
@@ -39,6 +39,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .task .ct{font-size:calc(12.5px*var(--fs));color:var(--ink2);margin-top:3px;white-space:pre-wrap;word-break:break-word}
 .task .due{display:inline-flex;align-items:center;gap:4px;font-size:calc(11px*var(--fs));font-weight:700;color:var(--muted);background:var(--line2);border-radius:999px;padding:2px 8px;margin-top:6px}
 .task .due.over{color:#cf5a4c;background:#fdecea}
+.task .pin-ic{margin-right:5px;font-size:calc(12px*var(--fs))}
 .task .atts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .task .atts img{width:54px;height:54px;object-fit:cover;border-radius:9px;border:1px solid var(--line)}
 .task .op{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
@@ -51,6 +52,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .lv-list .task{padding:9px 11px;margin-bottom:7px}
 .lv-list .task .ct{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:calc(13px*var(--fs));line-height:1.7}
+.soonbar{background:#fdecea;color:#cf5a4c;border:1px solid #f6d4ce;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:calc(13px*var(--fs));font-weight:700}
 .addbtn{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 20px);width:54px;height:54px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:26px;box-shadow:0 6px 18px rgba(120,60,80,.3);cursor:pointer;z-index:25;display:flex;align-items:center;justify-content:center}
 .addbtn:active{transform:scale(.96)}
 
@@ -94,7 +96,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 <div class="app">
   <header>
     <div class="topbar">
-      <div class="title"><span class="logo">✅</span>待辦清單</div>
+      <div class="title"><span class="logo">✅</span>待辦</div>
     </div>
   </header>
 
@@ -152,6 +154,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
     <div class="field"><label>內容</label><div id="detContent" class="det-box"></div></div>
     <div class="field"><label>到期日</label><div id="detDue" class="det-box"></div></div>
     <div class="field"><label>附件</label><div id="detAtts" class="det-att"></div></div>
+    <button class="btn ghost" id="pinBtn" onclick="togglePin()">📌 置頂</button>
     <button class="btn primary" onclick="editFromDetail()">✏️ 編輯</button>
     <button class="btn ghost" onclick="closeDetail()">關閉</button>
   </div>
@@ -202,9 +205,16 @@ function delList(id,ev){
 
 /* 任務列表 + 拖動排序 */
 var dragId=null;
+function soonCount(){
+  var t0=new Date();t0.setHours(0,0,0,0);var lim=new Date(t0.getTime()+7*864e5);var n=0;
+  S.lists.forEach(function(l){(l.tasks||[]).forEach(function(t){if(!t.done&&t.due){var dt=new Date(t.due+'T00:00:00');if(dt>=t0&&dt<=lim)n++;}});});
+  return n;
+}
 function renderTasks(){
-  var box=document.getElementById('tasks');var l=curListObj();box.innerHTML='';
+  var box=document.getElementById('tasks');var l=curListObj();
   if(!l.tasks.length){box.innerHTML='<div class="empty">這個清單還沒有任務。<br>按右下角「＋」新增。</div>';return;}
+  var n=soonCount();
+  box.innerHTML=n>0?'<div class="soonbar">⏰ 即將到期：'+n+' 項（7 日內）</div>':'';
   l.tasks.forEach(function(t){box.appendChild(taskEl(t));});
 }
 function taskEl(t){
@@ -216,7 +226,7 @@ function taskEl(t){
   var d=document.createElement('div');d.className='task lv-item'+done;d.dataset.id=t.id;
   d.innerHTML=
     '<div class="chk" onclick="toggleDone(\''+t.id+'\')">'+(t.done?'✓':'')+'</div>'+
-    '<div class="body" onclick="if(window.todoSorting)return;openDetail(\''+t.id+'\')"><div class="ti2">'+esc(t.title)+'</div>'+
+    '<div class="body" onclick="if(window.todoSorting)return;openDetail(\''+t.id+'\')"><div class="ti2">'+(t.pin?'<span class="pin-ic">📌</span>':'')+esc(t.title)+'</div>'+
     (t.content?'<div class="ct">'+esc(t.content)+'</div>':'')+due+atts+'</div>'+
     '<div class="op"><div class="lv-grip" title="拖動排序">⋮⋮</div>'+
     '<div class="x" onclick="delTask(\''+t.id+'\')">✕</div></div>';
@@ -244,6 +254,7 @@ var detId=null;
 function openDetail(id){
   var l=curListObj();var t=l.tasks.filter(function(x){return x.id===id;})[0];if(!t)return;detId=id;
   document.getElementById('detTitle').textContent=t.title;
+  document.getElementById('pinBtn').textContent=(t.pin?'📌 取消置頂':'📌 置頂');
   document.getElementById('detContent').textContent=t.content?t.content:'（無內容）';
   document.getElementById('detDue').textContent=t.due?t.due+(t.due<todayStr()&&!t.done?' · 已逾期':''):'（無）';
   var boxes='';
@@ -254,6 +265,12 @@ function openDetail(id){
 }
 function closeDetail(){document.getElementById('detMask').classList.remove('show');}
 function editFromDetail(){closeDetail();openEditor(detId);}
+function togglePin(){
+  var l=curListObj();var t=l.tasks.filter(function(x){return x.id===detId;})[0];if(!t)return;
+  t.pin=!t.pin;
+  if(t.pin){var i=l.tasks.indexOf(t);if(i>=0){l.tasks.splice(i,1);l.tasks.unshift(t);}}
+  save();renderTasks();openDetail(detId);
+}
 
 /* 編輯器 */
 function openEditor(id){
@@ -373,7 +390,7 @@ function shareTodo(){
   JLessShare.openSheet({
     title:'分享「'+l.name+'」',
     image:function(){ drawTodoImage(l,function(c){ JLessShare.shareImage(c,'todo-'+l.name+'-'+todayStr()+'.png',function(ok){toast(ok?'已開啟分享':'已儲存圖片');}); }); },
-    text:function(){ JLessShare.shareText('待辦清單 · '+l.name, todoToText(l), function(ok){toast(ok?'已開啟分享':'已複製文字');}); },
+    text:function(){ JLessShare.shareText('待辦 · '+l.name, todoToText(l), function(ok){toast(ok?'已開啟分享':'已複製文字');}); },
     excel:function(){ JLessShare.shareCSV(todoToCSV(l),'todo-'+l.name+'-'+todayStr()+'.csv', function(ok){toast(ok?'已開啟分享':'已匯出 CSV');}); }
   });
 }

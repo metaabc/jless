@@ -457,6 +457,7 @@ body.selmode .card,body.selmode .row{cursor:pointer;touch-action:none}
     <div class="suggest-tags" id="fSuggest"></div>
     <label>分類 — 可勾選多個（於設定中管理分類清單）</label>
     <div class="suggest-tags" id="fCatsSuggest"></div>
+    <label style="display:flex;align-items:center;gap:9px;font-size:calc(13px*var(--fs-scale,1));color:var(--txt);margin-top:6px;cursor:pointer;font-weight:600"><input type="checkbox" id="fHome" style="width:19px;height:19px;accent-color:var(--pri)"> 顯示於首頁「應用」下方</label>
     <div class="hint" id="fetchStatus"></div>
     <div class="modal-actions">
       <button class="btn" id="bmCancel">取消</button>
@@ -932,6 +933,7 @@ function openBookmarkModal(bm){
   document.getElementById('fTagInput').value = '';
   pickedTags = bm ? [...(bm.tags||[])] : [];
   pickedCats = bm ? [...(bm.cats||[])] : [];
+  document.getElementById('fHome').checked = !!(bm && bm.home);
   renderTagPicker();
   renderCatPicker();
   window._pendingImg = bm?.img || '';
@@ -955,6 +957,7 @@ document.getElementById('bmSave').onclick = ()=>{
     img: window._pendingImg || '',
     tags: pickedTags.map(t=>t.trim()).filter(Boolean),
     cats: pickedCats.map(t=>t.trim()).filter(Boolean),
+    home: document.getElementById('fHome').checked,
     pinned: editId ? (db.bookmarks.find(b=>b.id===editId)?.pinned || false) : false,
     seq: editId ? (db.bookmarks.find(b=>b.id===editId)?.seq ?? nextSeqTop(false)) : nextSeqTop(false),
     added: editId ? db.bookmarks.find(b=>b.id===editId).added : Date.now()

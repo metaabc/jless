@@ -41,6 +41,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .note .cli.done{color:var(--muted);text-decoration:line-through}
 .note .cli.done .cb{background:#7bbf8a;border-color:#7bbf8a}
 .note .prog{font-size:calc(11px*var(--fs));color:var(--muted);margin-top:5px;font-weight:600}
+.note .pin-ic{font-size:calc(11px*var(--fs));color:#e0a63a;font-weight:700;margin-bottom:3px}
 .note .del{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:8px;background:rgba(0,0,0,.04);color:var(--muted);display:none;align-items:center;justify-content:center;font-size:14px;cursor:pointer}
 .note:active .del{display:flex}
 .empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:calc(13px*var(--fs));line-height:1.7}
@@ -142,6 +143,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
       <input type="file" id="eFile" accept="image/*" style="display:none" onchange="onPick(event)">
       <div class="thumbs" id="eThumb"></div>
     </div>
+    <button class="btn ghost" id="pinToggleBtn" onclick="toggleEditPin()">📌 置頂</button>
     <button class="btn primary" onclick="saveEditor()">儲存</button>
     <button class="btn ghost" onclick="shareNote()">📤 分享筆記</button>
     <button class="btn ghost" onclick="closeEditor()">取消</button>
@@ -163,6 +165,19 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 <div class="toast" id="toast"></div>
 <input type="file" id="ntExcel" accept=".csv,text/csv" style="display:none" onchange="onExcelFile(event)">
 
+<!-- 匯入：選檔或貼網址 -->
+<div class="mask" id="impModal" onclick="if(event.target===this)closeImp()">
+  <div class="sheet">
+    <div class="close" onclick="closeImp()">✕</div>
+    <h3 style="margin:2px 0 12px;font-size:calc(16px*var(--fs))">匯入筆記（CSV / Excel）</h3>
+    <div class="hint">可選取本機檔案，或貼上公開 CSV 網址後匯入。欄位：清單、標題、類型、內容、項目（項目以「|」分隔）。</div>
+    <button class="btn primary" onclick="document.getElementById('ntExcel').click()">📁 選取本機檔案</button>
+    <div class="field" style="margin-top:12px"><label>或貼上網址（CSV）</label><input type="text" id="impUrl" placeholder="https://.../notes.csv"></div>
+    <button class="btn ghost" onclick="importNotesFromUrl()">🔗 由網址匯入</button>
+    <button class="btn ghost" onclick="closeImp()">取消</button>
+  </div>
+</div>
+
 <script>
 var KEY='jless_note_v1';
 var COLORS=['#ffffff','#fde7e9','#fdeccb','#eef6d8','#d7f0e6','#d8ecf7','#e7e0f7','#eceff1'];
@@ -176,7 +191,7 @@ function load(){try{var raw=localStorage.getItem(KEY);if(raw){var d=JSON.parse(r
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast('儲存失敗：可能圖片過大');}}
 var S=load();
 var curList=S.lists[0].id;
-var editId=null, editColor=COLORS[0], editCheck=false, editImg='', editItems=[];
+var editId=null, editColor=COLORS[0], editCheck=false, editImg='', editItems=[], editPin=false;
 var selMode=false, selIds={};
 
 function curListObj(){for(var i=0;i<S.lists.length;i++)if(S.lists[i].id===curList)return S.lists[i];return S.lists[0];}
@@ -210,7 +225,7 @@ function doMove(targetId){var src=curListObj(),tgt=null;for(var i=0;i<S.lists.le
 function renderNotes(){
   var box=document.getElementById('notes');var q=(document.getElementById('q').value||'').toLowerCase().trim();
   var l=curListObj();
-  var arr=l.notes.slice().sort(function(a,b){return b.ts-a.ts;});
+  var arr=l.notes.slice();
   if(q)arr=arr.filter(function(n){return (n.title+' '+(n.body||'')+' '+(n.items?n.items.map(function(i){return i.text;}).join(' '):'')).toLowerCase().indexOf(q)>=0;});
   if(!arr.length){box.innerHTML=selMode?'<div class="empty">選取模式：此清單沒有筆記</div>':(q?'<div class="empty">沒有相符的筆記</div>':'<div class="empty">這個清單還沒有筆記。<br>按右下角「＋」新增。</div>');updateSelBar();return;}
   box.innerHTML='';
@@ -220,6 +235,7 @@ function renderNotes(){
 function noteEl(n){
   var inner='';
   if(selMode)inner+='<div class="sel">'+(selIds[n.id]?'✓':'')+'</div>';
+  if(n.pin)inner+='<div class="pin-ic">📌 置頂</div>';
   var hasContent=!!(n.title||n.img||(n.items&&n.items.length)||n.body);
   if(n.title)inner+='<div class="t">'+esc(n.title)+'</div>';
   if(n.img)inner+='<img src="'+n.img+'">';
@@ -249,13 +265,15 @@ function renderPalette(){
 }
 function toggleCheckMode(){editCheck=!editCheck;document.getElementById('eCheckSwitch').classList.toggle('on',editCheck);document.getElementById('eBody').placeholder=editCheck?'每行一個項目…':'內容…';}
 function openEditor(id){
-  editId=id||null;editImg='';editItems=[];
-  if(id){var n=byId(id);if(n){document.getElementById('eTitle2').textContent='編輯筆記';document.getElementById('eTitle').value=n.title||'';editColor=n.color||'#fff';editCheck=!!(n.items&&n.items.length);editImg=n.img||'';if(editCheck){editItems=n.items.map(function(i){return {id:i.id,text:i.text,done:i.done};});document.getElementById('eBody').value=editItems.map(function(i){return i.text;}).join('\n');}else{document.getElementById('eBody').value=n.body||'';}}}
+  editId=id||null;editImg='';editItems=[];editPin=false;
+  if(id){var n=byId(id);if(n){document.getElementById('eTitle2').textContent='編輯筆記';document.getElementById('eTitle').value=n.title||'';editColor=n.color||'#fff';editCheck=!!(n.items&&n.items.length);editPin=!!n.pin;editImg=n.img||'';if(editCheck){editItems=n.items.map(function(i){return {id:i.id,text:i.text,done:i.done};});document.getElementById('eBody').value=editItems.map(function(i){return i.text;}).join('\n');}else{document.getElementById('eBody').value=n.body||'';}}}
   else{document.getElementById('eTitle2').textContent='新增筆記';document.getElementById('eTitle').value='';document.getElementById('eBody').value='';editColor='#fff';editCheck=false;}
   document.getElementById('eCheckSwitch').classList.toggle('on',editCheck);
   document.getElementById('eBody').placeholder=editCheck?'每行一個項目…':'內容…';
-  renderPalette();renderThumb();document.getElementById('editMask').classList.add('show');
+  renderPalette();renderThumb();updatePinBtn();document.getElementById('editMask').classList.add('show');
 }
+function toggleEditPin(){editPin=!editPin;updatePinBtn();}
+function updatePinBtn(){var b=document.getElementById('pinToggleBtn');if(b)b.textContent=editPin?'📌 取消置頂':'📌 置頂';}
 function closeEditor(){document.getElementById('editMask').classList.remove('show');}
 function renderThumb(){var w=document.getElementById('eThumb');w.innerHTML=editImg?'<img src="'+editImg+'"><div class="rm" onclick="clearImg()">移除圖片</div>':'';}
 function clearImg(){editImg='';renderThumb();}
@@ -268,8 +286,8 @@ function saveEditor(){
   var items=null;
   if(editCheck){items=body.split('\n').map(function(s){return s.trim();}).filter(function(s){return s;}).map(function(s,i){return {id:uid(),text:s,done:false};});if(!title&&!items.length){toast('請填寫標題或項目');return;}}
   else{if(!title&&!body.trim()&&!editImg){toast('請填寫內容');return;}}
-  if(editId){var n=byId(editId);if(n){n.title=title;n.body=editCheck?'':body.trim();n.color=editColor;n.img=editImg;n.items=items;n.ts=Date.now();}}
-  else{curListObj().notes.push({id:uid(),title:title,body:editCheck?'':body.trim(),color:editColor,img:editImg,items:items,ts:Date.now()});}
+  if(editId){var n=byId(editId);if(n){n.title=title;n.body=editCheck?'':body.trim();n.color=editColor;n.img=editImg;n.items=items;n.pin=editPin;n.ts=Date.now();var l=curListObj();var idx=l.notes.indexOf(n);if(editPin&&idx>=0){l.notes.splice(idx,1);l.notes.unshift(n);}}}
+  else{var nl=curListObj();var note={id:uid(),title:title,body:editCheck?'':body.trim(),color:editColor,img:editImg,items:items,pin:editPin,ts:Date.now()};if(editPin)nl.notes.unshift(note);else nl.notes.push(note);}
   save();closeEditor();renderNotes();toast('已儲存');
 }
 
@@ -361,43 +379,52 @@ function parseCSV(text){
   if(field!==''||row.length){row.push(field);rows.push(row);}
   return rows;
 }
+function importNotesExcel(){document.getElementById('impModal').classList.add('show');var u=document.getElementById('impUrl');if(u)u.value='';}
+function closeImp(){document.getElementById('impModal').classList.remove('show');}
+function importNotesFromText(text){
+  try{
+    var rows=parseCSV(text);
+    if(!rows.length){toast('檔案沒有資料');return;}
+    var head=rows[0].map(function(h){return String(h||'').trim();});
+    var cols={title:-1,body:-1,items:-1,list:-1};
+    head.forEach(function(h,i){
+      if(h.indexOf('標題')>=0)cols.title=i;
+      else if(h.indexOf('清單')>=0)cols.list=i;
+      else if(h.indexOf('項目')>=0)cols.items=i;
+      else if(h.indexOf('內容')>=0)cols.body=i;
+    });
+    var start=(cols.title>=0||cols.body>=0||cols.list>=0)?1:0;
+    var added=0;
+    for(var i2=start;i2<rows.length;i2++){
+      var parts=rows[i2];
+      if(!parts||!parts.length)continue;
+      var listName=cols.list>=0?(parts[cols.list]||'').trim():'';
+      var title=cols.title>=0?(parts[cols.title]||'').trim():'';
+      var body=cols.body>=0?(parts[cols.body]||'').trim():'';
+      var itemsStr=cols.items>=0?(parts[cols.items]||'').trim():'';
+      if(!title&&!body&&!itemsStr)continue;
+      var target=curListObj();
+      if(listName){var found=null;for(var k=0;k<S.lists.length;k++){if(S.lists[k].name===listName){found=S.lists[k];break;}}if(!found){found={id:uid(),name:listName.slice(0,20),notes:[]};S.lists.push(found);}target=found;}
+      var items=null;
+      if(itemsStr){items=itemsStr.split('|').map(function(s){s=String(s).trim();if(!s)return null;var done=s.indexOf('✓')===0;return {id:uid(),text:s.replace(/^✓\s*/,''),done:done};}).filter(Boolean);}
+      target.notes.push({id:uid(),title:title,body:items?body:(body||''),color:'#fff',img:'',items:items,ts:Date.now()});
+      added++;
+    }
+    save();renderTabs();renderNotes();
+    toast(added?('已匯入 '+added+' 則筆記'):'沒有可匯入的資料');
+  }catch(e){alert('匯入失敗：'+e.message);}
+}
 function onExcelFile(ev){
   var f=ev.target.files&&ev.target.files[0];ev.target.value='';if(!f)return;
   var r=new FileReader();
-  r.onload=function(){
-    try{
-      var rows=parseCSV(r.result||'');
-      if(!rows.length){toast('檔案沒有資料');return;}
-      var head=rows[0].map(function(h){return String(h||'').trim();});
-      var cols={title:-1,body:-1,items:-1,list:-1};
-      head.forEach(function(h,i){
-        if(h.indexOf('標題')>=0)cols.title=i;
-        else if(h.indexOf('清單')>=0)cols.list=i;
-        else if(h.indexOf('項目')>=0)cols.items=i;
-        else if(h.indexOf('內容')>=0)cols.body=i;
-      });
-      var start=(cols.title>=0||cols.body>=0||cols.list>=0)?1:0;
-      var added=0;
-      for(var i2=start;i2<rows.length;i2++){
-        var parts=rows[i2];
-        if(!parts||!parts.length)continue;
-        var listName=cols.list>=0?(parts[cols.list]||'').trim():'';
-        var title=cols.title>=0?(parts[cols.title]||'').trim():'';
-        var body=cols.body>=0?(parts[cols.body]||'').trim():'';
-        var itemsStr=cols.items>=0?(parts[cols.items]||'').trim():'';
-        if(!title&&!body&&!itemsStr)continue;
-        var target=curListObj();
-        if(listName){var found=null;for(var k=0;k<S.lists.length;k++){if(S.lists[k].name===listName){found=S.lists[k];break;}}if(!found){found={id:uid(),name:listName.slice(0,20),notes:[]};S.lists.push(found);}target=found;}
-        var items=null;
-        if(itemsStr){items=itemsStr.split('|').map(function(s){s=String(s).trim();if(!s)return null;var done=s.indexOf('✓')===0;return {id:uid(),text:s.replace(/^✓\s*/,''),done:done};}).filter(Boolean);}
-        target.notes.push({id:uid(),title:title,body:items?body:(body||''),color:'#fff',img:'',items:items,ts:Date.now()});
-        added++;
-      }
-      save();renderTabs();renderNotes();
-      toast(added?('已匯入 '+added+' 則筆記'):'沒有可匯入的資料');
-    }catch(e){alert('匯入失敗：'+e.message);}
-  };
+  r.onload=function(){ importNotesFromText(r.result||''); };
   r.readAsText(f,'utf-8');
+}
+function importNotesFromUrl(){
+  var url=document.getElementById('impUrl').value.trim();
+  if(!url){toast('請先貼上網址');return;}
+  toast('取得中…');
+  fetch(url).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(function(t){closeImp();importNotesFromText(t);}).catch(function(e){alert('無法取得網址內容：'+((e&&e.message)||e));});
 }
 function shareNote(){
   if(!window.JLessShare){toast('分享模組未載入');return;}

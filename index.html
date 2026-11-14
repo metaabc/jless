@@ -71,23 +71,6 @@
   .gear.spin{animation:spin .5s ease}
   @keyframes spin{to{transform:rotate(90deg)}}
 
-  .fav-label{display:flex;align-items:center;gap:6px;margin:12px 2px 6px;font-size:calc(12px * var(--fs));color:var(--muted);font-weight:600}
-  .fav-label .dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
-  .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none;
-    scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
-  .chips::-webkit-scrollbar{display:none}
-  .chip{
-    flex:0 0 auto;display:flex;align-items:center;gap:7px;min-height:38px;
-    background:var(--panel);border:1px solid var(--line);border-radius:999px;
-    padding:7px 14px 7px 10px;font-size:calc(13px * var(--fs));font-weight:600;color:var(--ink2);
-    text-decoration:none;box-shadow:var(--shadow-sm);white-space:nowrap;
-    line-height:1;user-select:none;-webkit-user-select:none;scroll-snap-align:start;
-    transition:transform .1s ease,border-color .1s ease;
-  }
-  .chip:active{transform:scale(.96)}
-  .chip .ci{font-size:calc(16px * var(--fs))}
-  .chips-empty{font-size:calc(12px * var(--fs));color:var(--muted);padding:6px 4px;line-height:1.6}
-
   /* ===== Views ===== */
   main{padding:16px}
   .view{display:none;animation:fade .22s ease}
@@ -98,12 +81,10 @@
   .sec-title .hint{font-size:calc(11px * var(--fs));color:var(--muted)}
 
   /* ===== Card grid ===== */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px}
-  @media (max-width:380px){
-    .grid{gap:12px}
-    .card{padding:13px}
-    .card .ic{width:40px;height:40px;font-size:21px;border-radius:12px}
-  }
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  @media (min-width:480px){.grid{grid-template-columns:repeat(3,1fr)}}
+  @media (min-width:680px){.grid{grid-template-columns:repeat(4,1fr)}}
+  @media (max-width:360px){.grid{gap:10px}}
   .card{
     position:relative;display:flex;flex-direction:column;gap:9px;
     background:var(--panel);border:1px solid var(--line);border-radius:18px;
@@ -120,12 +101,16 @@
   .card .ds{font-size:calc(12px * var(--fs));color:#7a6670;line-height:1.55;flex:1}
   .card .tag{display:inline-flex;align-self:flex-start;font-size:calc(10.5px * var(--fs));font-weight:600;
     color:var(--teal);background:#e3f3f1;border-radius:999px;padding:2px 8px}
+  .card .soon{display:inline-flex;align-self:flex-start;font-size:calc(10.5px * var(--fs));font-weight:700;
+    color:#cf5a4c;background:#fdecea;border-radius:999px;padding:2px 8px}
   .card .go{position:absolute;right:12px;bottom:12px;font-size:calc(13px * var(--fs));color:var(--accent);opacity:.55}
   .grip{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;
-    display:flex;align-items:center;justify-content:center;font-size:calc(15px * var(--fs));color:var(--muted);
+    display:none;align-items:center;justify-content:center;font-size:calc(15px * var(--fs));color:var(--muted);
     cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;z-index:3;line-height:1}
   .grip:active{cursor:grabbing;background:var(--line2);color:var(--accent)}
   .grip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .app.sorting .grip{display:flex}
+  .app.sorting .card{touch-action:none}
   .card.dragging{opacity:.55;box-shadow:0 10px 30px rgba(120,60,80,.25);transform:scale(1.02);z-index:5}
 
   .empty{text-align:center;color:var(--muted);padding:48px 20px;font-size:calc(13px * var(--fs));line-height:1.8}
@@ -218,11 +203,15 @@
   .fs-btn:active{transform:scale(.97)}
 
   /* ===== 首頁工具列（佈局切換） ===== */
-  .home-tools{display:flex;align-items:center;gap:10px}
+  .home-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .layout-sw{display:inline-flex;background:var(--line2);border-radius:10px;padding:2px;gap:2px}
   .layout-sw button{border:none;background:transparent;width:32px;height:28px;border-radius:8px;
     font-size:calc(15px * var(--fs));cursor:pointer;color:var(--ink2);display:flex;align-items:center;justify-content:center}
   .layout-sw button.on{background:var(--panel);color:var(--accent);box-shadow:var(--shadow-sm)}
+  .sort-btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:0 12px;height:32px;
+    font-size:calc(13px * var(--fs));font-weight:600;color:var(--ink2);cursor:pointer;user-select:none;-webkit-user-select:none}
+  .sort-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .sort-btn:active{transform:scale(.97)}
 </style>
 </head>
 <body>
@@ -237,24 +226,25 @@
       </div>
       <div class="gear" id="gearBtn" title="設定" onclick="go('settings')">⚙️</div>
     </div>
-    <div class="fav-label"><span class="dot"></span>常用功能</div>
-    <div class="chips" id="chips"></div>
   </header>
 
   <main>
     <!-- Home -->
     <section class="view active" id="view-home">
       <div class="sec-title">
-        <h2>應用卡片</h2>
+        <h2>應用</h2>
         <span class="home-tools">
           <span class="hint" id="homeCount"></span>
           <span class="layout-sw" id="layoutSw">
             <button type="button" data-l="grid" onclick="setLayout('grid')" aria-label="網格佈局">▦</button>
             <button type="button" data-l="list" onclick="setLayout('list')" aria-label="列表佈局">☰</button>
           </span>
+          <button type="button" class="sort-btn" id="sortBtn" onclick="toggleSort()">⇅ 排序</button>
         </span>
       </div>
       <div class="grid" id="homeGrid"></div>
+      <div class="sec-title" id="bmSecTitle" style="margin-top:22px;display:none"><h2>書籤</h2></div>
+      <div class="grid" id="bmGrid"></div>
     </section>
 
     <!-- All -->
@@ -299,14 +289,19 @@
 /* ===== 資料夾中已有的 HTML 應用清單 ===== */
 const APPS = [
   {file:'metric.html',    name:'指標',       icon:'📈', desc:'清單·目標值·趨勢',         cat:'工作', home:true,  fav:false},
-  {file:'quickbook.html', name:'記帳',   icon:'🧾', desc:'極簡操作·快速記帳',         cat:'生活', home:true,  fav:true },
+  {file:'quickbook.html', name:'記帳',   icon:'🧾', desc:'極簡操作·快速記帳',         cat:'生活', home:true,  fav:false},
   {file:'consume.html',   name:'消費連環賞', icon:'💰', desc:'簡易記錄消費券使用',       cat:'生活', home:true,  fav:false},
   {file:'habit.html',     name:'小習慣', icon:'✅', desc:'每日習慣追蹤與統計',         cat:'生活', home:true,  fav:true },
   {file:'bookmark.html',  name:'書籤',   icon:'🔖', desc:'收藏與整理網址書籤',       cat:'工作', home:true,  fav:false},
-  {file:'todo.html',      name:'待辦清單',   icon:'✅', desc:'多清單·任務與附件',       cat:'工作', home:true,  fav:false},
+  {file:'todo.html',      name:'待辦',   icon:'✅', desc:'多清單·任務與附件',       cat:'工作', home:true,  fav:false},
   {file:'remember.html',  name:'記憶卡', icon:'🗂️', desc:'雙面列印與逐張朗誦',       cat:'工作', home:true,  fav:true },
   {file:'note.html',      name:'筆記',       icon:'📝', desc:'彩色便利貼·清單·圖片',     cat:'工作', home:true,  fav:false},
   {file:'voucher.html',   name:'團購券',     icon:'🎟️', desc:'管理團購優惠券',           cat:'生活', home:false, fav:false},
+  {file:'calc.html',      name:'計算器',     icon:'🧮', desc:'租金回報率·定期計算',       cat:'工具', home:false, fav:false},
+  {file:'leave.html',     name:'年假',       icon:'🏖️', desc:'年假額度·月曆排休',         cat:'工具', home:false, fav:false},
+  {file:'absence.html',   name:'缺勤',       icon:'🤒', desc:'病假與親屬照料缺勤',       cat:'工具', home:false, fav:false},
+  {file:'excel.html',     name:'Excel',      icon:'📊', desc:'CSV匯入·篩選統計打標籤',     cat:'工具', home:false, fav:false},
+  {file:'timer.html',     name:'計時',       icon:'⏱️', desc:'計時·倒數·番茄鐘',           cat:'工具', home:false, fav:false},
   {file:'ocr.html',       name:'圖文翻譯',   icon:'🌐', desc:'拍照辨識文字並覆蓋譯文',   cat:'生活', home:true,  fav:true,  adv:true },
 ];
 
@@ -386,11 +381,27 @@ function save(state){
 let state = load();
 
 /* ===== 渲染 ===== */
+function appExtra(file){
+  if(file==='todo.html'){
+    try{
+      var d=JSON.parse(localStorage.getItem('jless_todo_v1'));
+      if(d&&Array.isArray(d.lists)){
+        var t0=new Date(); t0.setHours(0,0,0,0);
+        var lim=new Date(t0.getTime()+7*864e5);
+        var n=0;
+        d.lists.forEach(function(l){(l.tasks||[]).forEach(function(t){ if(!t.done&&t.due){ var dt=new Date(t.due+'T00:00:00'); if(dt>=t0&&dt<=lim) n++; } });});
+        if(n>0) return '<span class="soon">⏰ 即將到期：'+n+' 項</span>';
+      }
+    }catch(e){}
+  }
+  return '';
+}
 function cardHTML(a){
-  return `<a class="card" href="${a.file}" target="_blank" rel="noopener">
+  return `<a class="card" href="${a.file}" onclick="if(window.homeSorting){event.preventDefault();return false;}">
     <div class="ic">${a.icon}</div>
     <div class="nm">${a.name}</div>
     <span class="tag">${a.cat}</span>
+    ${appExtra(a.file)}
   </a>`;
 }
 function emptyHTML(text){
@@ -405,40 +416,58 @@ function orderedHomeList(){
   return home.sort((a,b)=> rank(a.file) - rank(b.file));
 }
 function homeCardHTML(a){
-  const grip = `<span class="grip" title="拖動排序" aria-label="拖動排序" onpointerdown="startDrag(event,'${a.file}')" onclick="event.preventDefault();event.stopPropagation()">⋮⋮</span>`;
+  const grip = `<span class="grip" title="拖動排序" aria-label="拖動排序">⋮⋮</span>`;
+  const pd = `onpointerdown="if(window.homeSorting)startDrag(event,'${a.file}')"`;
   if(layout === 'list'){
-    return `<a class="card list" href="${a.file}" target="_blank" rel="noopener" data-f="${a.file}">
+    return `<a class="card list" href="${a.file}" onclick="if(window.homeSorting){event.preventDefault();return false;}" ${pd} data-f="${a.file}">
       <div class="ic">${a.icon}</div>
-      <div class="txt"><div class="nm">${a.name}</div></div>
+      <div class="txt"><div class="nm">${a.name}</div>${appExtra(a.file)}</div>
       ${grip}
     </a>`;
   }
-  return `<a class="card" href="${a.file}" target="_blank" rel="noopener" data-f="${a.file}">
+  return `<a class="card" href="${a.file}" onclick="if(window.homeSorting){event.preventDefault();return false;}" ${pd} data-f="${a.file}">
     <div class="ic">${a.icon}</div>
     <div class="nm">${a.name}</div>
     <span class="tag">${a.cat}</span>
+    ${appExtra(a.file)}
     ${grip}
   </a>`;
 }
 
-function renderChips(){
-  const favs = state.filter(a => a.fav && isVisible(a));
-  const el = document.getElementById('chips');
-  if(!favs.length){
-    el.innerHTML = `<div class="chips-empty">尚未選取常用功能。<br>到「設定」開啟「常用功能」即可在此顯示快捷列。</div>`;
-    return;
-  }
-  el.innerHTML = favs.map(a =>
-    `<a class="chip" href="${a.file}" target="_blank" rel="noopener"><span class="ci">${a.icon}</span>${a.name}</a>`
-  ).join('');
+var homeSorting=false;
+function toggleSort(){
+  homeSorting=!homeSorting;
+  document.getElementById('app').classList.toggle('sorting',homeSorting);
+  var b=document.getElementById('sortBtn');
+  b.classList.toggle('active',homeSorting);
+  b.textContent=homeSorting?'完成':'⇅ 排序';
+  window.homeSorting=homeSorting;
 }
 
+function hEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function renderBookmarks(){
+  var sec=document.getElementById('bmSecTitle'), grid=document.getElementById('bmGrid');
+  var items=[];
+  try{
+    var d=JSON.parse(localStorage.getItem('bookmark_mgr_v1'));
+    if(d&&Array.isArray(d.bookmarks)) items=d.bookmarks.filter(function(b){return b&&b.home&&b.url;});
+  }catch(e){}
+  if(!items.length){ sec.style.display='none'; grid.innerHTML=''; return; }
+  sec.style.display='flex';
+  items.sort(function(a,b){return (a.seq||0)-(b.seq||0);});
+  grid.innerHTML=items.map(function(b){
+    var host=''; try{host=new URL(b.url).hostname.replace(/^www\./,'');}catch(e){host=b.url;}
+    var ic = b.img ? '<div class="ic" style="background:transparent;border:none;overflow:hidden"><img src="'+hEsc(b.img)+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px" onerror="this.style.display=\'none\'"></div>' : '<div class="ic">🌐</div>';
+    return '<a class="card" href="'+hEsc(b.url)+'" target="_blank" rel="noopener">'+ic+'<div class="nm">'+hEsc(b.title||host)+'</div><span class="tag">'+hEsc(host)+'</span></a>';
+  }).join('');
+}
 function renderHome(){
   const list = orderedHomeList();
   document.getElementById('homeCount').textContent = list.length + ' 個';
   document.getElementById('homeGrid').innerHTML =
     list.length ? list.map(a=>homeCardHTML(a)).join('') :
     emptyHTML('首頁尚未顯示任何卡片。<br>請到「設定」開啟「首頁卡片」。');
+  renderBookmarks();
 }
 function renderAll(){
   document.getElementById('allGrid').innerHTML = state.filter(isVisible).map(cardHTML).join('');
@@ -488,7 +517,7 @@ function renderBadge(){
 }
 
 function renderAllViews(){
-  renderChips(); renderHome(); renderAll(); renderFav(); renderSettings(); renderBadge(); renderSkin();
+  renderHome(); renderAll(); renderFav(); renderSettings(); renderBadge(); renderSkin();
 }
 
 /* ===== 互動 ===== */
@@ -498,40 +527,38 @@ function toggle(i, key, val){
   renderAllViews();
 }
 
-/* 首頁卡片：拖動控制點排序 */
+/* 首頁卡片：拖動整張卡片排序（排序模式下） */
 let dragEl=null, dragFile=null, homeGrid=null;
 function startDrag(e, file){
+  if(!window.homeSorting) return;
   e.preventDefault();
-  const grip = e.currentTarget;
-  const card = grip.closest('.card');
+  const card = (e.currentTarget.classList && e.currentTarget.classList.contains('card'))
+    ? e.currentTarget : e.currentTarget.closest('.card');
   if(!card) return;
   dragEl = card; dragFile = file;
   homeGrid = document.getElementById('homeGrid');
   card.classList.add('dragging');
-  card.style.pointerEvents = 'none';
-  try{ grip.setPointerCapture(e.pointerId); }catch(err){}
-  grip.addEventListener('pointermove', onDragMove);
-  grip.addEventListener('pointerup', endDrag);
-  grip.addEventListener('pointercancel', endDrag);
+  document.addEventListener('pointermove', onDragMove, {passive:false});
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
 }
 function onDragMove(e){
   if(!dragEl) return;
+  e.preventDefault();
   const t = homeCardAtPoint(e.clientX, e.clientY);
-  if(t){
+  if(t && t !== dragEl){
     const r = t.getBoundingClientRect();
     const before = e.clientY < r.top + r.height/2;
     if(before) homeGrid.insertBefore(dragEl, t);
     else homeGrid.insertBefore(dragEl, t.nextSibling);
   }
 }
-function endDrag(e){
+function endDrag(){
   if(!dragEl) return;
-  const grip = e.currentTarget;
-  grip.removeEventListener('pointermove', onDragMove);
-  grip.removeEventListener('pointerup', endDrag);
-  grip.removeEventListener('pointercancel', endDrag);
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup', endDrag);
+  document.removeEventListener('pointercancel', endDrag);
   dragEl.classList.remove('dragging');
-  dragEl.style.pointerEvents = '';
   const files = [];
   homeGrid.querySelectorAll('.card').forEach(c=>{ const f=c.getAttribute('data-f'); if(f) files.push(f); });
   const homeFiles = state.filter(a=>a.home).map(a=>a.file);
