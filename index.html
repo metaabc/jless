@@ -107,7 +107,7 @@
   .card.list .txt{flex:1 1 auto;min-width:0}
   .grip{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;
     display:none;align-items:center;justify-content:center;font-size:calc(15px * var(--fs));color:var(--muted);
-    cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;z-index:3;line-height:1}
+    cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;z-index:3;line-height:1;pointer-events:none}
   .grip:active{cursor:grabbing;background:var(--line2);color:var(--accent)}
   .grip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .app.sorting .grip{display:flex}
@@ -406,7 +406,7 @@ function appExtra(file){
   return '';
 }
 function cardHTML(a){
-  return `<a class="card" href="${a.file}" onclick="if(window.homeSorting){event.preventDefault();return false;}">
+  return `<a class="card" href="${a.file}" target="_blank" rel="noopener" onclick="if(window.homeSorting){event.preventDefault();return false;}">
     <div class="ic">${a.icon}</div>
     <div class="nm">${a.name}</div>
     ${appExtra(a.file)}
@@ -427,13 +427,13 @@ function homeCardHTML(a){
   const grip = `<span class="grip" title="拖動排序" aria-label="拖動排序">⋮⋮</span>`;
   const pd = `onpointerdown="if(window.homeSorting)startDrag(event,'${a.file}')"`;
   if(layout === 'list'){
-    return `<a class="card list" href="${a.file}" onclick="if(window.homeSorting){event.preventDefault();return false;}" ${pd} data-f="${a.file}">
+    return `<a class="card list" href="${a.file}" target="_blank" rel="noopener" onclick="if(window.homeSorting){event.preventDefault();return false;}" ${pd} data-f="${a.file}">
       <div class="ic">${a.icon}</div>
       <div class="txt"><div class="nm">${a.name}</div>${appExtra(a.file)}</div>
       ${grip}
     </a>`;
   }
-  return `<a class="card" href="${a.file}" onclick="if(window.homeSorting){event.preventDefault();return false;}" ${pd} data-f="${a.file}">
+  return `<a class="card" href="${a.file}" target="_blank" rel="noopener" onclick="if(window.homeSorting){event.preventDefault();return false;}" ${pd} data-f="${a.file}">
     <div class="ic">${a.icon}</div>
     <div class="nm">${a.name}</div>
     ${appExtra(a.file)}
@@ -474,7 +474,7 @@ function renderChips(){
   if(!list.length){ el.style.display='none'; el.innerHTML=''; return; }
   el.style.display='flex';
   el.innerHTML = list.map(a =>
-    '<a class="chip" href="'+a.file+'"><span class="ci">'+a.icon+'</span>'+a.name+'</a>'
+    '<a class="chip" href="'+a.file+'" target="_blank" rel="noopener"><span class="ci">'+a.icon+'</span>'+a.name+'</a>'
   ).join('');
 }
 function renderHome(){
@@ -528,9 +528,8 @@ function renderSettings(){
   document.getElementById('setList').innerHTML = advRow + rows;
 }
 function renderBadge(){
-  const n = state.filter(a => a.fav && isVisible(a)).length;
   const b = document.getElementById('favBadge');
-  if(n){ b.style.display='flex'; b.textContent=n; } else { b.style.display='none'; }
+  if(b) b.style.display='none';
 }
 
 function renderAllViews(){
@@ -582,7 +581,7 @@ function endDrag(){
   const order = loadOrder();
   homeFiles.forEach(f=>{ if(!order.includes(f)) order.push(f); });
   const nonHome = order.filter(f=>!homeFiles.includes(f));
-  const newOrder = nonHome.concat(homeFiles.filter(f=>files.includes(f)));
+  const newOrder = nonHome.concat(files.filter(f=>homeFiles.includes(f)));
   homeFiles.forEach(f=>{ if(!newOrder.includes(f)) newOrder.push(f); });
   saveOrder(newOrder);
   dragEl=null; dragFile=null; homeGrid=null;

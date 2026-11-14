@@ -99,20 +99,10 @@ h1{
   font-variant-numeric:tabular-nums;
   white-space:nowrap;
 }
-.hstat .hs-k{
-  font-size:1em;
-  font-weight:700;
-  color:#b07d96;
-  letter-spacing:0;
-}
 .hstat b{font-size:1em;font-weight:800;letter-spacing:0}
 .hstat .hs-u b{color:var(--green)}
 .hstat .hs-t b{color:var(--accent)}
 .hstat .hs-sep{color:#d8c8cf;font-weight:600}
-/* 窄機（≤388）：先收起「累計」標籤騰位，其餘仍保持與標題同級 */
-@media (max-width:388px){
-  .hstat .hs-k{display:none}
-}
 /* 超窄機（≤340）：略收間距（字級已由 clamp 自動下調） */
 @media (max-width:340px){
   .hstat{gap:4px;padding-left:5px}
@@ -301,9 +291,7 @@ h1{
 }
 .sum-sub:empty{display:none}
 .sum-sub b{color:var(--ink2);font-weight:800}
-/* 金額單位（MOP$）前綴：與數字同基線、字級較小，提升清晰但不搶眼 */
-.sum-val .cur{font-size:calc(13px * var(--fs,1));font-weight:700;color:var(--muted);margin-right:1px;letter-spacing:0}
-.hcur{font-size:.72em;font-weight:700;color:#b07d96;margin-right:1px}
+/* 金額不附加 MOP$ 前綴，讓數字佔更寬空間、更易讀 */
 /* 超窄機（≤340）再收一級，確保兩組金額不擠壓 */
 @media (max-width:340px){
   .sum-row{gap:8px}
@@ -1226,10 +1214,9 @@ h1{
   <header>
     <h1>消費連環賞</h1>
     <div class="hstat" id="hStat">
-      <span class="hs-k">累計</span>
-      <span class="hs-u">已消 <span class="hcur">MOP$</span><b id="vAllUsed">0</b></span>
+      <span class="hs-u">累計 <b id="vAllUsed">0</b></span>
       <span class="hs-sep">/</span>
-      <span class="hs-t">抽到 <span class="hcur">MOP$</span><b id="vAllTotal">0</b></span>
+      <span class="hs-t"><b id="vAllTotal">0</b></span>
     </div>
   </header>
 
@@ -1237,11 +1224,11 @@ h1{
     <div class="sum-row">
       <div class="sum-item remain">
         <span class="sum-label">未用券額</span>
-        <span class="sum-val"><span class="cur">MOP$</span><b id="vRemain">0</b></span>
+        <span class="sum-val"><b id="vRemain">0</b></span>
       </div>
       <div class="sum-item total">
         <span class="sum-label">抽到總額</span>
-        <span class="sum-val"><span class="cur">MOP$</span><b id="vTotal">0</b></span>
+        <span class="sum-val"><b id="vTotal">0</b></span>
       </div>
     </div>
     <div class="sum-foot">
@@ -1378,15 +1365,15 @@ h1{
   <div class="stat4">
     <div class="st">
       <div class="l">抽到總額</div>
-      <div class="n" id="sTotal">MOP$0</div>
+      <div class="n" id="sTotal">0</div>
     </div>
     <div class="st">
       <div class="l">已消總額</div>
-      <div class="n" id="sUsed">MOP$0</div>
+      <div class="n" id="sUsed">0</div>
     </div>
     <div class="st">
       <div class="l">未用券額</div>
-      <div class="n g" id="sRemain">MOP$0</div>
+      <div class="n g" id="sRemain">0</div>
     </div>
     <div class="st">
       <div class="l">滿減券（張）</div>
@@ -1395,7 +1382,7 @@ h1{
   </div>
   <div class="sec">按支付方式抽券統計</div>
   <div id="payTable"></div>
-  <div class="foot-note" id="statsNote">全部週次合計 · 金額單位 MOP$ · 滿減券不計入總額</div>
+  <div class="foot-note" id="statsNote">全部週次合計 · 滿減券不計入總額</div>
   <div class="stats-bar">
     <button class="btn ghost" id="statsImgBtn" type="button">分享累計圖</button>
   </div>
@@ -1412,7 +1399,7 @@ h1{
     <h3>分享本週表格</h3>
     <button class="x" data-close>✕</button>
   </div>
-  <div class="lbl" id="expInfo">本週 · MOP$0</div>
+  <div class="lbl" id="expInfo">本週 · 0</div>
   <div class="exp-preview" id="expPreview">
     <img id="expImgEl" alt="本週表格圖片">
     <div class="exp-btns">
@@ -1755,7 +1742,7 @@ function renderSummary(){
   });
   $('vAllUsed').textContent=money(allU);
   $('vAllTotal').textContent=money(allT);
-  $('hStat').title='全部 '+S.weeks.length+' 週累計：已消 MOP$'+money(allU)+'／抽到 MOP$'+money(allT);
+  $('hStat').title='全部 '+S.weeks.length+' 週累計：'+money(allU)+'／'+money(allT);
 
   $('vRemain').textContent=money(remain);
   $('vTotal').textContent=money(total);
@@ -1763,7 +1750,7 @@ function renderSummary(){
   $('vBarUsed').style.width=usedPct.toFixed(1)+'%';
   /* 未記錄時不顯示副標（不留「尚未…」字樣） */
   $('vSub').innerHTML=total>0
-    ? '已消 <b>MOP$'+money(used)+'</b>　'+Math.round(usedPct)+'%'
+    ? '已消 <b>'+money(used)+'</b>　'+Math.round(usedPct)+'%'
     : '';
   /* 待抽／滿減：有才顯示，避免干擾 */
   $('metaRow').style.display=(pend||full)?'flex':'none';
@@ -1779,7 +1766,7 @@ function renderSummary(){
   var note=$('hNote');
   if(hCnt>0){
     note.style.display='block';
-    note.textContent='另有 '+hCnt+' 筆在已隱藏的渠道 · MOP$'+money(hSum)+'（已計入總額）';
+    note.textContent='另有 '+hCnt+' 筆在已隱藏的渠道 · '+money(hSum)+'（已計入總額）';
   }else{
     note.style.display='none';
   }
@@ -2069,7 +2056,7 @@ var AMT_ITEMS=[
 function itemLabel(it){
   if(it.p) return '待抽獎';
   if(it.f) return '滿減';
-  return 'MOP$'+num(it.a);
+  return num(it.a);
 }
 function itemCls(it){
   if(it.p) return 'pending';
@@ -2451,9 +2438,9 @@ function renderStats(){
     });
   });
 
-  $('sTotal').textContent='MOP$'+money(agg.t);
-  $('sUsed').textContent='MOP$'+money(agg.u);
-  $('sRemain').textContent='MOP$'+money(agg.t-agg.u);
+  $('sTotal').textContent=money(agg.t);
+  $('sUsed').textContent=money(agg.u);
+  $('sRemain').textContent=money(agg.t-agg.u);
   $('sFull').textContent=agg.f+' 張';
   $('statsNote').textContent='共 '+S.weeks.length+' 週 · '+agg.c+' 筆金額券'+(agg.p?' · 待抽 '+agg.p+' 次':'')+' · 按抽到總額由高到低 · 滿減券另計，不計入金額';
 
@@ -2519,7 +2506,7 @@ function buildCSV(){
   var out=[];
   out.push(csvLine(['消費連環賞 · 匯出時間 '+stampRead()]));
   out.push('');
-  out.push(csvLine(['週次','支付方式','第幾次','金額(MOP)','狀態','滿減券','錄入時間']));
+  out.push(csvLine(['週次','支付方式','第幾次','金額','狀態','滿減券','錄入時間']));
   S.weeks.forEach(function(w){
     for(var pi=0;pi<PAYS.length;pi++){
       for(var k=0;k<PER;k++){
@@ -2551,7 +2538,7 @@ function buildCSV(){
 function buildText(){
   var w=curW(),g=weekAgg(w),out=[];
   out.push('消費連環賞　'+w.name);
-  out.push('抽到 MOP$'+num(g.t)+'　已消 MOP$'+num(g.u)+'　未用 MOP$'+num(g.left)+'　滿減 '+g.f+' 張');
+  out.push('抽到 '+num(g.t)+'　已消 '+num(g.u)+'　未用 '+num(g.left)+'　滿減 '+g.f+' 張');
   out.push('');
   visiblePays(w).forEach(function(pi){
     var parts=[];
@@ -2708,7 +2695,7 @@ function buildImage(){
   ctx.textAlign='left';
   ctx.fillStyle='#b0a49b';
   ctx.font='11px '+IMG_FONT;
-  ctx.fillText('已消 MOP$'+money(g.u)+'　'+Math.round(pct*100)+'%',barX+barW+11,barY+4);
+  ctx.fillText('已消 '+money(g.u)+'　'+Math.round(pct*100)+'%',barX+barW+11,barY+4);
 
   var luckyN=0;
   w.cells.forEach(function(c){ if(hasVal(c)&&(+c.a||0)>=LUCKY_MIN) luckyN++; });
@@ -2989,13 +2976,13 @@ function buildStatsImage(){
   ctx.fillStyle='#967f89'; ctx.font='11.5px '+IMG_FONT;
   ctx.fillText('抽到總額',PAD+18,cyy+26);
   ctx.fillStyle='#3b2530'; ctx.font='700 34px '+IMG_FONT;
-  ctx.fillText('MOP$'+money(agg.t),PAD+18,cyy+64);
+  ctx.fillText(money(agg.t),PAD+18,cyy+64);
 
   ctx.textAlign='right';
   ctx.fillStyle='#967f89'; ctx.font='11px '+IMG_FONT;
-  ctx.fillText('已消 MOP$'+money(agg.u),W-PAD-18,cyy+42);
+  ctx.fillText('已消 '+money(agg.u),W-PAD-18,cyy+42);
   ctx.fillStyle='#4a7f66'; ctx.font='600 12px '+IMG_FONT;
-  ctx.fillText('未用券額 MOP$'+money(agg.t-agg.u),W-PAD-18,cyy+68);
+  ctx.fillText('未用券額 '+money(agg.t-agg.u),W-PAD-18,cyy+68);
 
   /* 按支付條形 */
   var sy=cyy+HERO+22;
@@ -3058,7 +3045,7 @@ function makeShareImage(){
   imgURL=cv.toDataURL('image/png');
   $('expImgEl').src=imgURL;
   var w=curW(),g=weekAgg(w);
-  $('expInfo').textContent=w.name+'　·　MOP$'+num(g.t)+'　·　共 '+S.weeks.length+' 週 · '+g.n+' 筆';
+  $('expInfo').textContent=w.name+'　·　'+num(g.t)+'　·　共 '+S.weeks.length+' 週 · '+g.n+' 筆';
 }
 function imgFile(){
   var blob=curImgBlob();
