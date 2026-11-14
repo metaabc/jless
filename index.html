@@ -103,6 +103,7 @@
     color:var(--teal);background:#e3f3f1;border-radius:999px;padding:2px 8px;flex:1 1 100%}
   .card .soon{display:inline-flex;align-self:flex-start;font-size:calc(10.5px * var(--fs));font-weight:700;
     color:#cf5a4c;background:#fdecea;border-radius:999px;padding:2px 8px;flex:1 1 100%}
+  .card .xarea{display:flex;flex-wrap:wrap;align-items:center;flex:1 1 100%;min-height:20px;row-gap:6px}
   .card .go{position:absolute;right:12px;bottom:12px;font-size:calc(13px * var(--fs));color:var(--accent);opacity:.55}
   .card.list .txt{flex:1 1 auto;min-width:0}
   .grip{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;
@@ -414,7 +415,7 @@ function appExtra(file){
           var a=+cl.a||0; tot+=a; if(cl.u) used+=a;
         });});
         var left=tot-used;
-        if(left>0) return '<span class="tag">💰 未用券額：'+left.toLocaleString()+'</span>';
+        if(left>0) return '<span class="tag">💰 未用：'+left.toLocaleString()+'</span>';
       }
     }catch(e){}
   }
@@ -427,7 +428,7 @@ function appExtra(file){
           var dd=new Date(t.ts);
           if(dd.getFullYear()===y&&dd.getMonth()===mo&&t.type==='expense') se+=(+t.amount||0);
         });
-        if(se>0) return '<span class="tag">🧾 本月開支：'+se.toLocaleString()+'</span>';
+        if(se>0) return '<span class="tag">🧾 開支：'+se.toLocaleString()+'</span>';
       }
     }catch(e){}
   }
@@ -439,7 +440,7 @@ function appExtra(file){
         var tStr=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);
         var cand=lv.leaves.filter(function(x){return x.status==='plan' && x.date>=tStr;})
                           .sort(function(a,b){return a.date<b.date?-1:(a.date>b.date?1:0);})[0];
-        if(cand) return '<span class="tag">📅 下次年假：'+cand.date+'</span>';
+        if(cand) return '<span class="tag">📅 安排：'+cand.date+'</span>';
       }
     }catch(e){}
   }
@@ -449,7 +450,7 @@ function cardHTML(a){
   return `<a class="card" href="${a.file}" target="_blank" rel="noopener" onclick="if(window.homeSorting){event.preventDefault();return false;}">
     <div class="ic">${a.icon}</div>
     <div class="nm">${a.name}</div>
-    ${appExtra(a.file)}
+    <div class="xarea">${appExtra(a.file)}</div>
   </a>`;
 }
 function emptyHTML(text){
@@ -469,14 +470,14 @@ function homeCardHTML(a){
   if(layout === 'list'){
     return `<a class="card list" href="${a.file}" target="_blank" rel="noopener" onclick="if(window.homeSorting){event.preventDefault();return false;}" ${pd} data-f="${a.file}">
       <div class="ic">${a.icon}</div>
-      <div class="txt"><div class="nm">${a.name}</div>${appExtra(a.file)}</div>
+      <div class="txt"><div class="nm">${a.name}</div><div class="xarea">${appExtra(a.file)}</div></div>
       ${grip}
     </a>`;
   }
   return `<a class="card" href="${a.file}" target="_blank" rel="noopener" onclick="if(window.homeSorting){event.preventDefault();return false;}" ${pd} data-f="${a.file}">
     <div class="ic">${a.icon}</div>
     <div class="nm">${a.name}</div>
-    ${appExtra(a.file)}
+    <div class="xarea">${appExtra(a.file)}</div>
     ${grip}
   </a>`;
 }

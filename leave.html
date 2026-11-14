@@ -35,7 +35,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
 .week div{text-align:center;font-size:calc(11px*var(--fs));color:var(--muted);font-weight:700;padding:4px 0}
 .grid7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.day{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;font-size:calc(13px*var(--fs));color:var(--ink2);cursor:pointer;position:relative;background:var(--bg);border:1px solid transparent}
+.day{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;font-size:calc(13px*var(--fs));line-height:1;color:var(--ink2);cursor:pointer;position:relative;background:var(--bg);border:1px solid transparent}
 .day.other{color:#cdbcc4;background:transparent}
 .day.today{border-color:var(--accent);font-weight:800}
 .day.used{background:var(--accent-soft);color:var(--accent);font-weight:800}
@@ -163,7 +163,7 @@ function renderCalendar(){
     (function(dt){cell.onclick=function(){openDay(dt);};})(date);
     grid.appendChild(cell);
   }
-  var totalCells=startWd+days;var tail=(7-totalCells%7)%7;
+  var totalCells=startWd+days;var tail=42-totalCells;if(tail<0)tail+=7;
   for(var k=0;k<tail;k++){var d2=document.createElement('div');d2.className='day other';d2.textContent=k+1;grid.appendChild(d2);}
 }
 function openDay(date){
