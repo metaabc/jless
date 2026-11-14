@@ -440,7 +440,7 @@ function appExtra(file){
         var tStr=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);
         var cand=lv.leaves.filter(function(x){return x.status==='plan' && x.date>=tStr;})
                           .sort(function(a,b){return a.date<b.date?-1:(a.date>b.date?1:0);})[0];
-        if(cand) return '<span class="tag">📅 安排：'+cand.date+'</span>';
+        if(cand) return '<span class="tag">📅 '+cand.date+'</span>';
       }
     }catch(e){}
   }
