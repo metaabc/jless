@@ -338,8 +338,15 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
   function gtag(){dataLayer.push(arguments);}   // 提前定義，確保頁面載入前也能排隊事件
   gtag('js', new Date());
   gtag('config', 'G-G7H3M2VW8T', {
-    send_page_view: true,
-    anonymize_ip: true
+    send_page_view: false,
+    anonymize_ip: true,
+    page_location: 'https://jless.local/ocr.html',
+    page_title: document.title || 'ocr.html'
+  });
+  gtag('event', 'page_view', {
+    page_title: document.title || 'ocr.html',
+    page_path: '/ocr.html',
+    page_location: 'https://jless.local/ocr.html'
   });
   // 輕量事件輔助：即使 gtag 尚未載入也可安全呼叫
   function gaEvent(name, params){
