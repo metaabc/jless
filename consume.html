@@ -1354,6 +1354,14 @@ h1{
   </div>
   <div class="chips-tip" id="weekTip">目前共 10 週</div>
 
+  <div class="sec">本應用備份</div>
+  <div style="display:flex;gap:8px;margin-top:7px">
+    <button class="btn ghost" type="button" onclick="jbExportBak()" style="flex:1">⬇️ 匯出備份</button>
+    <button class="btn ghost" type="button" onclick="jbImportBak()" style="flex:1">⬆️ 匯入備份</button>
+  </div>
+  <input type="file" id="jbBakFile" accept="application/json,.json" style="display:none" onchange="jbOnFile(event)">
+  <div class="chips-tip">匯入會取代本應用資料；建議先匯出。</div>
+
   <div class="ver">版本 2026-11-09 · 點支付名編輯三格券數　·　設定內可調次序<br>綠＝未用　紅＝未用且 ≥50　灰＝已消</div>
   </div>
 </div>
@@ -3517,18 +3525,7 @@ try{
 <script src="theme.js"></script>
 
 <script src="backup.js"></script>
-<div id="jbBak" style="position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:60">
-  <div id="jbBakBtn" onclick="jbToggleBak()" style="width:46px;height:46px;border-radius:50%;background:#fff;border:1px solid rgba(0,0,0,.12);box-shadow:0 3px 10px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;color:#3b2530">🗂️</div>
-  <div id="jbBakPanel" style="display:none;margin-top:8px;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:10px;box-shadow:0 4px 14px rgba(0,0,0,.18);width:200px">
-    <div style="font-size:12px;color:#8b7380;margin-bottom:6px;font-weight:700">本應用備份</div>
-    <button onclick="jbExportBak()" style="display:block;width:100%;border:none;border-radius:10px;background:#c23b6a;color:#fff;padding:10px;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:6px">⬇️ 匯出備份</button>
-    <button onclick="jbImportBak()" style="display:block;width:100%;border:1px solid rgba(0,0,0,.15);border-radius:10px;background:#fff;color:#5f4b55;padding:10px;font-weight:700;font-size:13px;cursor:pointer">⬆️ 匯入備份</button>
-    <input type="file" id="jbBakFile" accept="application/json,.json" style="display:none" onchange="jbOnFile(event)">
-    <div style="font-size:10.5px;color:#8b7380;margin-top:6px;line-height:1.5">匯入會取代本應用資料；建議先匯出。</div>
-  </div>
-</div>
 <script>
-function jbToggleBak(){var p=document.getElementById('jbBakPanel');p.style.display=p.style.display==='none'?'block':'none';}
 function jbExportBak(){JLessBackup.export(['coupon_book_v1'],'coupon_book_v1-backup.json');}
 function jbImportBak(){document.getElementById('jbBakFile').click();}
 function jbOnFile(ev){var f=ev.target.files&&ev.target.files[0];ev.target.value='';if(!f)return;

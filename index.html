@@ -86,24 +86,25 @@
   @media (min-width:680px){.grid{grid-template-columns:repeat(4,1fr)}}
   @media (max-width:360px){.grid{gap:10px}}
   .card{
-    position:relative;display:flex;flex-direction:column;gap:9px;
+    position:relative;display:flex;flex-wrap:wrap;align-items:center;column-gap:10px;row-gap:6px;
     background:var(--panel);border:1px solid var(--line);border-radius:18px;
     padding:14px;box-shadow:var(--shadow);text-decoration:none;color:inherit;
     transition:transform .12s ease, box-shadow .12s ease;
-    overflow:hidden;min-height:120px;user-select:none;-webkit-user-select:none;
+    overflow:hidden;min-height:84px;user-select:none;-webkit-user-select:none;
   }
   .card:active{transform:translateY(2px) scale(.985);box-shadow:var(--shadow-sm)}
   .card::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;
     background:linear-gradient(90deg,var(--accent),#e0729a)}
   .card .ic{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;
-    justify-content:center;font-size:calc(23px * var(--fs));background:var(--accent-soft);border:1px solid var(--accent-line)}
-  .card .nm{font-size:calc(15px * var(--fs));font-weight:700;line-height:1.3}
+    justify-content:center;font-size:calc(23px * var(--fs));background:var(--accent-soft);border:1px solid var(--accent-line);flex:0 0 auto}
+  .card .nm{font-size:calc(15px * var(--fs));font-weight:700;line-height:1.3;flex:1 1 auto;min-width:48px;align-self:center}
   .card .ds{font-size:calc(12px * var(--fs));color:#7a6670;line-height:1.55;flex:1}
   .card .tag{display:inline-flex;align-self:flex-start;font-size:calc(10.5px * var(--fs));font-weight:600;
-    color:var(--teal);background:#e3f3f1;border-radius:999px;padding:2px 8px}
+    color:var(--teal);background:#e3f3f1;border-radius:999px;padding:2px 8px;flex:1 1 100%}
   .card .soon{display:inline-flex;align-self:flex-start;font-size:calc(10.5px * var(--fs));font-weight:700;
-    color:#cf5a4c;background:#fdecea;border-radius:999px;padding:2px 8px}
+    color:#cf5a4c;background:#fdecea;border-radius:999px;padding:2px 8px;flex:1 1 100%}
   .card .go{position:absolute;right:12px;bottom:12px;font-size:calc(13px * var(--fs));color:var(--accent);opacity:.55}
+  .card.list .txt{flex:1 1 auto;min-width:0}
   .grip{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;
     display:none;align-items:center;justify-content:center;font-size:calc(15px * var(--fs));color:var(--muted);
     cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;z-index:3;line-height:1}
@@ -115,6 +116,13 @@
 
   .empty{text-align:center;color:var(--muted);padding:48px 20px;font-size:calc(13px * var(--fs));line-height:1.8}
   .empty .big{font-size:calc(34px * var(--fs));margin-bottom:8px}
+
+  /* ===== 常用快捷列（首頁上方，無標題） ===== */
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 13px 8px 9px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow-sm);font-size:calc(13px * var(--fs));font-weight:600;white-space:nowrap}
+  .chip:active{background:var(--line2)}
+  .chip .ci{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:calc(15px * var(--fs));background:var(--accent-soft);border:1px solid var(--accent-line)}
 
   /* ===== Settings ===== */
   .set-list{display:flex;flex-direction:column;gap:10px}
@@ -231,6 +239,7 @@
   <main>
     <!-- Home -->
     <section class="view active" id="view-home">
+      <div class="chips" id="chips"></div>
       <div class="sec-title">
         <h2>應用</h2>
         <span class="home-tools">
@@ -289,13 +298,13 @@
 /* ===== 資料夾中已有的 HTML 應用清單 ===== */
 const APPS = [
   {file:'metric.html',    name:'指標',       icon:'📈', desc:'清單·目標值·趨勢',         cat:'工作', home:true,  fav:false},
-  {file:'quickbook.html', name:'記帳',   icon:'🧾', desc:'極簡操作·快速記帳',         cat:'生活', home:true,  fav:false},
+  {file:'quickbook.html', name:'記帳',   icon:'🧾', desc:'極簡操作·快速記帳',         cat:'生活', home:true,  fav:true},
   {file:'consume.html',   name:'消費連環賞', icon:'💰', desc:'簡易記錄消費券使用',       cat:'生活', home:true,  fav:false},
   {file:'habit.html',     name:'小習慣', icon:'✅', desc:'每日習慣追蹤與統計',         cat:'生活', home:true,  fav:true },
   {file:'bookmark.html',  name:'書籤',   icon:'🔖', desc:'收藏與整理網址書籤',       cat:'工作', home:true,  fav:false},
-  {file:'todo.html',      name:'待辦',   icon:'✅', desc:'多清單·任務與附件',       cat:'工作', home:true,  fav:false},
+  {file:'todo.html',      name:'待辦',   icon:'✅', desc:'多清單·任務與附件',       cat:'工作', home:true,  fav:true},
   {file:'remember.html',  name:'記憶卡', icon:'🗂️', desc:'雙面列印與逐張朗誦',       cat:'工作', home:true,  fav:true },
-  {file:'note.html',      name:'筆記',       icon:'📝', desc:'彩色便利貼·清單·圖片',     cat:'工作', home:true,  fav:false},
+  {file:'note.html',      name:'筆記',       icon:'📝', desc:'彩色便利貼·清單·圖片',     cat:'工作', home:true,  fav:true},
   {file:'voucher.html',   name:'團購券',     icon:'🎟️', desc:'管理團購優惠券',           cat:'生活', home:false, fav:false},
   {file:'calc.html',      name:'計算器',     icon:'🧮', desc:'租金回報率·定期計算',       cat:'工具', home:false, fav:false},
   {file:'leave.html',     name:'年假',       icon:'🏖️', desc:'年假額度·月曆排休',         cat:'工具', home:false, fav:false},
@@ -400,7 +409,6 @@ function cardHTML(a){
   return `<a class="card" href="${a.file}" onclick="if(window.homeSorting){event.preventDefault();return false;}">
     <div class="ic">${a.icon}</div>
     <div class="nm">${a.name}</div>
-    <span class="tag">${a.cat}</span>
     ${appExtra(a.file)}
   </a>`;
 }
@@ -428,7 +436,6 @@ function homeCardHTML(a){
   return `<a class="card" href="${a.file}" onclick="if(window.homeSorting){event.preventDefault();return false;}" ${pd} data-f="${a.file}">
     <div class="ic">${a.icon}</div>
     <div class="nm">${a.name}</div>
-    <span class="tag">${a.cat}</span>
     ${appExtra(a.file)}
     ${grip}
   </a>`;
@@ -461,6 +468,15 @@ function renderBookmarks(){
     return '<a class="card" href="'+hEsc(b.url)+'" target="_blank" rel="noopener">'+ic+'<div class="nm">'+hEsc(b.title||host)+'</div><span class="tag">'+hEsc(host)+'</span></a>';
   }).join('');
 }
+function renderChips(){
+  const list = state.filter(a => a.fav && isVisible(a));
+  const el = document.getElementById('chips');
+  if(!list.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='flex';
+  el.innerHTML = list.map(a =>
+    '<a class="chip" href="'+a.file+'"><span class="ci">'+a.icon+'</span>'+a.name+'</a>'
+  ).join('');
+}
 function renderHome(){
   const list = orderedHomeList();
   document.getElementById('homeCount').textContent = list.length + ' 個';
@@ -468,6 +484,7 @@ function renderHome(){
     list.length ? list.map(a=>homeCardHTML(a)).join('') :
     emptyHTML('首頁尚未顯示任何卡片。<br>請到「設定」開啟「首頁卡片」。');
   renderBookmarks();
+  renderChips();
 }
 function renderAll(){
   document.getElementById('allGrid').innerHTML = state.filter(isVisible).map(cardHTML).join('');
