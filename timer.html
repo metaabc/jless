@@ -343,16 +343,19 @@ function chime(){
   function play(){
     try{
       var t0=ctx.currentTime;
+      var total=5.0;          /* 持續約 5 秒，確保聽得見 */
+      var step=0.5;           /* 每 0.5 秒一聲，兩音交替 */
       var notes=[660,990];
-      notes.forEach(function(f,idx){
+      for(var t=0; t<total; t+=step){
+        var f=notes[Math.round(t/step)%notes.length];
         var o=ctx.createOscillator(),g=ctx.createGain();
         o.type='sine';o.frequency.value=f;o.connect(g);g.connect(ctx.destination);
-        var s=t0+idx*0.16;
+        var s=t0+t;
         g.gain.setValueAtTime(0.0001,s);
-        g.gain.exponentialRampToValueAtTime(0.4,s+0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001,s+0.24);
-        o.start(s);o.stop(s+0.26);
-      });
+        g.gain.exponentialRampToValueAtTime(0.4,s+0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001,s+0.22);
+        o.start(s);o.stop(s+0.24);
+      }
     }catch(e){ beepFallback(); }
   }
   if(ctx.state==='suspended'){ try{ctx.resume().then(play).catch(play);}catch(e){play();} }
