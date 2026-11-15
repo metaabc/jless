@@ -77,6 +77,10 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .ph .sbtn.pick.on{background:var(--accent);border-color:#fff;font-weight:800;font-size:15px}
 .ph.picked{outline:3px solid var(--accent);outline-offset:-3px}
 .ly-compact .sbtn.share,.ly-compact .fav{display:none}
+/* 拖拉選取：防止誤觸原生圖片拖曳與文字選取 */
+.dragging .gal .ph{user-select:none;-webkit-user-select:none}
+.dragging .gal img{-webkit-user-drag:none;user-select:none;-webkit-user-select:none}
+.dragging .gal{cursor:crosshair}
 /* 選取模式工具列 */
 .selbtn{border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:9px 14px;font-size:calc(12.5px * var(--fs));
   font-weight:700;color:var(--ink2);cursor:pointer;user-select:none;-webkit-user-select:none;white-space:nowrap}
@@ -93,6 +97,20 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .selbar button:disabled{opacity:.5}
 body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 
+/* 相簿管理列 */
+.mrow{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-bottom:8px}
+.mrow .mn{flex:1;min-width:0;font-weight:700;font-size:calc(13px * var(--fs));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow .mx{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.mrow .mx:active{background:var(--line2)}
+.kl{font-size:calc(10.5px * var(--fs));color:var(--muted);font-weight:400}
+/* 相簿切換列 */
+.albtabs{display:flex;gap:7px;overflow-x:auto;padding:12px 16px 2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.albtabs::-webkit-scrollbar{display:none}
+.albtabs .at{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:999px;
+  padding:7px 13px;font-size:calc(12.5px * var(--fs));font-weight:700;cursor:pointer;white-space:nowrap;user-select:none;-webkit-user-select:none}
+.albtabs .at.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.albtabs .at.add{border-style:dashed;color:var(--accent)}
+.albtabs .at small{opacity:.7;font-weight:500;margin-left:3px}
 /* 工具列：搜尋／篩選／佈局切換 */
 .toolrow{display:flex;gap:8px;align-items:center;padding:10px 16px 0;flex-wrap:wrap}
 .srch{flex:1 1 160px;min-width:0;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:calc(13px * var(--fs));background:var(--panel);outline:none}
@@ -157,7 +175,7 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
   <main>
     <!-- 主頁：喜愛相片 -->
     <section class="view show" id="vHome">
-      <div class="toolrow"><button class="selbtn" id="homeSelBtn" onclick="toggleSelectMode()">☑️ 選取</button><span class="thint">可多選分享 · 點相片左下 📤 可單張分享</span></div>
+      <div class="toolrow"><button class="selbtn" id="homeSelBtn" onclick="toggleSelectMode()">☑️ 選取</button><span class="thint">選取後可按住拖拉連續選取、來回滑動可取消 · 點 📤 單張分享</span></div>
       <div class="lysw" id="homeLySw"></div>
       <div id="homeGal"></div>
       <div class="note">❤️ 在「相簿」長按或點相片右上角愛心即可加入喜愛。</div>
@@ -165,6 +183,7 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 
     <!-- 相簿：所有相片 -->
     <section class="view" id="vAlbum">
+      <div class="albtabs" id="albTabs"></div>
       <div class="card-box">
         <h3>📷 上載相片</h3>
         <button class="btn primary" onclick="document.getElementById('fileIn').click()">＋ 選擇相片（可多張）</button>
@@ -182,6 +201,12 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 
     <!-- 設定 -->
     <section class="view" id="vSet">
+      <div class="card-box">
+        <h3>📁 相簿管理</h3>
+        <div id="albManage"></div>
+        <button class="btn" onclick="addAlbum()">＋ 新增相簿</button>
+        <div class="hint">點「相簿」頁上方標籤可切換；新上載的相片會放入目前開啟的相簿。</div>
+      </div>
       <div class="card-box">
         <h3>🗜️ 上載自動縮小</h3>
         <div class="setrow">
@@ -276,16 +301,31 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 var KEY='jless_album_v1';
 var S=null, albumFilter='all', viewIds=[], viewPos=0;
 var selectMode=false, selected={};   /* 多選模式：selected[photoId]=true */
+var curAlbum='all';                  /* 目前瀏覽的相簿 id；'all'=全部相簿 */
 var LAYOUTS=[{k:'g2',n:'网格 2',i:'▦'},{k:'g3',n:'网格 3',i:'▦'},{k:'g4',n:'网格 4',i:'▦'},
   {k:'masonry',n:'瀑布流',i:'▤'},{k:'list',n:'列表',i:'☰'},{k:'compact',n:'緊湊',i:'▪'}];
 
-function defaultState(){return {v:1,photos:[],cfg:{autoShrink:true,maxEdge:1280,quality:0.82,layout:'g3'}};}
+function newAlbumObj(name){return {id:uid(),name:(name||'我的相簿').slice(0,24),ts:Date.now()};}
+function defaultState(){
+  var a=newAlbumObj('我的相簿');
+  return {v:2,albums:[a],photos:[],cfg:{autoShrink:true,maxEdge:1280,quality:0.82,layout:'g3'}};
+}
 function load(){
   try{
     var raw=localStorage.getItem(KEY);
     if(raw){var d=JSON.parse(raw);if(d&&typeof d==='object'){
       var s=defaultState();
-      if(Array.isArray(d.photos))s.photos=d.photos;
+      /* 相簿：舊資料沒有 albums 時自動建立，並把舊相片全歸入 */
+      var albums=Array.isArray(d.albums)?d.albums.filter(function(a){return a&&a.id&&a.name;}):[];
+      if(!albums.length)albums=[newAlbumObj('我的相簿')];
+      s.albums=albums;
+      if(Array.isArray(d.photos)){
+        s.photos=d.photos.map(function(p){
+          var q=Object.assign({},p);
+          if(!q.albumId||!albums.some(function(a){return a.id===q.albumId;}))q.albumId=albums[0].id;
+          return q;
+        });
+      }
       if(d.cfg&&typeof d.cfg==='object'){
         if(typeof d.cfg.autoShrink==='boolean')s.cfg.autoShrink=d.cfg.autoShrink;
         if(d.cfg.maxEdge!=null)s.cfg.maxEdge=+d.cfg.maxEdge;
@@ -297,6 +337,8 @@ function load(){
   }catch(e){}
   return defaultState();
 }
+function albumById(id){var r=null;S.albums.forEach(function(a){if(a.id===id)r=a;});return r;}
+function albumName(id){var a=albumById(id);return a?a.name:'未分類';}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true;}catch(e){toast('儲存失敗：本機空間不足，請調低縮圖設定或刪除相片');return false;}}
 function uid(){return 'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -376,12 +418,92 @@ function toggleSelectMode(on){
   renderHome();renderAlbum();updateSelBar();
 }
 function togglePick(id){
+  if(suppressPickClick)return;   /* 拖拉結束後的合成 click 忽略，避免反向切換起點 */
   if(selected[id])delete selected[id];else selected[id]=true;
   renderHome();renderAlbum();updateSelBar();
 }
 function selectAllVisible(){currentVisible().forEach(function(p){selected[p.id]=true;});renderHome();renderAlbum();updateSelBar();}
 function clearSelection(){selected={};renderHome();renderAlbum();updateSelBar();}
 function shareSelected(){var ids=selectedIds();if(!ids.length){toast('請先選取相片');return;}sharePhotos(ids);}
+
+/* ============ 拖拉連續選取（類 iPhone 手勢） ============ */
+var dragSel=null, suppressPickClick=false, dragScrollTimer=0;
+/* 只改 DOM class，不整頁重繪（重繪會中斷 touch 事件） */
+function paintPick(id,on){
+  var el=document.querySelector('.view.show .ph[data-id="'+id+'"]');if(!el)return;
+  el.classList.toggle('picked',on);
+  var b=el.querySelector('.sbtn.pick');if(b){b.classList.toggle('on',on);b.textContent=on?'✓':'';}
+}
+function idAtPoint(x,y){
+  var el=document.elementFromPoint(x,y);if(!el||!el.closest)return null;
+  var ph=el.closest('.ph');if(!ph)return null;
+  return ph.getAttribute('data-id');
+}
+function applyDragTo(id){
+  if(!dragSel||!id||dragSel.idxById[id]==null)return;
+  var to=dragSel.idxById[id];
+  var from=(dragSel.lastIdx==null)?to:dragSel.lastIdx;
+  var lo=Math.min(from,to),hi=Math.max(from,to);
+  var want=(dragSel.mode==='add');
+  for(var i=lo;i<=hi;i++){
+    var pid=dragSel.order[i];if(!pid)continue;
+    if(want)selected[pid]=true;else delete selected[pid];
+    paintPick(pid,want);
+  }
+  dragSel.lastIdx=to;
+}
+function stopDragScroll(){if(dragScrollTimer){clearInterval(dragScrollTimer);dragScrollTimer=0;}}
+function edgeAutoScroll(y){
+  var zone=76, speed=0, h=window.innerHeight;
+  if(y<zone)speed=-Math.max(4,(zone-y)/4);
+  else if(y>h-zone)speed=Math.max(4,(y-(h-zone))/4);
+  if(!speed){stopDragScroll();return;}
+  if(dragScrollTimer)return;
+  dragScrollTimer=setInterval(function(){
+    if(!dragSel){stopDragScroll();return;}
+    window.scrollBy(0,speed);
+    var el=document.elementFromPoint(dragSel.x,dragSel.y);
+    if(el&&el.closest){var ph=el.closest('.ph');if(ph)applyDragTo(ph.getAttribute('data-id'));}
+  },16);
+}
+(function(){
+  document.addEventListener('touchstart',function(e){
+    if(!selectMode||dragSel||e.touches.length!==1)return;
+    var t=e.touches[0],el=document.elementFromPoint(t.clientX,t.clientY);
+    if(!el||!el.closest)return;
+    var ph=el.closest('.ph');if(!ph||!ph.hasAttribute('data-id'))return;
+    var id=ph.getAttribute('data-id');
+    var order=currentVisible().map(function(p){return p.id;});
+    var idxById={};order.forEach(function(pid,i){idxById[pid]=i;});
+    dragSel={id:id,order:order,idxById:idxById,mode:selected[id]?'remove':'add',
+      lastIdx:null,moved:false,x:t.clientX,y:t.clientY,startX:t.clientX,startY:t.clientY};
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!dragSel||!selectMode||e.touches.length!==1)return;
+    var t=e.touches[0];dragSel.x=t.clientX;dragSel.y=t.clientY;
+    if(!dragSel.moved){
+      var dx=t.clientX-dragSel.startX,dy=t.clientY-dragSel.startY;
+      if(dx*dx+dy*dy<64)return;   /* 8px 門檻，避免與點擊衝突 */
+      dragSel.moved=true;document.body.classList.add('dragging');
+      applyDragTo(dragSel.id);    /* 起點先套用 */
+    }
+    e.preventDefault();           /* 拖曳時阻止頁面捲動（改由邊緣自動捲動控制） */
+    var hit=idAtPoint(t.clientX,t.clientY);
+    if(hit)applyDragTo(hit);
+    edgeAutoScroll(t.clientY);
+  },{passive:false});
+  function endDrag(){
+    if(!dragSel)return;
+    var moved=dragSel.moved;
+    dragSel=null;stopDragScroll();document.body.classList.remove('dragging');
+    if(moved){
+      suppressPickClick=true;setTimeout(function(){suppressPickClick=false;},350);
+      renderHome();renderAlbum();updateSelBar();
+    }
+  }
+  document.addEventListener('touchend',endDrag,{passive:true});
+  document.addEventListener('touchcancel',endDrag,{passive:true});
+})();
 
 /* ============ 視圖切換 ============ */
 function goView(v){
@@ -439,10 +561,61 @@ function onPickFiles(e){
 function commitBatch(batch){
   if(!batch.length){toast('沒有可加入的相片（檔格式可能不支援）');return;}
   var before=S.photos.length,saved=0;
-  batch.forEach(function(p){S.photos.unshift(p);if(p.orig>p.size)saved+=(p.orig-p.size);});
+  var target=(curAlbum!=='all'&&albumById(curAlbum))?curAlbum:(S.albums[0]&&S.albums[0].id);
+  batch.forEach(function(p){p.albumId=target;S.photos.unshift(p);if(p.orig>p.size)saved+=(p.orig-p.size);});
   if(!save()){S.photos.splice(before);toast('空間不足，相片未加入；請調低縮圖設定後重試');return;}
   renderAllA();
   toast('已加入 '+batch.length+' 張'+(saved>1048576?('，節省 '+fmtBytes(saved)):''));
+}
+
+/* ============ 相簿：切換與管理 ============ */
+function setAlbum(id){
+  curAlbum=(id==='all'||albumById(id))?id:'all';
+  renderAlbTabs();renderAlbum();
+}
+function addAlbum(){
+  var name=(prompt('新相簿名稱：','相簿 '+(S.albums.length+1))||'').trim().slice(0,24);
+  if(!name)return;
+  var a=newAlbumObj(name);S.albums.push(a);save();
+  curAlbum=a.id;renderAlbTabs();renderAlbum();renderSet();
+  toast('已新增相簿「'+name+'」');
+}
+function renameAlbum(id){
+  var a=albumById(id);if(!a)return;
+  var name=(prompt('重新命名相簿：',a.name)||'').trim().slice(0,24);
+  if(!name)return;
+  a.name=name;save();renderAlbTabs();renderAlbum();renderSet();toast('已重新命名');
+}
+function delAlbum(id){
+  var a=albumById(id);if(!a)return;
+  if(S.albums.length<=1){toast('至少需保留一個相簿');return;}
+  var n=S.photos.filter(function(p){return p.albumId===id;}).length;
+  if(n&&!confirm('相簿「'+a.name+'」內有 '+n+' 張相片。\n刪除後這些相片會移到第一個相簿（不會被刪除）。確定？'))return;
+  if(!n&&!confirm('確定刪除相簿「'+a.name+'」？'))return;
+  var fallback=S.albums.filter(function(x){return x.id!==id;})[0];
+  S.photos.forEach(function(p){if(p.albumId===id)p.albumId=fallback.id;});
+  S.albums=S.albums.filter(function(x){return x.id!==id;});
+  if(curAlbum===id)curAlbum='all';
+  save();renderAlbTabs();renderAllA();toast('已刪除相簿');
+}
+function renderAlbTabs(){
+  var el=document.getElementById('albTabs');if(!el)return;
+  var h='<span class="at'+(curAlbum==='all'?' on':'')+'" onclick="setAlbum(\'all\')">📚 全部 <small>'+S.photos.length+'</small></span>';
+  S.albums.forEach(function(a){
+    var n=S.photos.filter(function(p){return p.albumId===a.id;}).length;
+    h+='<span class="at'+(curAlbum===a.id?' on':'')+'" onclick="setAlbum(\''+a.id+'\')">📁 '+esc(a.name)+' <small>'+n+'</small></span>';
+  });
+  h+='<span class="at add" onclick="addAlbum()">＋ 新增</span>';
+  el.innerHTML=h;
+}
+function renderAlbManage(){
+  var el=document.getElementById('albManage');if(!el)return;
+  el.innerHTML=S.albums.map(function(a){
+    var n=S.photos.filter(function(p){return p.albumId===a.id;}).length;
+    return '<div class="mrow"><span class="mn">📁 '+esc(a.name)+' <span class="kl">（'+n+' 張）</span></span>'+
+      '<button class="mx" title="重新命名" onclick="renameAlbum(\''+a.id+'\')">✎</button>'+
+      '<button class="mx" title="刪除" onclick="delAlbum(\''+a.id+'\')">🗑</button></div>';
+  }).join('');
 }
 
 /* ============ 收藏 / 刪除 ============ */
@@ -473,6 +646,7 @@ function setFilter(f){
 function filteredPhotos(){
   var q=(document.getElementById('albQ').value||'').trim().toLowerCase();
   return S.photos.filter(function(p){
+    if(curAlbum!=='all'&&p.albumId!==curAlbum)return false;
     if(albumFilter==='fav'&&!p.fav)return false;
     if(q&&(p.name||'').toLowerCase().indexOf(q)<0)return false;
     return true;
@@ -480,14 +654,14 @@ function filteredPhotos(){
 }
 
 /* ============ 畫廊渲染 ============ */
-function photoHTML(p){
+function photoHTML(p,idx){
   var ly=S.cfg.layout;
   var meta='<div class="pmeta"><b>'+esc(p.name||'未命名')+'</b><small>'+dayStr(p.ts)+' · '+p.w+'×'+p.h+' · '+fmtBytes(p.size)+'</small></div>';
-  var img='<img loading="lazy" src="'+p.data+'" alt="'+esc(p.name||'相片')+'">';
+  var img='<img loading="lazy" draggable="false" src="'+p.data+'" alt="'+esc(p.name||'相片')+'">';
   var cap=(ly==='list')?'':'<div class="cap">'+esc(p.name||'未命名')+'</div>';
   if(selectMode){
     var on=!!selected[p.id];
-    return '<div class="ph'+(on?' picked':'')+'" onclick="togglePick(\''+p.id+'\')">'+
+    return '<div class="ph'+(on?' picked':'')+'" data-id="'+p.id+'" data-idx="'+idx+'" onclick="togglePick(\''+p.id+'\')">'+
       img+((ly==='list')?meta:'')+
       '<button class="sbtn pick'+(on?' on':'')+'" title="選取" onclick="event.stopPropagation();togglePick(\''+p.id+'\')">'+(on?'✓':'')+'</button>'+cap+
     '</div>';
@@ -502,10 +676,10 @@ function renderGallery(boxId,list){
   var box=document.getElementById(boxId);
   if(!list.length){box.className='';box.innerHTML='<div class="empty"><div class="big">🖼️</div>尚無相片。<br>到「相簿」上載，再按 ♡ 加入喜愛。</div>';return;}
   box.className='gal ly-'+(LAYOUTS.some(function(l){return l.k===S.cfg.layout;})?S.cfg.layout:'g3');
-  box.innerHTML=list.map(photoHTML).join('');
+  box.innerHTML=list.map(function(p,i){return photoHTML(p,i);}).join('');
 }
 function renderHome(){renderGallery('homeGal',S.photos.filter(function(p){return p.fav;}));renderSwitches();}
-function renderAlbum(){renderGallery('albGal',filteredPhotos());renderSwitches();}
+function renderAlbum(){renderGallery('albGal',filteredPhotos());renderSwitches();renderAlbTabs();}
 function renderSwitches(){
   ['homeLySw','albLySw'].forEach(function(id){
     var el=document.getElementById(id);if(!el)return;
@@ -569,6 +743,7 @@ function updatePickHint(){
   el.textContent=S.cfg.autoShrink?('上載時自動縮至 '+((+S.cfg.maxEdge||0)?(S.cfg.maxEdge+'px'):'原尺寸')+'、JPEG 品質 '+S.cfg.quality+'。相片只存此瀏覽器。'):('目前上載原圖（不縮小）；相片只存此瀏覽器。');
 }
 function renderSet(){
+  renderAlbManage();
   document.getElementById('shOn').classList.toggle('on',S.cfg.autoShrink);
   document.getElementById('shOff').classList.toggle('on',!S.cfg.autoShrink);
   document.getElementById('edgeSel').value=String(S.cfg.maxEdge||0);
@@ -599,7 +774,7 @@ function importBak(e){
 function clearAll(){
   if(!S.photos.length){toast('沒有相片可清除');return;}
   if(!confirm('確定清除全部 '+S.photos.length+' 張相片？此動作無法復原。'))return;
-  var cfg=S.cfg;S=defaultState();S.cfg=cfg;save();renderAllA();toast('已清除所有相片');
+  S.photos=[];selected={};save();renderAlbTabs();renderAllA();toast('已清除所有相片（相簿保留）');
 }
 
 /* ============ 初始化 ============ */
