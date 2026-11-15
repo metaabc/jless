@@ -227,6 +227,7 @@ textarea#batchSyms:focus{border-color:var(--accent)}
       </div>
       <div class="card-box">
         <h3>我的標的</h3>
+        <div class="hint">同一標的可經<b>一至多間銀行</b>買入：到「交易」頁為每筆買賣選擇銀行，即可分開計算各銀行的持股與盈虧。下方銀行為新增交易時的預設值。</div>
         <div id="symList"></div>
       </div>
     </section>
@@ -325,8 +326,22 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast(
 function holdingById(id){for(var i=0;i<S.holdings.length;i++)if(S.holdings[i].id===id)return S.holdings[i];return null;}
 
 /* ============ 計算（平均成本法） ============ */
-function compute(h){
-  var tr=S.trades.filter(function(t){return t.hid===h.id;}).sort(function(a,b){return (a.ts||0)-(b.ts||0);});
+/* 交易所屬銀行：相容舊資料（舊 trade 無 bank 欄位時退回 holding.bank） */
+function tradeBank(t,h){return (t.bank!=null)?t.bank:((h&&h.bank)||'');}
+/* 標的涉及的銀行 id 清單（依交易記錄；含 '' 代表未指定）。完全無資訊時回 [''] 以確保至少一列 */
+function banksOfHolding(h){
+  var ids=[];
+  S.trades.forEach(function(t){if(t.hid!==h.id)return;var b=tradeBank(t,h);if(ids.indexOf(b)<0)ids.push(b);});
+  if(!ids.length)ids.push((h.bank)||'');
+  return ids;
+}
+/* bankId: 省略=全部；''=未指定；其他=特定銀行 id */
+function compute(h,bankId){
+  var tr=S.trades.filter(function(t){
+    if(t.hid!==h.id)return false;
+    if(bankId!=null&&tradeBank(t,h)!==bankId)return false;
+    return true;
+  }).sort(function(a,b){return (a.ts||0)-(b.ts||0);});
   var buySh=0,buyCost=0,realized=0;
   tr.forEach(function(t){
     var sh=+t.shares||0,pr=+t.price||0,fe=+t.fee||0;
@@ -342,9 +357,19 @@ function compute(h){
   var pct=cost>0?pnl/cost*100:0;
   return {net:net,avg:avg,cost:cost,price:price,mv:mv,pnl:pnl,pct:pct,realized:realized};
 }
+/* 標的整體：分銀行加總，確保總覽／持倉卡／詳情與「按銀行分布」數字一致 */
+function computeAll(h){
+  var net=0,cost=0,mv=0,pnl=0,realized=0;
+  banksOfHolding(h).forEach(function(bid){
+    var c=compute(h,bid);net+=c.net;cost+=c.cost;mv+=c.mv;pnl+=c.pnl;realized+=c.realized;
+  });
+  var avg=net>0?cost/net:0;
+  var price=(h.price!=null&&!isNaN(+h.price))?+h.price:null;
+  return {net:net,avg:avg,cost:cost,price:price,mv:mv,pnl:pnl,pct:(cost>0?pnl/cost*100:0),realized:realized};
+}
 function totals(){
   var mv=0,cost=0,pnl=0,real=0;
-  S.holdings.forEach(function(h){var c=compute(h);mv+=c.mv;cost+=c.cost;pnl+=c.pnl;real+=c.realized;});
+  S.holdings.forEach(function(h){var c=computeAll(h);mv+=c.mv;cost+=c.cost;pnl+=c.pnl;real+=c.realized;});
   return {mv:mv,cost:cost,pnl:pnl,real:real};
 }
 
@@ -369,14 +394,15 @@ function renderPos(){
   var box=document.getElementById('posList');
   if(!S.holdings.length){box.innerHTML='<div class="empty"><div class="big">💎</div>尚無倉位。<br>請到「標的」批量新增美股／港股，並在「交易」記錄買賣。</div>';return;}
   box.innerHTML=S.holdings.map(function(h){
-    var c=compute(h);
-    var b=S.banks.filter(function(x){return x.id===h.bank;})[0];
+    var c=computeAll(h);
+    var bn=banksOfHolding(h).map(function(id){var x=S.banks.filter(function(z){return z.id===id;})[0];return x?x.name:'';}).filter(Boolean);
+    var btxt=bn.length>1?('🏦'+bn[0]+' 等'+bn.length+'間'):(bn.length===1?('🏦'+bn[0]):'');
     var plv=c.net>0?plSign(c.pnl):'—';
     var plcls=c.net>0?plClass(c.pnl):'flat';
     return '<div class="pos" onclick="openDetail(\''+h.id+'\')">'+
       '<div class="prow">'+
         '<div class="pleft"><div class="psym">'+esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span></div>'+
-          '<div class="pnm">'+(h.name?esc(h.name):'')+(b?' <span class="bnk">🏦'+esc(b.name)+'</span>':'')+'</div></div>'+
+          '<div class="pnm">'+(h.name?esc(h.name):'')+(btxt?' <span class="bnk">'+esc(btxt)+'</span>':'')+'</div></div>'+
         '<span class="pgo">›</span>'+
       '</div>'+
       '<div class="pdet">'+
@@ -434,8 +460,9 @@ function refreshDetailInfo(){
 function renderDetail(){
   if(!detailId)return;
   var h=holdingById(detailId);if(!h)return;
-  var c=compute(h), d=detailInfo||{}, b=S.banks.filter(function(x){return x.id===h.bank;})[0];
-  document.getElementById('dtName').textContent=(h.name||'')+(b?(' · 🏦'+b.name):'');
+  var c=computeAll(h), d=detailInfo||{};
+  var bn=banksOfHolding(h).map(function(id){var x=S.banks.filter(function(z){return z.id===id;})[0];return x?x.name:'';}).filter(Boolean);
+  document.getElementById('dtName').textContent=(h.name||'')+(bn.length?(' · 🏦'+(bn.length>1?(bn[0]+' 等'+bn.length+'間'):bn[0])):'');
   function kv(k,v,cls){return '<div class="drow"><span class="k">'+k+'</span><span class="v '+(cls||'')+'">'+(v==null||v===''?'—':v)+'</span></div>';}
   /* 一、盈虧（平均成本法） */
   var pnlCls=c.net>0?plClass(c.pnl):'flat';
@@ -448,7 +475,20 @@ function renderDetail(){
     '<div class="dcell"><i>成本</i><b>'+fmt(c.cost)+'</b></div>'+
     '<div class="dcell"><i>未實現盈虧</i><b class="pl '+pnlCls+'">'+plv+'</b></div>'+
     '<div class="dcell wide"><i>已實現損益</i><b class="pl '+plClass(c.realized)+'">'+plSign(c.realized)+'</b></div>'+
-  '</div></div>';
+  '</div>';
+  /* 同一標的分散多間銀行時，逐間列出持股／成本／盈虧 */
+  var bids=banksOfHolding(h);
+  if(bids.length){
+    html+='<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line2)"><div class="kl" style="margin-bottom:4px">按銀行分布</div>';
+    bids.forEach(function(bid){
+      var bc=compute(h,bid);var bx=S.banks.filter(function(z){return z.id===bid;})[0];
+      html+='<div class="drow"><span class="k">🏦 '+esc(bx?bx.name:'未指定')+'</span><span class="v">'+
+        (bc.net>0?('持倉 '+fmt(bc.net)+' 股 · 市值 '+fmt(bc.mv)+' · 成本 '+fmt(bc.cost)+' '):'已清倉 ')+
+        '<b class="pl '+plClass(bc.pnl)+'">'+plSign(bc.pnl)+'</b></span></div>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
   /* 二、API 行情資訊（港股 gtimg / 美股 Finnhub） */
   html+='<div class="card-box"><h3>行情資訊 <span class="dachip">'+(h.market==='hk'?'公開行情':'Finnhub')+(detailCache[h.id]?' · 快取':(d?' · 即時':' · 未取得'))+'</span></h3>';
   if(!d||!Object.keys(d).length){
@@ -477,13 +517,20 @@ function renderDetail(){
   html+='<div class="card-box"><h3>交易記錄（'+arr.length+'）</h3>';
   if(!arr.length)html+='<div class="hint">尚無交易記錄。可到「交易」頁新增買入／賣出。</div>';
   else html+=arr.map(function(t){
+    var bk=S.banks.filter(function(x){return x.id===tradeBank(t,h);})[0];
     return '<div class="trow"><div class="tt"><span class="tag '+(t.type==='sell'?'ts':'tb')+'">'+(t.type==='sell'?'賣出':'買入')+'</span>'+
+      (bk?'<span class="bnk">🏦'+esc(bk.name)+'</span>':'')+
       '<span class="tdate">'+t.date+'</span></div>'+
       '<div class="tm">'+fmt(t.price)+' × '+fmt(t.shares)+' 股'+(+t.fee>0?(' · 費 '+fmt(t.fee)):'')+(t.note?(' · '+esc(t.note)):'')+'</div>'+
       '<div class="tdel" onclick="delDetailTrade(\''+t.id+'\')">✕</div></div>';
   }).join('');
-  html+='<button class="btn" onclick="closeDetail();goView(\'vTrade\')">＋ 到交易頁新增記錄</button></div>';
+  html+='<button class="btn" onclick="goTradeFor()">＋ 到交易頁新增記錄</button></div>';
   document.getElementById('detailBody').innerHTML=html;
+}
+/* 由詳情跳去交易頁並預選當前標的，方便連續記錄不同銀行的買賣 */
+function goTradeFor(){
+  var hid=detailId;closeDetail();goView('vTrade');
+  if(hid){var sel=document.getElementById('tHid');if(sel)sel.value=hid;onTradeHoldingChange();}
 }
 function delDetailTrade(id){
   if(!confirm('刪除這筆記錄？'))return;
@@ -538,7 +585,7 @@ function renderSym(){
       '<div class="sm"><div class="ssym" style="cursor:pointer" onclick="openDetail(\''+h.id+'\')">'+esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span> <span style="font-size:11px;color:var(--muted)">詳情 ›</span></div>'+
         '<input class="sname" value="'+esc(h.name)+'" placeholder="名稱（選填）" onchange="setName(\''+h.id+'\',this.value)"></div>'+
       '<div class="spr"><span class="kl">現價</span><input class="pinput" type="number" step="any" inputmode="decimal" value="'+(h.price!=null?h.price:'')+'" placeholder="—" onchange="setPrice(\''+h.id+'\',this.value)"></div>'+
-      '<select class="bnsel" onchange="setHoldingBank(\''+h.id+'\',this.value)">'+bankOpts(h.bank)+'</select>'+
+      '<select class="bnsel" title="預設銀行（新增交易時可另選）" onchange="setHoldingBank(\''+h.id+'\',this.value)">'+bankOpts(h.bank)+'</select>'+
       '<div class="sdel" onclick="delHolding(\''+h.id+'\')">✕</div>'+
     '</div>';
   }).join('');
@@ -566,8 +613,8 @@ function saveTrade(){
   if(!isFinite(price)||price<=0){toast('請輸入有效價格');return;}
   if(!isFinite(shares)||shares<=0){toast('請輸入有效股數');return;}
   var bank=document.getElementById('tBank').value||'';
-  if(bank)h.bank=bank;
-  var t={id:uid(),hid:hid,type:tradeType,date:date,price:Math.abs(price),shares:Math.abs(shares),fee:Math.abs(fee),note:(document.getElementById('tNote').value||'').trim().slice(0,40),ts:dateToTs(date)};
+  if(bank)h.bank=bank;   /* 更新預設銀行，方便下次新增交易時預選 */
+  var t={id:uid(),hid:hid,type:tradeType,date:date,price:Math.abs(price),shares:Math.abs(shares),fee:Math.abs(fee),note:(document.getElementById('tNote').value||'').trim().slice(0,40),ts:dateToTs(date),bank:bank};
   S.trades.push(t);save();renderTrade();renderPos();renderMine();
   toast(tradeType==='buy'?'已記錄買入':'已記錄賣出');
   document.getElementById('tPrice').value='';document.getElementById('tShares').value='';document.getElementById('tFee').value='0';document.getElementById('tNote').value='';
@@ -581,9 +628,11 @@ function renderTrade(){
   var arr=S.trades.slice().sort(function(a,b){return b.ts-a.ts;});
   box.innerHTML=arr.map(function(t){
     var h=holdingById(t.hid)||{sym:'?',market:'us'};
+    var bk=S.banks.filter(function(x){return x.id===tradeBank(t,h);})[0];
     return '<div class="trow">'+
       '<div class="tt"><span class="tag '+(t.type==='sell'?'ts':'tb')+'">'+(t.type==='sell'?'賣出':'買入')+'</span>'+
         '<span class="tsym">'+esc(h.sym)+(h.market==='hk'?'·港':'·美')+'</span>'+
+        (bk?'<span class="bnk">🏦'+esc(bk.name)+'</span>':'')+
         '<span class="tdate">'+t.date+'</span></div>'+
       '<div class="tm">'+fmt(t.price)+' × '+fmt(t.shares)+' 股'+(+t.fee>0?(' · 費 '+fmt(t.fee)):'')+(t.note?(' · '+esc(t.note)):'')+'</div>'+
       '<div class="tdel" onclick="delTrade(\''+t.id+'\')">✕</div>'+
@@ -596,8 +645,12 @@ function addBank(){var inp=document.getElementById('newBank');var n=inp.value.tr
   if(S.banks.some(function(b){return b.name===n;})){toast('銀行已存在');return;}
   S.banks.push({id:uid(),name:n.slice(0,20)});inp.value='';save();renderMine();toast('已新增銀行');}
 function delBank(id){
-  if(S.holdings.some(function(h){return h.bank===id;})){if(!confirm('有標的使用此銀行，刪除後改為「不指定」。確定？'))return;S.holdings.forEach(function(h){if(h.bank===id)h.bank='';});}
-  S.banks=S.banks.filter(function(b){return b.id!==id;});save();renderMine();renderSym();renderTrade();renderPos();}
+  var usedH=S.holdings.some(function(h){return h.bank===id;});
+  var usedT=S.trades.some(function(t){return t.bank===id;});
+  if(usedH||usedT){if(!confirm('有標的／交易使用此銀行，刪除後相關記錄改為「不指定」。確定？'))return;
+    S.holdings.forEach(function(h){if(h.bank===id)h.bank='';});
+    S.trades.forEach(function(t){if(t.bank===id)t.bank='';});}
+  S.banks=S.banks.filter(function(b){return b.id!==id;});save();renderAllW();}
 function renderMine(){
   var kEl=document.getElementById('fhKey');if(kEl)kEl.value=getKey();
   var bb=document.getElementById('bankList');bb.innerHTML='';
@@ -606,9 +659,11 @@ function renderMine(){
   if(!S.banks.length)bb.innerHTML='<div class="hint">尚未設定銀行，新增後可在交易記錄或標的選擇。</div>';
   var groups={},none=[];
   S.holdings.forEach(function(h){
-    var c=compute(h);
-    if(h.bank){(groups[h.bank]=groups[h.bank]||[]).push({h:h,c:c});}
-    else none.push({h:h,c:c});
+    banksOfHolding(h).forEach(function(bid){
+      var c=compute(h,bid);
+      if(bid){(groups[bid]=groups[bid]||[]).push({h:h,c:c});}
+      else none.push({h:h,c:c});
+    });
   });
   var html='';
   S.banks.forEach(function(b){
@@ -786,8 +841,10 @@ function exportCSV(){
   if(!S.holdings.length){toast('尚無標的');return;}
   var rows=[['標的','市場','名稱','銀行','股數','均價','現價','市值','未實現損益']];
   S.holdings.forEach(function(h){
-    var c=compute(h);var b=S.banks.filter(function(x){return x.id===h.bank;})[0];
-    rows.push([h.sym,h.market==='hk'?'港股':'美股',h.name||'',b?b.name:'',c.net,c.avg,c.price!=null?c.price:'',c.mv,c.pnl]);
+    banksOfHolding(h).forEach(function(bid){
+      var c=compute(h,bid);var b=S.banks.filter(function(x){return x.id===bid;})[0];
+      rows.push([h.sym,h.market==='hk'?'港股':'美股',h.name||'',b?b.name:'未指定',c.net,c.avg,c.price!=null?c.price:'',c.mv,c.pnl]);
+    });
   });
   JLessShare.shareCSV(rows,'wealth-portfolio-'+ymd()+'.csv');
 }
