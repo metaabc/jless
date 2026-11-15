@@ -168,7 +168,7 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <div class="upd-status" id="priceStatus"></div>
       </div>
       <div id="posList"></div>
-      <div class="note">※ 資料僅供參考，不構成投資建議；金額按各市場幣值顯示（美股 USD、港股 HKD），未自動換算。美股現價優先經 Finnhub 官方 API、未設 Finnhub Key 時改經 Twelve Data；港股經 Twelve Data 官方 API 取得，請自行核對。</div>
+      <div class="note">※ 資料僅供參考，不構成投資建議；金額按各市場幣值顯示（美股 USD、港股 HKD），未自動換算。美股現價經 Finnhub 官方 API 取得；港股經公開行情（免費、免 Key）取得，請自行核對。</div>
     </section>
 
     <!-- 交易 -->
@@ -205,7 +205,7 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <textarea id="batchSyms" placeholder="可一次貼多個編號：每行一個，或用空格／逗號分隔。&#10;例：AAPL&#10;MSFT&#10;TSLA"></textarea>
         <button class="btn primary" onclick="batchAdd()">＋ 新增標的</button>
         <button class="btn" onclick="refreshNames(S.holdings.slice())">🔄 更新名稱</button>
-        <div class="hint">美股例如 AAPL、MSFT、BRK.B；港股例如 0700、09988（自動加 .HK 查價）。填寫 Finnhub 或 Twelve Data Key 後，新增或更新會自動帶回公司名稱（美股優先 Finnhub）。</div>
+        <div class="hint">美股例如 AAPL、MSFT、BRK.B；港股例如 0700、09988（自動轉 hk00700 查價）。港股免 Key 自動取中文名；美股填寫 Finnhub Key 後自動取公司名。</div>
       </div>
       <div class="card-box">
         <h3>我的標的</h3>
@@ -228,15 +228,6 @@ textarea#batchSyms:focus{border-color:var(--accent)}
           <button class="btn primary" style="margin-top:0" onclick="saveKey()">保存 Key</button>
         </div>
         <div class="hint">Key 僅儲存於本機瀏覽器（localStorage），只會隨「股票代號」送往 Finnhub 官方 API 以取得美股的報價與公司名稱；<b>不會傳送您的持倉、銀行或任何個人資料</b>給其他網站，也不會上傳本工具箱的統計系統。Key 與您的資料備份分開存放，匯出備份／CSV 均不含 Key。請勿將 Key 分享他人。</div>
-      </div>
-      <div class="card-box">
-        <h3>Twelve Data API 設定（港股）</h3>
-        <div class="fld"><label>API Key</label><input id="tdKey" type="password" placeholder="貼上 Twelve Data API Key（港股報價用）" autocomplete="off" spellcheck="false"></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn" style="margin-top:0" onclick="toggleTDKey()">👁 顯示／隱藏</button>
-          <button class="btn primary" style="margin-top:0" onclick="saveTDKey()">保存 Key</button>
-        </div>
-        <div class="hint">港股報價與公司名稱經 <b>Twelve Data</b> 官方 API 取得（免費層已含 HKEX、亦支援美股，可作 Finnhub 的備援）。同樣只送「股票代號」給官方、不經第三方代理、不傳個人資料，且獨立存放、不進備份／CSV。</div>
       </div>
       <div class="card-box">
         <h3>證券分布（按銀行）</h3>
@@ -267,24 +258,18 @@ textarea#batchSyms:focus{border-color:var(--accent)}
 /* ============ 資料模型 ============ */
 var KEY='jless_wealth_v1';
 var CFG_KEY='jless_wealth_cfg_v1';        /* API Key 獨立存放：不進入資料備份/CSV，避免外洩 */
-var CFG={finnhubKey:'', twelvedataKey:''};
+var CFG={finnhubKey:''};
 var S=null, batchMarket='us', tradeType='buy';
 
 /* ============ API Key 設定（本機專用，絕不進備份/CSV） ============ */
-function loadCfg(){try{var r=localStorage.getItem(CFG_KEY);if(r){var d=JSON.parse(r);if(d&&typeof d==='object'){if(typeof d.finnhubKey==='string')CFG.finnhubKey=d.finnhubKey;if(typeof d.twelvedataKey==='string')CFG.twelvedataKey=d.twelvedataKey;}}}catch(e){}}
+function loadCfg(){try{var r=localStorage.getItem(CFG_KEY);if(r){var d=JSON.parse(r);if(d&&typeof d==='object'){if(typeof d.finnhubKey==='string')CFG.finnhubKey=d.finnhubKey;}}}catch(e){}}
 function saveCfg(){try{localStorage.setItem(CFG_KEY,JSON.stringify(CFG));}catch(e){}}
 function getKey(){return (CFG.finnhubKey||'').trim();}
 function setKey(v){CFG.finnhubKey=(v||'').trim();saveCfg();}
-function getTDKey(){return (CFG.twelvedataKey||'').trim();}
-function setTDKey(v){CFG.twelvedataKey=(v||'').trim();saveCfg();}
 function toggleKey(){var el=document.getElementById('fhKey');if(!el)return;el.type=el.type==='password'?'text':'password';}
-function toggleTDKey(){var el=document.getElementById('tdKey');if(!el)return;el.type=el.type==='password'?'text':'password';}
 function saveKey(){var el=document.getElementById('fhKey');if(!el)return;var v=el.value.trim();
   if(!v){setKey('');toast('已清除 Finnhub Key');return;}
   setKey(v);toast('已保存 Finnhub Key（僅存於本機）');}
-function saveTDKey(){var el=document.getElementById('tdKey');if(!el)return;var v=el.value.trim();
-  if(!v){setTDKey('');toast('已清除 Twelve Data Key');return;}
-  setTDKey(v);toast('已保存 Twelve Data Key（僅存於本機）');}
 
 function uid(){return 'w'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function pad(n){return (n<10?'0':'')+n;}
@@ -409,7 +394,13 @@ function batchAdd(){
   ta.value='';save();renderSym();renderPos();
   if(added)toast('已新增 '+added+' 個標的'+(dup?('，'+dup+' 個重複略過'):''));
   else toast('沒有新增（可能皆重複）');
-  if(added&&(getKey()||getTDKey()))refreshNames(S.holdings.filter(function(h){return newIds.indexOf(h.id)>=0;}));
+  /* 港股免 Key 可自動取名；美股僅在有 Key 時自動取名，避免無故提示 */
+  if(added){
+    var nh=S.holdings.filter(function(h){return newIds.indexOf(h.id)>=0;});
+    var hasNewHK=nh.some(function(h){return h.market==='hk';});
+    var hasNewUS=nh.some(function(h){return h.market!=='hk';});
+    if(hasNewHK||(hasNewUS&&getKey()))refreshNames(nh);
+  }
 }
 function setName(hid,val){var h=holdingById(hid);if(!h)return;h.name=val.trim().slice(0,30);save();renderPos();}
 function setPrice(hid,val){var h=holdingById(hid);if(!h)return;var v=parseFloat(val);h.price=(isFinite(v)&&v>0)?v:null;save();renderPos();}
@@ -493,7 +484,6 @@ function delBank(id){
   S.banks=S.banks.filter(function(b){return b.id!==id;});save();renderMine();renderSym();renderTrade();renderPos();}
 function renderMine(){
   var kEl=document.getElementById('fhKey');if(kEl)kEl.value=getKey();
-  var tEl=document.getElementById('tdKey');if(tEl)tEl.value=getTDKey();
   var bb=document.getElementById('bankList');bb.innerHTML='';
   S.banks.forEach(function(b){var d=document.createElement('div');d.className='mrow';
     d.innerHTML='<span class="mn">'+esc(b.name)+'</span><span class="mx" onclick="delBank(\''+b.id+'\')">✕</span>';bb.appendChild(d);});
@@ -543,25 +533,36 @@ function fetchName(h){
   var url='https://finnhub.io/api/v1/stock/profile2?symbol='+encodeURIComponent(ys)+'&token='+encodeURIComponent(getKey());
   return fhFetch(url).then(function(j){if(!j)return null;var n=(j&&typeof j.name==='string'&&j.name.trim())?j.name.trim():null;return n;});
 }
-/* Twelve Data：港股報價＋公司名（一次回傳 close 與 name；官方、CORS、不經代理） */
-function fetchTDQuote(h){
-  var ys=fhSym(h);if(!ys)return Promise.resolve(null);
-  var url='https://api.twelvedata.com/quote?symbol='+encodeURIComponent(ys)+'&apikey='+encodeURIComponent(getTDKey());
-  return fhFetch(url).then(function(j){
-    if(!j||j.status==='error')return null;
-    var p=(j&&j.close!=null&&isFinite(parseFloat(j.close)))?parseFloat(j.close):null;
-    var n=(j&&typeof j.name==='string'&&j.name.trim())?j.name.trim():null;
-    return {price:p, name:n};
+/* 港股公開行情（qt.gtimg.cn）：免費、免 Key、CORS（Access-Control-Allow-Origin:*），僅送港股代號，不傳個資；
+   回傳 GBK 文字，瀏覽器依 Content-Type 解碼。港股代號格式 hk + 5 位零填充（如 00700 → hk00700）。 */
+function fhFetchText(url){
+  if(typeof fetch!=='function')return Promise.resolve(null);
+  var ctrl=null;
+  if(typeof AbortController!=='undefined'){try{ctrl=new AbortController();}catch(e){ctrl=null;}}
+  var to=ctrl?setTimeout(function(){try{ctrl.abort();}catch(e){}},10000):null;
+  var opts=ctrl?{signal:ctrl.signal,cache:'no-store'}:{cache:'no-store'};
+  return fetch(url,opts).then(function(r){if(to)clearTimeout(to);if(!r.ok)throw new Error('http'+r.status);return r.text();}).catch(function(){if(to)clearTimeout(to);return null;});
+}
+function gtimgHK(h){var d=(h.sym||'').replace(/[^0-9]/g,'');if(!d)return null;if(d.length<5)d=d.padStart(5,'0');return 'hk'+d;}
+function fetchHKQuote(h){
+  var ys=gtimgHK(h);if(!ys)return Promise.resolve(null);
+  var url='https://qt.gtimg.cn/q='+encodeURIComponent(ys);
+  return fhFetchText(url).then(function(txt){
+    if(!txt)return null;
+    var m=/="([^"]*)"/.exec(txt);if(!m||!m[1])return null;
+    var f=m[1].split('~');
+    if(!f[3]||f[3]==='')return null;
+    var price=parseFloat(f[3]);
+    var name=(f[1]&&f[1].trim())?f[1].trim():null;
+    return {price:isFinite(price)?price:null, name:name};
   });
 }
-/* 更新現價：美股優先 Finnhub quote；未設 Finnhub Key（或 Finnhub 取不到且設有 Twelve Data）則備援 Twelve Data；港股一律 Twelve Data（含名稱） */
+/* 更新現價：美股經 Finnhub 取得；港股經公開行情（免費、免 Key）取得 */
 async function updatePrices(){
   if(!S.holdings.length){toast('尚無標的');return;}
   var hasUS=S.holdings.some(function(h){return h.market!=='hk';});
-  var hasHK=S.holdings.some(function(h){return h.market==='hk';});
-  var fk=getKey(), tk=getTDKey();
-  if(hasHK&&!tk){toast('港股需先於「我的」填寫 Twelve Data Key（支援港股／美股）；美股可用 Finnhub 或 Twelve Data Key');goView('vMine');return;}
-  if(hasUS&&!fk&&!tk){toast('美股可先於「我的」填寫 Finnhub Key（美股）或 Twelve Data Key（支援美股／港股）');goView('vMine');return;}
+  var fk=getKey();
+  if(hasUS&&!fk){toast('美股需先於「我的」填寫 Finnhub Key；港股免 Key');goView('vMine');return;}
   var btn=document.getElementById('updBtn');if(btn)btn.disabled=true;
   toast('更新現價中…');
   var ok=0,fail=0, usOk=0,usFail=0,hkOk=0,hkFail=0;
@@ -569,15 +570,15 @@ async function updatePrices(){
     var h=S.holdings[i];
     try{
       if(h.market==='hk'){
-        var r=await fetchTDQuote(h);
+        /* 港股經公開行情（免費、免 Key、CORS） */
+        var r=await fetchHKQuote(h);
         if(r){if(r.price!=null){h.price=r.price;hkOk++;ok++;}else hkFail++;if(r.name)h.name=r.name.slice(0,30);}
         else hkFail++;
       } else {
-        /* 美股：優先 Finnhub；未設 Finnhub Key 或 Finnhub 取不到且設有 Twelve Data 則備援 */
-        var p=null, nm=null;
+        /* 美股經 Finnhub */
+        var p=null;
         if(fk){ p=await fetchQuote(h); }
-        if((p==null)&&tk){ var r2=await fetchTDQuote(h); if(r2){ p=r2.price; nm=r2.name; } }
-        if(p!=null){ h.price=p; if(nm)h.name=nm.slice(0,30); usOk++;ok++; } else usFail++;
+        if(p!=null){ h.price=p; usOk++;ok++; } else usFail++;
       }
     }catch(e){fail++;if(h.market==='hk')hkFail++;else usFail++;}
   }
@@ -591,21 +592,19 @@ async function updatePrices(){
   if(fail===0)toast('已更新 '+ok+' 檔現價');
   else toast('更新 '+ok+' 檔，'+fail+' 檔失敗（可手動輸入）');
 }
-/* 更新名稱：美股優先 Finnhub profile2；未設 Finnhub Key（或 Finnhub 取不到且設有 Twelve Data）則備援 Twelve Data 的 name；港股一律 Twelve Data */
+/* 更新名稱：港股經公開行情（免費、免 Key）；美股經 Finnhub profile2，未設 Finnhub Key 則略過 */
 async function refreshNames(list){
   if(!list||!list.length){toast('尚無標的');return;}
   var hasUS=list.some(function(h){return h.market!=='hk';});
-  var hasHK=list.some(function(h){return h.market==='hk';});
-  var fk=getKey(), tk=getTDKey();
-  if(hasHK&&!tk){toast('港股名稱需 Twelve Data Key（支援港股／美股）；美股名稱可用 Finnhub 或 Twelve Data Key');goView('vMine');return;}
-  if(hasUS&&!fk&&!tk){toast('美股名稱可先設 Finnhub Key（美股）或 Twelve Data Key（支援美股／港股）');goView('vMine');return;}
+  var fk=getKey();
+  if(hasUS&&!fk){toast('美股名稱可先設 Finnhub Key（美股）；港股免 Key');goView('vMine');return;}
   toast('更新名稱中…');
   var ok=0,fail=0;
   for(var i=0;i<list.length;i++){
     var h=list[i], n=null;
     try{
-      if(h.market==='hk'){var r=await fetchTDQuote(h);n=r?r.name:null;}
-      else { if(fk){n=await fetchName(h);} if((n==null)&&tk){var r2=await fetchTDQuote(h);n=r2?r2.name:null;} }
+      if(h.market==='hk'){var r=await fetchHKQuote(h);n=r?r.name:null;}
+      else { if(fk){n=await fetchName(h);} }
     }catch(e){}
     if(n){h.name=n.slice(0,30);ok++;}else fail++;
     if(i<list.length-1){await new Promise(function(r){setTimeout(r,200);});} /* 尊重免費額度 */
