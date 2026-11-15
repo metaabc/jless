@@ -159,8 +159,7 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <div class="box"><div class="lab">已實現損益</div><div class="val pl flat" id="sumReal">0</div></div>
       </div>
       <div class="pos-actions">
-        <button class="upd" id="updBtn" onclick="updatePrices()">🔄 更新現價（Finnhub）</button>
-        <span class="hint">需先於「我的」填寫 Finnhub API Key；亦可手動輸入各標的現價</span>
+        <button class="upd" id="updBtn" onclick="updatePrices()">🔄 更新現價</button>
       </div>
       <div id="posList"></div>
       <div class="note">※ 資料僅供參考，不構成投資建議；金額按各市場幣值顯示（美股 USD、港股 HKD），未自動換算。現價經 Finnhub 官方 API 取得，請自行核對。</div>
@@ -346,7 +345,7 @@ function renderPos(){
       '</div>'+
       '<div class="pdet">'+
         '<span class="pd"><i>股數</i><b>'+fmt(c.net)+'</b></span>'+
-        '<span class="pd"><i>均價</i><b>'+fmt(c.avg)+'</b></span>'+
+        '<span class="pd"><i>持倉價</i><b>'+fmt(c.avg)+'</b></span>'+
         '<span class="pd"><i>現價</i><input class="pinput" type="number" step="any" inputmode="decimal" value="'+(c.price!=null?c.price:'')+'" placeholder="—" onchange="setPrice(\''+h.id+'\',this.value)"></span>'+
       '</div>'+
     '</div>';
@@ -507,7 +506,7 @@ function fetchName(h){
 /* 更新現價（Finnhub quote） */
 async function updatePrices(){
   var key=getKey();
-  if(!key){toast('請先在「我的」填寫 Finnhub API Key');goView('vMine');return;}
+  if(!key){toast('需先於「我的」填寫 Finnhub API Key；亦可手動輸入各標的現價');goView('vMine');return;}
   if(!S.holdings.length){toast('尚無標的');return;}
   var btn=document.getElementById('updBtn');if(btn)btn.disabled=true;
   toast('更新現價中…');
@@ -523,7 +522,7 @@ async function updatePrices(){
 }
 /* 更新名稱（Finnhub profile2）；list 為要更新的標的陣列 */
 async function refreshNames(list){
-  var key=getKey();if(!key){toast('請先在「我的」填寫 Finnhub API Key');goView('vMine');return;}
+  var key=getKey();if(!key){toast('需先於「我的」填寫 Finnhub API Key');goView('vMine');return;}
   if(!list||!list.length){toast('尚無標的');return;}
   toast('更新名稱中…');
   var ok=0,fail=0;
