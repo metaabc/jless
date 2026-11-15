@@ -306,6 +306,7 @@ const APPS = [
   {file:'absence.html',   name:'缺勤',       icon:'🤒', desc:'病假與親屬照料缺勤',       cat:'工具', home:true,  fav:false},
   {file:'excel.html',     name:'Excel',      icon:'📊', desc:'CSV匯入·篩選統計打標籤',     cat:'工具', home:false, fav:false},
   {file:'timer.html',     name:'計時',       icon:'⏱️', desc:'計時·倒數·番茄鐘',           cat:'工具', home:false, fav:false},
+  {file:'wealth.html',    name:'財富',   icon:'💎', desc:'美股港股倉位損益',     cat:'工具', home:false, fav:false},
   {file:'ocr.html',       name:'圖文翻譯',   icon:'🌐', desc:'拍照辨識文字並覆蓋譯文',   cat:'生活', home:true,  fav:true,  adv:true },
 ];
 
@@ -448,6 +449,26 @@ function appExtra(file){
           else tot+=1;
         });
         if(tot>0) return '<span class="tag">🤒 缺勤：'+tot+' 日</span>';
+      }
+    }catch(e){}
+  }
+  if(file==='wealth.html'){
+    try{
+      var w=JSON.parse(localStorage.getItem('jless_wealth_v1'));
+      if(w&&Array.isArray(w.holdings)&&w.holdings.length){
+        var tmv=0,tpnl=0;
+        w.holdings.forEach(function(h){
+          var tr=(w.trades||[]).filter(function(x){return x.hid===h.id;}).sort(function(a,b){return (a.ts||0)-(b.ts||0);});
+          var buySh=0,buyCost=0;
+          tr.forEach(function(t){var sh=+t.shares||0,pr=+t.price||0,fe=+t.fee||0;if(t.type==='buy'){buySh+=sh;buyCost+=pr*sh+fe;}});
+          var net=buySh;tr.forEach(function(t){if(t.type==='sell')net-=(+t.shares||0);});if(net<0)net=0;
+          var av=buySh>0?buyCost/buySh:0;
+          var price=(h.price!=null&&!isNaN(+h.price))?+h.price:null;
+          var mv=(price!=null&&net>0)?price*net:0;
+          tmv+=mv; tpnl+=(mv-av*net);
+        });
+        var fmtW=function(n){return (Math.round(n*100)/100).toLocaleString('zh-Hant',{maximumFractionDigits:0});};
+        return '<span class="tag">💎 倉位損益：'+(tpnl>=0?'+':'')+fmtW(tpnl)+'</span>';
       }
     }catch(e){}
   }

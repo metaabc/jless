@@ -180,6 +180,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,.key:focus-visible,.cat
 .mng .mvb:active{background:var(--line2)}
 .mng .mvb.setdef{width:auto;padding:0 8px;height:24px;color:var(--accent);font-weight:700;font-size:calc(11px * var(--fs));border-color:var(--accent-line)}
 .mng .badge{font-size:calc(10.5px * var(--fs));font-weight:700;color:#fff;background:var(--green);border-radius:999px;padding:2px 8px;flex:0 0 auto}
+.mng .x.e{color:var(--accent)}
+.mng.edit{flex-wrap:wrap}
+.mng input.eic{width:46px;flex:0 0 auto;text-align:center;font-size:20px;border:1px solid var(--line);border-radius:8px;padding:4px 0;background:var(--bg);outline:none;font-family:inherit}
+.mng input.enm{flex:1;min-width:80px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:calc(13.5px * var(--fs));font-family:inherit;outline:none;background:var(--bg)}
+.mng input.eic:focus,.mng input.enm:focus{border-color:var(--accent)}
+.mng .pal{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.mng .pal .pe{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--panel);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mng .pal .pe:active{background:var(--line2)}
+.mng .mvb.ok{color:#fff;background:var(--green);border-color:var(--green)}
 
 /* 圖表：月 橫向柱形 */
 .bars.hmode{display:block;height:auto}
@@ -254,17 +263,17 @@ a:focus-visible,button:focus-visible,input:focus-visible,.key:focus-visible,.cat
   <!-- 我的 -->
   <section class="view" id="vMine">
     <div class="card-box">
-      <h3>支出分類（可增刪）</h3>
+      <h3>支出分類（可增刪・排序・編輯）</h3>
       <div id="mngExp"></div>
       <div class="add"><input id="newExp" placeholder="新增支出分類，如：醫療"><button onclick="addCat('expense')">新增</button></div>
     </div>
     <div class="card-box">
-      <h3>收入分類（可增刪）</h3>
+      <h3>收入分類（可增刪・排序・編輯）</h3>
       <div id="mngInc"></div>
       <div class="add"><input id="newInc" placeholder="新增收入分類，如：獎金"><button onclick="addCat('income')">新增</button></div>
     </div>
     <div class="card-box">
-      <h3>帳戶（可增刪）</h3>
+      <h3>帳戶（可增刪・排序・設預設）</h3>
       <div id="mngAcc"></div>
       <div class="add"><input id="newAcc" placeholder="新增帳戶，如：電子錢包"><button onclick="addAcc()">新增</button></div>
     </div>
@@ -337,11 +346,13 @@ var DEF_ACC=[
   {id:'a_none',name:'不關聯帳戶'},{id:'a_cash',name:'現金'},{id:'a_save',name:'儲蓄卡'},
   {id:'a_cred',name:'信用卡'},{id:'a_ewal',name:'電子錢包'}
 ];
+var SUG_EMO=['🍜','🛍️','🧴','🚌','🥬','🍎','☕','🍪','🏃','🎮','📞','💄','💰','💼','🧧','📈','🏦','➕','🍱','🍰','🥤','📚','🏠','💊','✈️','🎁','🐱','💡','⛽','👕','🍕','🚕','🏥','🎓','📱'];
 
 var S=null, curType='expense', selCat=null, curAcc='a_none';
 var expr='', justEval=false, sheetDate=todayStr(), listFilt='all';
 var chartType='expense', chartMode='week';
 var fAcc='all', fCat='all';
+var editId=null;
 
 function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function pad(n){return (n<10?'0':'')+n;}
@@ -394,13 +405,23 @@ function renderMine(){
 }
 function renderMng(id,arr,type){
   var b=document.getElementById(id);b.innerHTML='';
-  arr.forEach(function(c,idx){var d=document.createElement('div');d.className='mng';
-    d.innerHTML='<span class="hd">☰</span>'+
-      '<span class="ic">'+c.icon+'</span>'+
-      '<span class="nm">'+esc(c.name)+'</span>'+
-      '<span class="mv"><span class="mvb'+(idx===0?' off':'')+'" onclick="moveItem(\''+type+'\',\''+c.id+'\',-1)">▲</span>'+
-      '<span class="mvb'+(idx===arr.length-1?' off':'')+'" onclick="moveItem(\''+type+'\',\''+c.id+'\',1)">▼</span></span>'+
-      '<span class="x" onclick="delCat(\''+type+'\',\''+c.id+'\')">✕</span>';
+  arr.forEach(function(c,idx){var d=document.createElement('div');d.className='mng'+(editId===c.id?' edit':'');
+    if(editId===c.id){
+      d.innerHTML='<span class="hd">☰</span>'+
+        '<input class="eic" id="eic_'+c.id+'" value="'+esc(c.icon)+'" maxlength="4">'+
+        '<input class="enm" id="enm_'+c.id+'" value="'+esc(c.name)+'" maxlength="8" placeholder="名稱">'+
+        '<span class="mv"><span class="mvb ok" onclick="saveEdit(\''+type+'\',\''+c.id+'\')">✔</span>'+
+        '<span class="mvb" onclick="cancelEdit()">✕</span></span>'+
+        '<div class="pal">'+SUG_EMO.map(function(e){return '<span class="pe" onclick="pickIcon(\''+c.id+'\',\''+e+'\')">'+e+'</span>';}).join('')+'</div>';
+    }else{
+      d.innerHTML='<span class="hd">☰</span>'+
+        '<span class="ic">'+c.icon+'</span>'+
+        '<span class="nm">'+esc(c.name)+'</span>'+
+        '<span class="mv"><span class="mvb'+(idx===0?' off':'')+'" onclick="moveItem(\''+type+'\',\''+c.id+'\',-1)">▲</span>'+
+        '<span class="mvb'+(idx===arr.length-1?' off':'')+'" onclick="moveItem(\''+type+'\',\''+c.id+'\',1)">▼</span></span>'+
+        '<span class="x e" onclick="editCat(\''+type+'\',\''+c.id+'\')">✎</span>'+
+        '<span class="x" onclick="delCat(\''+type+'\',\''+c.id+'\')">✕</span>';
+    }
     b.appendChild(d);});
 }
 function renderMngAcc(){
@@ -782,6 +803,19 @@ function moveItem(type,id,dir){
   var j=i+dir;if(j<0||j>=arr.length)return;
   var t=arr[i];arr[i]=arr[j];arr[j]=t;
   save();renderMine();
+}
+function editCat(type,id){editId=id;renderMine();var el=document.getElementById('enm_'+id);if(el){try{el.focus();el.select();}catch(e){}}}
+function cancelEdit(){editId=null;renderMine();}
+function pickIcon(id,e){var i=document.getElementById('eic_'+id);if(i)i.value=e;}
+function saveEdit(type,id){
+  var arr=type==='expense'?S.expense:S.income;
+  var c=null;for(var i=0;i<arr.length;i++)if(arr[i].id===id){c=arr[i];break;}
+  if(!c)return;
+  var ic=(document.getElementById('eic_'+id).value||'').trim().slice(0,4);
+  var nm=(document.getElementById('enm_'+id).value||'').trim();
+  if(!nm){toast('名稱不可空白');return;}
+  c.icon=ic||'🏷️'; c.name=nm.slice(0,8);
+  editId=null;save();renderMine();renderCats();toast('已更新分類');
 }
 function setDefAcc(id){if(S.defAcc===id)return;S.defAcc=id;save();renderMine();toast('已設為預設帳戶');}
 
