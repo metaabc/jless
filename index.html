@@ -308,6 +308,7 @@ const APPS = [
   {file:'timer.html',     name:'計時',       icon:'⏱️', desc:'計時·倒數·番茄鐘',           cat:'工具', home:false, fav:false},
   {file:'wealth.html',    name:'財富',   icon:'💎', desc:'美股港股倉位損益',     cat:'工具', home:false, fav:false},
   {file:'ocr.html',       name:'圖文翻譯',   icon:'🌐', desc:'拍照辨識文字並覆蓋譯文',   cat:'生活', home:true,  fav:true,  adv:true },
+  {file:'album.html',     name:'相簿',       icon:'🖼️', desc:'收藏喜愛相片·自動縮圖省空間', cat:'生活', home:true,  fav:false},
 ];
 
 const KEY = 'jless_launcher_v1';
@@ -469,6 +470,15 @@ function appExtra(file){
         });
         var fmtW=function(n){return (Math.round(n*100)/100).toLocaleString('zh-Hant',{maximumFractionDigits:0});};
         return '<span class="tag">💎 倉位損益：'+(tpnl>=0?'+':'')+fmtW(tpnl)+'</span>';
+      }
+    }catch(e){}
+  }
+  if(file==='album.html'){
+    try{
+      var al=JSON.parse(localStorage.getItem('jless_album_v1'));
+      if(al&&Array.isArray(al.photos)){
+        var nf=al.photos.filter(function(p){return p&&p.fav;}).length;
+        if(nf>0)return '<span class="tag">❤️ 喜愛相片：'+nf+'</span>';
       }
     }catch(e){}
   }
