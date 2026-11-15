@@ -159,11 +159,11 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <div class="box"><div class="lab">已實現損益</div><div class="val pl flat" id="sumReal">0</div></div>
       </div>
       <div class="pos-actions">
-        <button class="upd" id="updBtn" onclick="updatePrices()">🔄 更新現價</button>
-        <span class="hint">現價來自公開行情，可能延遲</span>
+        <button class="upd" id="updBtn" onclick="updatePrices()">✏️ 填寫現價（手動）</button>
+        <span class="hint">本工具不連網取價，請在各標的「現價」欄手動輸入</span>
       </div>
       <div id="posList"></div>
-      <div class="note">※ 資料僅供參考，不構成投資建議；金額按各市場幣值顯示（美股 USD、港股 HKD），未自動換算。</div>
+      <div class="note">※ 資料僅供參考，不構成投資建議；金額按各市場幣值顯示（美股 USD、港股 HKD），未自動換算。現價由您手動輸入，請自行核對。</div>
     </section>
 
     <!-- 交易 -->
@@ -455,36 +455,14 @@ function renderMine(){
   document.getElementById('bankOverview').innerHTML=html;
 }
 
-/* ============ 更新現價（公開行情，離線靜默） ============ */
-function yahooSym(h){
-  if(h.market==='hk'){var d=(h.sym||'').replace(/[^0-9]/g,'');if(!d)return null;if(d.length<4)d=d.padStart(4,'0');return d+'.HK';}
-  return (h.sym||'').replace(/[^A-Za-z0-9.\-]/g,'').toUpperCase();
-}
-function fetchPrice(h){
-  var ys=yahooSym(h);if(!ys)return Promise.resolve(null);
-  var url='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(ys)+'?range=1d&interval=1d';
-  var prox='https://api.allorigins.win/raw?url='+encodeURIComponent(url);
-  if(typeof fetch!=='function')return Promise.resolve(null);
-  return fetch(prox,{method:'GET',cache:'no-store'})
-    .then(function(r){if(!r.ok)throw new Error('http'+r.status);return r.json();})
-    .then(function(j){var m=j&&j.chart&&j.chart.result&&j.chart.result[0]&&j.chart.result[0].meta;var p=m&&m.regularMarketPrice;return (typeof p==='number'&&isFinite(p))?p:null;})
-    .catch(function(){return null;});
-}
+/* ============ 現價：手動輸入（本工具不連網取價） ============ */
 function updatePrices(){
-  if(!S.holdings.length){toast('尚無標的');return;}
-  if(typeof fetch!=='function'){toast('此瀏覽器不支援網路取得');return;}
-  var btn=document.getElementById('updBtn');if(btn)btn.disabled=true;
-  toast('更新中…');
-  var proms=S.holdings.map(function(h){return fetchPrice(h).then(function(p){return {h:h,p:p};});});
-  Promise.all(proms).then(function(res){
-    var ok=0,fail=0;
-    res.forEach(function(r){if(r.p!=null){r.h.price=r.p;ok++;}else{fail++;}});
-    if(ok>0)save();
-    renderPos();renderSym();
-    if(btn)btn.disabled=false;
-    if(fail===0)toast('已更新 '+ok+' 檔現價');
-    else toast('更新 '+ok+' 檔，'+fail+' 檔失敗（可手動輸入）');
-  }).catch(function(){if(btn)btn.disabled=false;toast('更新失敗，請手動輸入現價');});
+  // 說明：本工具刻意不連網取價（公開代理不穩、且有隱私/條款疑慮），現價請手動填寫。
+  var inputs=document.querySelectorAll('#posList .pinput');
+  var firstEmpty=null;
+  for(var i=0;i<inputs.length;i++){if(inputs[i].value===''||inputs[i].value==null){firstEmpty=inputs[i];break;}}
+  if(firstEmpty){try{firstEmpty.scrollIntoView({behavior:'smooth',block:'center'});firstEmpty.focus({preventScroll:true});}catch(e){try{firstEmpty.focus();}catch(e2){}}}
+  toast('請在各標的「現價」欄手動輸入（本工具不連網取價）');
 }
 
 /* ============ 備份 / 匯入 / CSV ============ */
