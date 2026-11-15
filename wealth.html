@@ -159,11 +159,11 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <div class="box"><div class="lab">已實現損益</div><div class="val pl flat" id="sumReal">0</div></div>
       </div>
       <div class="pos-actions">
-        <button class="upd" id="updBtn" onclick="updatePrices()">✏️ 填寫現價（手動）</button>
-        <span class="hint">本工具不連網取價，請在各標的「現價」欄手動輸入</span>
+        <button class="upd" id="updBtn" onclick="updatePrices()">🔄 更新現價（Finnhub）</button>
+        <span class="hint">需先於「我的」填寫 Finnhub API Key；亦可手動輸入各標的現價</span>
       </div>
       <div id="posList"></div>
-      <div class="note">※ 資料僅供參考，不構成投資建議；金額按各市場幣值顯示（美股 USD、港股 HKD），未自動換算。現價由您手動輸入，請自行核對。</div>
+      <div class="note">※ 資料僅供參考，不構成投資建議；金額按各市場幣值顯示（美股 USD、港股 HKD），未自動換算。現價經 Finnhub 官方 API 取得，請自行核對。</div>
     </section>
 
     <!-- 交易 -->
@@ -199,7 +199,8 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         </div>
         <textarea id="batchSyms" placeholder="可一次貼多個編號：每行一個，或用空格／逗號分隔。&#10;例：AAPL&#10;MSFT&#10;TSLA"></textarea>
         <button class="btn primary" onclick="batchAdd()">＋ 新增標的</button>
-        <div class="hint">美股例如 AAPL、MSFT、BRK.B；港股例如 0700、09988（自動加 .HK 查價）。</div>
+        <button class="btn" onclick="refreshNames(S.holdings.slice())">🔄 更新名稱（Finnhub）</button>
+        <div class="hint">美股例如 AAPL、MSFT、BRK.B；港股例如 0700、09988（自動加 .HK 查價）。填寫 Finnhub Key 後，新增或更新會自動帶回公司名稱。</div>
       </div>
       <div class="card-box">
         <h3>我的標的</h3>
@@ -213,6 +214,15 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <h3>銀行／券商名單</h3>
         <div class="fld" style="margin-bottom:6px"><input id="newBank" placeholder="新增銀行／券商，如：富途、匯豐" maxlength="20"><button class="btn primary" style="width:auto;margin:0 0 0 8px;padding:0 16px" onclick="addBank()">新增</button></div>
         <div id="bankList"></div>
+      </div>
+      <div class="card-box">
+        <h3>Finnhub API 設定</h3>
+        <div class="fld"><label>API Key</label><input id="fhKey" type="password" placeholder="貼上 Finnhub API Key" autocomplete="off" spellcheck="false"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" style="margin-top:0" onclick="toggleKey()">👁 顯示／隱藏</button>
+          <button class="btn primary" style="margin-top:0" onclick="saveKey()">保存 Key</button>
+        </div>
+        <div class="hint">Key 僅儲存於本機瀏覽器（localStorage），只會隨「股票代號」送往 Finnhub 官方 API 以取得報價與公司名稱；<b>不會傳送您的持倉、銀行或任何個人資料</b>給其他網站，也不會上傳本工具箱的統計系統。Key 與您的資料備份分開存放，匯出備份／CSV 均不含 Key。請勿將 Key 分享他人。</div>
       </div>
       <div class="card-box">
         <h3>證券分布（按銀行）</h3>
@@ -242,7 +252,19 @@ textarea#batchSyms:focus{border-color:var(--accent)}
 <script>
 /* ============ 資料模型 ============ */
 var KEY='jless_wealth_v1';
+var CFG_KEY='jless_wealth_cfg_v1';        /* API Key 獨立存放：不進入資料備份/CSV，避免外洩 */
+var CFG={finnhubKey:''};
 var S=null, batchMarket='us', tradeType='buy';
+
+/* ============ Finnhub Key 設定（本機專用，絕不進備份/CSV） ============ */
+function loadCfg(){try{var r=localStorage.getItem(CFG_KEY);if(r){var d=JSON.parse(r);if(d&&typeof d==='object'&&typeof d.finnhubKey==='string')CFG.finnhubKey=d.finnhubKey;}}catch(e){}}
+function saveCfg(){try{localStorage.setItem(CFG_KEY,JSON.stringify(CFG));}catch(e){}}
+function getKey(){return (CFG.finnhubKey||'').trim();}
+function setKey(v){CFG.finnhubKey=(v||'').trim();saveCfg();}
+function toggleKey(){var el=document.getElementById('fhKey');if(!el)return;el.type=el.type==='password'?'text':'password';}
+function saveKey(){var el=document.getElementById('fhKey');if(!el)return;var v=el.value.trim();
+  if(!v){setKey('');toast('已清除 Finnhub Key');return;}
+  setKey(v);toast('已保存 Finnhub Key（僅存於本機）');}
 
 function uid(){return 'w'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function pad(n){return (n<10?'0':'')+n;}
@@ -338,16 +360,18 @@ function batchAdd(){
   if(!raw){toast('請輸入編號');return;}
   var parts=raw.split(/[\s,;，；\n\r]+/).map(function(s){return s.trim();}).filter(Boolean);
   if(!parts.length){toast('請輸入編號');return;}
-  var added=0,dup=0;
+  var added=0,dup=0,newIds=[];
   parts.slice(0,100).forEach(function(s){
     var sym=s.toUpperCase().replace(/[^A-Z0-9.\-]/g,'');if(!sym)return;
     var exists=S.holdings.some(function(h){return h.market===batchMarket&&h.sym.toLowerCase()===sym.toLowerCase();});
     if(exists){dup++;return;}
-    S.holdings.push({id:uid(),sym:sym,market:batchMarket,name:'',price:null,bank:''});added++;
+    var h={id:uid(),sym:sym,market:batchMarket,name:'',price:null,bank:''};
+    S.holdings.push(h);newIds.push(h.id);added++;
   });
   ta.value='';save();renderSym();renderPos();
   if(added)toast('已新增 '+added+' 個標的'+(dup?('，'+dup+' 個重複略過'):''));
   else toast('沒有新增（可能皆重複）');
+  if(added&&getKey())refreshNames(S.holdings.filter(function(h){return newIds.indexOf(h.id)>=0;}));
 }
 function setName(hid,val){var h=holdingById(hid);if(!h)return;h.name=val.trim().slice(0,30);save();renderPos();}
 function setPrice(hid,val){var h=holdingById(hid);if(!h)return;var v=parseFloat(val);h.price=(isFinite(v)&&v>0)?v:null;save();renderPos();}
@@ -430,6 +454,7 @@ function delBank(id){
   if(S.holdings.some(function(h){return h.bank===id;})){if(!confirm('有標的使用此銀行，刪除後改為「不指定」。確定？'))return;S.holdings.forEach(function(h){if(h.bank===id)h.bank='';});}
   S.banks=S.banks.filter(function(b){return b.id!==id;});save();renderMine();renderSym();renderTrade();renderPos();}
 function renderMine(){
+  var kEl=document.getElementById('fhKey');if(kEl)kEl.value=getKey();
   var bb=document.getElementById('bankList');bb.innerHTML='';
   S.banks.forEach(function(b){var d=document.createElement('div');d.className='mrow';
     d.innerHTML='<span class="mn">'+esc(b.name)+'</span><span class="mx" onclick="delBank(\''+b.id+'\')">✕</span>';bb.appendChild(d);});
@@ -455,14 +480,61 @@ function renderMine(){
   document.getElementById('bankOverview').innerHTML=html;
 }
 
-/* ============ 現價：手動輸入（本工具不連網取價） ============ */
-function updatePrices(){
-  // 說明：本工具刻意不連網取價（公開代理不穩、且有隱私/條款疑慮），現價請手動填寫。
-  var inputs=document.querySelectorAll('#posList .pinput');
-  var firstEmpty=null;
-  for(var i=0;i<inputs.length;i++){if(inputs[i].value===''||inputs[i].value==null){firstEmpty=inputs[i];break;}}
-  if(firstEmpty){try{firstEmpty.scrollIntoView({behavior:'smooth',block:'center'});firstEmpty.focus({preventScroll:true});}catch(e){try{firstEmpty.focus();}catch(e2){}}}
-  toast('請在各標的「現價」欄手動輸入（本工具不連網取價）');
+/* ============ Finnhub：現價與名稱（直連官方 API，僅送股票代號） ============ */
+function fhSym(h){
+  if(h.market==='hk'){var d=(h.sym||'').replace(/[^0-9]/g,'');if(!d)return null;if(d.length<4)d=d.padStart(4,'0');return d+'.HK';}
+  return (h.sym||'').replace(/[^A-Z0-9.\-]/g,'').toUpperCase();
+}
+/* 直連 Finnhub；帶 10s 逾時；任何失敗都回 null（靜默，不拋錯、不外洩 Key 於訊息） */
+function fhFetch(url){
+  if(typeof fetch!=='function')return Promise.resolve(null);
+  var ctrl=null;
+  if(typeof AbortController!=='undefined'){try{ctrl=new AbortController();}catch(e){ctrl=null;}}
+  var to=ctrl?setTimeout(function(){try{ctrl.abort();}catch(e){}},10000):null;   /* 10s 逾時，避免請求卡住 */
+  var opts=ctrl?{signal:ctrl.signal,cache:'no-store'}:{cache:'no-store'};
+  return fetch(url,opts).then(function(r){if(to)clearTimeout(to);if(!r.ok)throw new Error('http'+r.status);return r.json();}).catch(function(){if(to)clearTimeout(to);return null;});
+}
+function fetchQuote(h){
+  var ys=fhSym(h);if(!ys)return Promise.resolve(null);
+  var url='https://finnhub.io/api/v1/quote?symbol='+encodeURIComponent(ys)+'&token='+encodeURIComponent(getKey());
+  return fhFetch(url).then(function(j){if(!j)return null;var p=(j&&typeof j.c==='number'&&isFinite(j.c))?j.c:null;return p;});
+}
+function fetchName(h){
+  var ys=fhSym(h);if(!ys)return Promise.resolve(null);
+  var url='https://finnhub.io/api/v1/stock/profile2?symbol='+encodeURIComponent(ys)+'&token='+encodeURIComponent(getKey());
+  return fhFetch(url).then(function(j){if(!j)return null;var n=(j&&typeof j.name==='string'&&j.name.trim())?j.name.trim():null;return n;});
+}
+/* 更新現價（Finnhub quote） */
+async function updatePrices(){
+  var key=getKey();
+  if(!key){toast('請先在「我的」填寫 Finnhub API Key');goView('vMine');return;}
+  if(!S.holdings.length){toast('尚無標的');return;}
+  var btn=document.getElementById('updBtn');if(btn)btn.disabled=true;
+  toast('更新現價中…');
+  var ok=0,fail=0;
+  for(var i=0;i<S.holdings.length;i++){
+    try{var p=await fetchQuote(S.holdings[i]);if(p!=null){S.holdings[i].price=p;ok++;}else fail++;}catch(e){fail++;}
+  }
+  if(ok>0)save();
+  renderPos();renderSym();
+  if(btn)btn.disabled=false;
+  if(fail===0)toast('已更新 '+ok+' 檔現價');
+  else toast('更新 '+ok+' 檔，'+fail+' 檔失敗（可手動輸入）');
+}
+/* 更新名稱（Finnhub profile2）；list 為要更新的標的陣列 */
+async function refreshNames(list){
+  var key=getKey();if(!key){toast('請先在「我的」填寫 Finnhub API Key');goView('vMine');return;}
+  if(!list||!list.length){toast('尚無標的');return;}
+  toast('更新名稱中…');
+  var ok=0,fail=0;
+  for(var i=0;i<list.length;i++){
+    var h=list[i];
+    try{var n=await fetchName(h);if(n){h.name=n.slice(0,30);ok++;}else fail++;}catch(e){fail++;}
+    if(i<list.length-1){await new Promise(function(r){setTimeout(r,200);});} /* 尊重免費額度 */
+  }
+  save();renderSym();renderPos();renderMine();
+  if(fail===0)toast('已更新 '+ok+' 個名稱');
+  else toast('名稱更新 '+ok+' 個，'+fail+' 個未取得');
 }
 
 /* ============ 備份 / 匯入 / CSV ============ */
@@ -489,6 +561,7 @@ function exportCSV(){
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2000);}
 
 /* ============ 初始化 ============ */
+loadCfg();
 S=load();renderAllW();goView('vPos');
 </script>
 <script src="backup.js"></script>
