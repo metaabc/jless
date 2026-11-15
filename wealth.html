@@ -39,7 +39,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .summary .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 13px}
 .summary .box .lab{font-size:calc(11.5px * var(--fs));color:var(--muted);font-weight:600}
 .summary .box .val{font-size:calc(18px * var(--fs));font-weight:800;margin-top:3px}
-.pnl.up{color:#d8392b} .pnl.down{color:#1f9d6b} .pnl.flat{color:var(--muted)}
+.pnl.up,.pl.up{color:#d8392b} .pnl.down,.pl.down{color:#1f9d6b} .pnl.flat,.pl.flat{color:var(--muted)}
 
 .pos-actions{display:flex;align-items:center;gap:10px;padding:6px 16px 2px;flex-wrap:wrap}
 .upd{border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;font-size:calc(13.5px * var(--fs));
@@ -53,20 +53,20 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .stchip.warn .mark{color:#d97706}
 .stchip.mute .mark{color:var(--muted)}
 
-/* 倉位卡 */
-.pos{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:12px 13px;margin:0 16px 10px}
-.prow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+/* 倉位卡（單行緊湊：代號/名稱 + 現價/持倉價/股數/盈虧 同桌） */
+.pos{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:11px 13px;margin:0 16px 10px;cursor:pointer}
+.pos:active{background:var(--gray-bg)}
+.prow{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .pleft{min-width:0;flex:1}
 .psym{font-weight:800;font-size:calc(15px * var(--fs));display:flex;align-items:center;gap:6px}
-.pnm{font-size:calc(11.5px * var(--fs));color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.pright{text-align:right;flex:0 0 auto}
-.pmv{font-size:calc(13px * var(--fs));font-weight:700;color:var(--ink2)}
-.pnl{font-size:calc(13.5px * var(--fs));font-weight:800;margin-top:2px}
-.pdet{display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line2);flex-wrap:wrap;align-items:center}
-.pd{display:flex;flex-direction:column;gap:2px}
-.pd i{font-style:normal;font-size:calc(10.5px * var(--fs));color:var(--muted)}
-.pd b{font-size:calc(13px * var(--fs));font-weight:700}
-.pinput{width:88px;border:1px solid var(--line);border-radius:9px;padding:6px 8px;font-size:calc(13px * var(--fs));
+.pnm{font-size:calc(11px * var(--fs));color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pgo{font-size:calc(16px * var(--fs));color:var(--muted);flex:0 0 auto}
+.pdet{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line2);align-items:end}
+.pd{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pd i{font-style:normal;font-size:calc(10px * var(--fs));color:var(--muted);white-space:nowrap}
+.pd b{font-size:calc(12.5px * var(--fs));font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pd .pl{font-size:calc(12.5px * var(--fs))}
+.pinput{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;padding:5px 6px;font-size:calc(12.5px * var(--fs));
   background:var(--bg);outline:none;text-align:right}
 .pinput:focus{border-color:var(--accent)}
 
@@ -77,6 +77,24 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .empty{text-align:center;color:var(--muted);padding:48px 20px;font-size:calc(13px * var(--fs));line-height:1.8}
 .empty .big{font-size:calc(34px * var(--fs));margin-bottom:8px}
 .note{font-size:calc(11px * var(--fs));color:var(--muted);text-align:center;margin:14px 16px 8px;line-height:1.6}
+
+/* 個股詳情 */
+.dhead{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+.dback{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:7px 11px;font-size:calc(13px * var(--fs));font-weight:700;color:var(--ink2);cursor:pointer;flex:0 0 auto}
+.dback:active{background:var(--line2)}
+.dttl{min-width:0;flex:1}
+.dttl .s{font-weight:800;font-size:calc(16px * var(--fs))}
+.dttl .n{font-size:calc(11px * var(--fs));color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.dcell{background:var(--bg);border:1px solid var(--line2);border-radius:11px;padding:9px 10px;min-width:0}
+.dcell i{font-style:normal;font-size:calc(10.5px * var(--fs));color:var(--muted);display:block}
+.dcell b{font-size:calc(13.5px * var(--fs));font-weight:700;display:block;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dcell.wide{grid-column:1 / -1}
+.drow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line2);font-size:calc(12.5px * var(--fs))}
+.drow:last-child{border-bottom:none}
+.drow .k{color:var(--muted)}
+.drow .v{font-weight:700;text-align:right}
+.dachip{display:inline-block;font-size:calc(10px * var(--fs));color:var(--muted);margin-left:6px}
 
 /* 通用卡片盒 */
 .card-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;margin:14px 16px 0;padding:14px}
@@ -168,7 +186,7 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <div class="upd-status" id="priceStatus"></div>
       </div>
       <div id="posList"></div>
-      <div class="note">※ 資料僅供參考，不構成投資建議；金額按各市場幣值顯示（美股 USD、港股 HKD），未自動換算。美股現價經 Finnhub 官方 API 取得；港股經公開行情（免費、免 Key）取得，請自行核對。</div>
+      <div class="note">※ 資料僅供參考，不構成投資建議；請自行核對。</div>
     </section>
 
     <!-- 交易 -->
@@ -205,7 +223,7 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <textarea id="batchSyms" placeholder="可一次貼多個編號：每行一個，或用空格／逗號分隔。&#10;例：AAPL&#10;MSFT&#10;TSLA"></textarea>
         <button class="btn primary" onclick="batchAdd()">＋ 新增標的</button>
         <button class="btn" onclick="refreshNames(S.holdings.slice())">🔄 更新名稱</button>
-        <div class="hint">美股例如 AAPL、MSFT、BRK.B；港股例如 0700、09988（自動轉 hk00700 查價）。港股免 Key 自動取中文名；美股填寫 Finnhub Key 後自動取公司名。</div>
+        <div class="hint">美股例如 AAPL、MSFT、BRK.B；港股例如 0700、09988（自動轉 hk00700 查價）。</div>
       </div>
       <div class="card-box">
         <h3>我的標的</h3>
@@ -227,7 +245,6 @@ textarea#batchSyms:focus{border-color:var(--accent)}
           <button class="btn" style="margin-top:0" onclick="toggleKey()">👁 顯示／隱藏</button>
           <button class="btn primary" style="margin-top:0" onclick="saveKey()">保存 Key</button>
         </div>
-        <div class="hint">Key 僅儲存於本機瀏覽器（localStorage），只會隨「股票代號」送往 Finnhub 官方 API 以取得美股的報價與公司名稱；<b>不會傳送您的持倉、銀行或任何個人資料</b>給其他網站，也不會上傳本工具箱的統計系統。Key 與您的資料備份分開存放，匯出備份／CSV 均不含 Key。請勿將 Key 分享他人。</div>
       </div>
       <div class="card-box">
         <h3>證券分布（按銀行）</h3>
@@ -241,6 +258,17 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <button class="btn" onclick="exportCSV()">📤 匯出持倉 CSV</button>
         <input type="file" id="qbFile" accept="application/json,.json" style="display:none" onchange="onQBFile(event)">
       </div>
+    </section>
+
+    <!-- 個股詳情（點入持倉/標的進入，不佔底部選單） -->
+    <section class="view" id="vDetail">
+      <div class="dhead">
+        <button class="dback" onclick="closeDetail()">‹ 返回</button>
+        <div class="dttl"><div class="s" id="dtSym">—</div><div class="n" id="dtName"></div></div>
+        <button class="dback" onclick="refreshDetailInfo()" title="重新取得行情">🔄</button>
+      </div>
+      <div id="detailBody"></div>
+      <div class="note">※ 行情資訊僅供參考，不構成投資建議；資料由公開／官方 API 取得，請自行核對。</div>
     </section>
   </main>
 
@@ -322,7 +350,7 @@ function totals(){
 
 /* ============ 視圖切換 ============ */
 function goView(v){
-  ['vPos','vTrade','vSym','vMine'].forEach(function(id){document.getElementById(id).classList.toggle('show',id===v);});
+  ['vPos','vTrade','vSym','vMine','vDetail'].forEach(function(id){document.getElementById(id).classList.toggle('show',id===v);});
   document.querySelectorAll('.bottombar .bb').forEach(function(b){b.classList.toggle('on',b.dataset.v===v);});
   if(v==='vPos')renderPos();
   if(v==='vTrade')renderTrade();
@@ -343,17 +371,19 @@ function renderPos(){
   box.innerHTML=S.holdings.map(function(h){
     var c=compute(h);
     var b=S.banks.filter(function(x){return x.id===h.bank;})[0];
-    return '<div class="pos">'+
+    var plv=c.net>0?plSign(c.pnl):'—';
+    var plcls=c.net>0?plClass(c.pnl):'flat';
+    return '<div class="pos" onclick="openDetail(\''+h.id+'\')">'+
       '<div class="prow">'+
         '<div class="pleft"><div class="psym">'+esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span></div>'+
           '<div class="pnm">'+(h.name?esc(h.name):'')+(b?' <span class="bnk">🏦'+esc(b.name)+'</span>':'')+'</div></div>'+
-        '<div class="pright"><div class="pmv">市值 '+fmt(c.mv)+'</div>'+
-          '<div class="pnl '+(c.net>0?(c.pnl>=0?'up':'down'):'flat')+'">'+(c.net>0?plSign(c.pnl)+' ('+(c.pct>=0?'+':'')+fmt(c.pct)+'%)':'已清倉')+'</div></div>'+
+        '<span class="pgo">›</span>'+
       '</div>'+
       '<div class="pdet">'+
-        '<span class="pd"><i>股數</i><b>'+fmt(c.net)+'</b></span>'+
+        '<span class="pd" onclick="event.stopPropagation()"><i>現價</i><input class="pinput" type="number" step="any" inputmode="decimal" value="'+(c.price!=null?c.price:'')+'" placeholder="—" onclick="event.stopPropagation()" onchange="setPrice(\''+h.id+'\',this.value)"></span>'+
         '<span class="pd"><i>持倉價</i><b>'+fmt(c.avg)+'</b></span>'+
-        '<span class="pd"><i>現價</i><input class="pinput" type="number" step="any" inputmode="decimal" value="'+(c.price!=null?c.price:'')+'" placeholder="—" onchange="setPrice(\''+h.id+'\',this.value)"></span>'+
+        '<span class="pd"><i>股數</i><b>'+fmt(c.net)+'</b></span>'+
+        '<span class="pd"><i>盈虧</i><b class="pl '+plcls+'">'+plv+'</b></span>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -374,6 +404,92 @@ function renderPriceStatus(){
       '<span class="mark">· '+fmtTs(r.ts)+'</span></span>';
   }
   el.innerHTML=chip('us','美股')+'<span class="stchip mute"><span class="mark">｜</span></span>'+chip('hk','港股');
+}
+
+/* ============ 個股詳情 ============ */
+var detailId=null, detailInfo=null;
+function openDetail(hid){
+  var h=holdingById(hid);if(!h)return;
+  detailId=hid;
+  ['vPos','vTrade','vSym','vMine','vDetail'].forEach(function(id){document.getElementById(id).classList.toggle('show',id==='vDetail');});
+  document.querySelectorAll('.bottombar .bb').forEach(function(b){b.classList.remove('on');});
+  document.getElementById('dtSym').innerHTML=esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span>';
+  document.getElementById('dtName').textContent=h.name||'（尚無名稱）';
+  document.getElementById('detailBody').innerHTML='<div class="empty" style="padding:36px 20px">讀取行情資訊中…</div>';
+  try{window.scrollTo(0,0);}catch(e){}
+  fetchDetailInfo(h).then(function(d){detailInfo=d;renderDetail();});
+}
+function closeDetail(){
+  detailId=null;detailInfo=null;
+  ['vPos','vTrade','vSym','vMine','vDetail'].forEach(function(id){document.getElementById(id).classList.toggle('show',id==='vPos');});
+  document.querySelectorAll('.bottombar .bb').forEach(function(b){b.classList.toggle('on',b.dataset.v==='vPos');});
+  renderPos();
+}
+function refreshDetailInfo(){
+  var h=holdingById(detailId);if(!h)return;
+  delete detailCache[h.id];
+  document.getElementById('detailBody').innerHTML='<div class="empty" style="padding:36px 20px">更新行情資訊中…</div>';
+  fetchDetailInfo(h).then(function(d){detailInfo=d;renderDetail();toast(d?'已更新行情資訊':'取得失敗（可稍後再試）');});
+}
+function renderDetail(){
+  if(!detailId)return;
+  var h=holdingById(detailId);if(!h)return;
+  var c=compute(h), d=detailInfo||{}, b=S.banks.filter(function(x){return x.id===h.bank;})[0];
+  document.getElementById('dtName').textContent=(h.name||'')+(b?(' · 🏦'+b.name):'');
+  function kv(k,v,cls){return '<div class="drow"><span class="k">'+k+'</span><span class="v '+(cls||'')+'">'+(v==null||v===''?'—':v)+'</span></div>';}
+  /* 一、盈虧（平均成本法） */
+  var pnlCls=c.net>0?plClass(c.pnl):'flat';
+  var plv=c.net>0?(plSign(c.pnl)+' ('+(c.pct>=0?'+':'')+fmt(c.pct)+'%)'):'已清倉';
+  var html='<div class="card-box"><h3>持倉與盈虧</h3><div class="dgrid">'+
+    '<div class="dcell"><i>現價</i><b>'+(c.price!=null?fmt(c.price):'—')+'</b></div>'+
+    '<div class="dcell"><i>持倉價</i><b>'+fmt(c.avg)+'</b></div>'+
+    '<div class="dcell"><i>股數</i><b>'+fmt(c.net)+'</b></div>'+
+    '<div class="dcell"><i>市值</i><b>'+fmt(c.mv)+'</b></div>'+
+    '<div class="dcell"><i>成本</i><b>'+fmt(c.cost)+'</b></div>'+
+    '<div class="dcell"><i>未實現盈虧</i><b class="pl '+pnlCls+'">'+plv+'</b></div>'+
+    '<div class="dcell wide"><i>已實現損益</i><b class="pl '+plClass(c.realized)+'">'+plSign(c.realized)+'</b></div>'+
+  '</div></div>';
+  /* 二、API 行情資訊（港股 gtimg / 美股 Finnhub） */
+  html+='<div class="card-box"><h3>行情資訊 <span class="dachip">'+(h.market==='hk'?'公開行情':'Finnhub')+(detailCache[h.id]?' · 快取':(d?' · 即時':' · 未取得'))+'</span></h3>';
+  if(!d||!Object.keys(d).length){
+    html+='<div class="hint">暫未能取得行情資訊。港股免 Key 自動取得；美股請先於「我的」設定 Finnhub Key。可點右上角 🔄 重試，或直接手動輸入現價。</div>';
+  } else {
+    html+='<div class="dgrid">'+
+      '<div class="dcell"><i>現價</i><b>'+(d.price!=null?fmt(d.price):'—')+'</b></div>'+
+      '<div class="dcell"><i>漲跌</i><b class="pl '+((d.change!=null||d.pct!=null)?plClass(d.pct):'flat')+'">'+((d.change!=null||d.pct!=null)?(plSign(d.change)+' ('+(d.pct>=0?'+':'')+fmt(d.pct)+'%)'):'—')+'</b></div>'+
+      '<div class="dcell"><i>今開</i><b>'+(d.open!=null?fmt(d.open):'—')+'</b></div>'+
+      '<div class="dcell"><i>昨收</i><b>'+(d.prev!=null?fmt(d.prev):'—')+'</b></div>'+
+      '<div class="dcell"><i>最高</i><b>'+(d.high!=null?fmt(d.high):'—')+'</b></div>'+
+      '<div class="dcell"><i>最低</i><b>'+(d.low!=null?fmt(d.low):'—')+'</b></div>'+
+    '</div>';
+    html+='<div style="margin-top:6px">'+
+      kv(h.market==='hk'?'成交量（股）':'市值', h.market==='hk'?(d.volume!=null?fmt(d.volume):'—'):(d.mktCap!=null?(fmt(d.mktCap)+' 百萬'+('USD')):'—'))+
+      kv(h.market==='hk'?'成交額':(d.industry?'產業':''), h.market==='hk'?(d.amount!=null?fmt(d.amount):'—'):(d.industry||'—'))+
+      kv(h.market==='hk'?'市值（億 HKD）':(d.exchange?'交易所':''), h.market==='hk'?(d.mktCap!=null?fmt(d.mktCap):'—'):(d.exchange||'—'))+
+      kv(h.market==='hk'?'市盈率':(d.currency?'幣別':''), h.market==='hk'?(d.pe!=null?fmt(d.pe):'—'):(d.currency||'—'))+
+      (h.market==='hk'&&d.high52!=null?kv('52 週高／低',fmt(d.high52)+' / '+(d.low52!=null?fmt(d.low52):'—')):'')+
+      (d.time?kv('報價時間',d.time):'')+
+    '</div>';
+  }
+  html+='</div>';
+  /* 三、交易記錄（此標的） */
+  var arr=S.trades.filter(function(t){return t.hid===h.id;}).sort(function(a,b){return b.ts-a.ts;});
+  html+='<div class="card-box"><h3>交易記錄（'+arr.length+'）</h3>';
+  if(!arr.length)html+='<div class="hint">尚無交易記錄。可到「交易」頁新增買入／賣出。</div>';
+  else html+=arr.map(function(t){
+    return '<div class="trow"><div class="tt"><span class="tag '+(t.type==='sell'?'ts':'tb')+'">'+(t.type==='sell'?'賣出':'買入')+'</span>'+
+      '<span class="tdate">'+t.date+'</span></div>'+
+      '<div class="tm">'+fmt(t.price)+' × '+fmt(t.shares)+' 股'+(+t.fee>0?(' · 費 '+fmt(t.fee)):'')+(t.note?(' · '+esc(t.note)):'')+'</div>'+
+      '<div class="tdel" onclick="delDetailTrade(\''+t.id+'\')">✕</div></div>';
+  }).join('');
+  html+='<button class="btn" onclick="closeDetail();goView(\'vTrade\')">＋ 到交易頁新增記錄</button></div>';
+  document.getElementById('detailBody').innerHTML=html;
+}
+function delDetailTrade(id){
+  if(!confirm('刪除這筆記錄？'))return;
+  S.trades=S.trades.filter(function(t){return t.id!==id;});
+  delete detailCache[detailId];
+  save();renderDetail();renderPos();renderMine();toast('已刪除');
 }
 
 /* ============ 標的：批量新增與管理 ============ */
@@ -419,7 +535,7 @@ function renderSym(){
   if(!S.holdings.length){box.innerHTML='<div class="hint">尚無標的。上方批量新增美股／港股後，再到「交易」記錄買賣。</div>';return;}
   box.innerHTML=S.holdings.map(function(h){
     return '<div class="symrow">'+
-      '<div class="sm"><div class="ssym">'+esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span></div>'+
+      '<div class="sm"><div class="ssym" style="cursor:pointer" onclick="openDetail(\''+h.id+'\')">'+esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span> <span style="font-size:11px;color:var(--muted)">詳情 ›</span></div>'+
         '<input class="sname" value="'+esc(h.name)+'" placeholder="名稱（選填）" onchange="setName(\''+h.id+'\',this.value)"></div>'+
       '<div class="spr"><span class="kl">現價</span><input class="pinput" type="number" step="any" inputmode="decimal" value="'+(h.price!=null?h.price:'')+'" placeholder="—" onchange="setPrice(\''+h.id+'\',this.value)"></div>'+
       '<select class="bnsel" onchange="setHoldingBank(\''+h.id+'\',this.value)">'+bankOpts(h.bank)+'</select>'+
@@ -533,29 +649,71 @@ function fetchName(h){
   var url='https://finnhub.io/api/v1/stock/profile2?symbol='+encodeURIComponent(ys)+'&token='+encodeURIComponent(getKey());
   return fhFetch(url).then(function(j){if(!j)return null;var n=(j&&typeof j.name==='string'&&j.name.trim())?j.name.trim():null;return n;});
 }
+/* 美股詳情：合併 quote（現價/開高低收/涨跌幅）與 profile2（名稱/產業/市值/交易所/幣別）。
+   僅在點入個股時才呼叫，且 5 分鐘快取，避免耗盡 Finnhub 免費額度（每分鐘 60 次）。 */
+function fetchUSDetail(h){
+  if(!getKey())return Promise.resolve(null);
+  var ys=fhSym(h);if(!ys)return Promise.resolve(null);
+  var tok=encodeURIComponent(getKey());
+  var q=fhFetch('https://finnhub.io/api/v1/quote?symbol='+encodeURIComponent(ys)+'&token='+tok);
+  var p=fhFetch('https://finnhub.io/api/v1/stock/profile2?symbol='+encodeURIComponent(ys)+'&token='+tok);
+  return Promise.all([q,p]).then(function(a){
+    var j=a[0],pr=a[1],d={};
+    if(j&&typeof j.c==='number'&&isFinite(j.c)){d.price=j.c;d.prev=(typeof j.pc==='number'?j.pc:null);d.open=(typeof j.o==='number'?j.o:null);
+      d.high=(typeof j.h==='number'?j.h:null);d.low=(typeof j.l==='number'?j.l:null);
+      d.change=(typeof j.d==='number'?j.d:null);d.pct=(typeof j.dp==='number'?j.dp:null);
+      d.time=(typeof j.t==='number'&&j.t>0)?new Date(j.t*1000).toLocaleString('zh-Hant'):null;}
+    if(pr){if(typeof pr.name==='string'&&pr.name.trim())d.name=pr.name.trim();
+      if(typeof pr.finnhubIndustry==='string'&&pr.finnhubIndustry.trim())d.industry=pr.finnhubIndustry.trim();
+      if(typeof pr.marketCapitalization==='number')d.mktCap=pr.marketCapitalization; /* 百萬美元 */
+      if(typeof pr.exchange==='string'&&pr.exchange.trim())d.exchange=pr.exchange.trim();
+      if(typeof pr.currency==='string'&&pr.currency.trim())d.currency=pr.currency.trim();
+      if(typeof pr.weburl==='string'&&pr.weburl.trim())d.weburl=pr.weburl.trim();}
+    return (Object.keys(d).length)?d:null;
+  });
+}
+var detailCache={};   /* hid -> {ts,data}，5 分鐘內重開詳情不重打 API */
+function fetchDetailInfo(h){
+  var c=detailCache[h.id];
+  if(c&&(Date.now()-c.ts<300000)&&c.data)return Promise.resolve(c.data);
+  var p=(h.market==='hk')?fetchHKQuote(h):fetchUSDetail(h);
+  return p.then(function(d){if(d)detailCache[h.id]={ts:Date.now(),data:d};return d;});
+}
 /* 港股公開行情（qt.gtimg.cn）：免費、免 Key、CORS（Access-Control-Allow-Origin:*），僅送港股代號，不傳個資；
-   回傳 GBK 文字，瀏覽器依 Content-Type 解碼。港股代號格式 hk + 5 位零填充（如 00700 → hk00700）。 */
+   回傳 GBK 文字——fetch 的 r.text() 永遠用 UTF-8 解碼會亂碼，故改用 arrayBuffer + TextDecoder('gb18030') 明確解碼。
+   港股代號格式 hk + 5 位零填充（如 00700 → hk00700）。 */
 function fhFetchText(url){
   if(typeof fetch!=='function')return Promise.resolve(null);
   var ctrl=null;
   if(typeof AbortController!=='undefined'){try{ctrl=new AbortController();}catch(e){ctrl=null;}}
   var to=ctrl?setTimeout(function(){try{ctrl.abort();}catch(e){}},10000):null;
   var opts=ctrl?{signal:ctrl.signal,cache:'no-store'}:{cache:'no-store'};
-  return fetch(url,opts).then(function(r){if(to)clearTimeout(to);if(!r.ok)throw new Error('http'+r.status);return r.text();}).catch(function(){if(to)clearTimeout(to);return null;});
+  return fetch(url,opts).then(function(r){
+    if(to)clearTimeout(to);if(!r.ok)throw new Error('http'+r.status);return r.arrayBuffer();
+  }).then(function(buf){
+    try{return new TextDecoder('gb18030').decode(buf);}catch(e){return new TextDecoder().decode(buf);}
+  }).catch(function(){if(to)clearTimeout(to);return null;});
 }
 function gtimgHK(h){var d=(h.sym||'').replace(/[^0-9]/g,'');if(!d)return null;if(d.length<5)d=d.padStart(5,'0');return 'hk'+d;}
+/* 解析 gtimg 回傳：一次請求取出現價/名稱及詳情頁所需欄位（無額外成本）。
+   常見欄位索引：1名稱 2代號 3現價 4昨收 5今開 6成交量(股) 30時間 31漲跌額 32漲跌幅% 33高 34低 37成交額 39市盈率 44市值(億) 46英文名 48/49 52高低 */
+function parseGtimg(txt){
+  if(!txt)return null;
+  var m=/="([^"]*)"/.exec(txt);if(!m||!m[1])return null;
+  var f=m[1].split('~');
+  if(!f[3]||f[3]==='')return null;
+  function num(i){var v=parseFloat(f[i]);return isFinite(v)?v:null;}
+  function str(i){return (f[i]&&f[i].trim())?f[i].trim():null;}
+  return {
+    price:num(3), name:str(1), code:str(2), prev:num(4), open:num(5), volume:num(6),
+    time:str(30), change:num(31), pct:num(32), high:num(33), low:num(34),
+    amount:num(37), pe:num(39), mktCap:num(44), enName:str(46), high52:num(48), low52:num(49)
+  };
+}
 function fetchHKQuote(h){
   var ys=gtimgHK(h);if(!ys)return Promise.resolve(null);
   var url='https://qt.gtimg.cn/q='+encodeURIComponent(ys);
-  return fhFetchText(url).then(function(txt){
-    if(!txt)return null;
-    var m=/="([^"]*)"/.exec(txt);if(!m||!m[1])return null;
-    var f=m[1].split('~');
-    if(!f[3]||f[3]==='')return null;
-    var price=parseFloat(f[3]);
-    var name=(f[1]&&f[1].trim())?f[1].trim():null;
-    return {price:isFinite(price)?price:null, name:name};
-  });
+  return fhFetchText(url).then(parseGtimg);
 }
 /* 更新現價：美股經 Finnhub 取得；港股經公開行情（免費、免 Key）取得 */
 async function updatePrices(){
