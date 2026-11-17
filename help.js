@@ -118,11 +118,12 @@
 
   /* ---- 樣式（independent，使用 theme 變數 + fallback）---- */
   var css=''
-    +'.jhelp-fab{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:60;'
+    +'.jhelp-fab{position:fixed;z-index:60;'
     +'width:42px;height:42px;border-radius:50%;border:1px solid var(--line,#f0e2d8);'
     +'background:var(--panel,#fff);color:var(--accent,#c23b6a);font-size:20px;font-weight:800;'
-    +'box-shadow:0 3px 12px rgba(120,60,80,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none}'
-    +'.jhelp-fab:active{transform:scale(.94)}'
+    +'box-shadow:0 3px 12px rgba(120,60,80,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;'
+    +'user-select:none;-webkit-user-select:none;touch-action:none}'
+    +'.jhelp-fab.drag{opacity:.85;box-shadow:0 6px 20px rgba(120,60,80,.35);cursor:grabbing}'
     +'.jhelp-mask{position:fixed;inset:0;background:rgba(40,20,30,.45);z-index:120;display:none;align-items:flex-end;justify-content:center}'
     +'.jhelp-mask.on{display:flex}'
     +'.jhelp-sheet{width:100%;max-width:560px;background:var(--bg,#fffaf3);border-radius:20px 20px 0 0;'
@@ -165,7 +166,116 @@
   function open(){mask.classList.add('on');try{if(window.gtag)window.gtag('event','help_open',{});}catch(e){}}
   function close(){mask.classList.remove('on');}
 
-  fab.addEventListener('click',open);
+  /* ---- 自動閃避定位：避開畫面上其它固定在底部/角落的可點擊元素 ---- */
+  var POS_KEY='jless_help_fab_pos_v1';
+  var SIZE=42, EDGE=12, PAD=8;
+
+  function area(r){return r&&r.width>0&&r.height>0?r.width*r.height:0;}
+  function overlaps(a,b,pad){
+    pad=pad||0;
+    return !(a.right+pad<=b.left||b.right+pad<=a.left||a.bottom+pad<=b.top||b.bottom+pad<=a.top);
+  }
+  /* 收集其它「浮動／底部」元素的矩形：fixed/sticky 定位、或可見的底部列／圓鈕 */
+  function obstacles(){
+    var list=[], vh=window.innerHeight||document.documentElement.clientHeight;
+    var vw=window.innerWidth||document.documentElement.clientWidth;
+    var cand=document.querySelectorAll('button,a,[onclick],[role="button"],.bottombar,.bb,.fab,.addbtn,.nav,[class*="float"],[id*="add"],[id*="fab"]');
+    for(var i=0;i<cand.length;i++){
+      var el=cand[i];
+      if(el===fab||mask.contains(el))continue;
+      var cs;
+      try{cs=getComputedStyle(el);}catch(e){continue;}
+      if(!cs||cs.display==='none'||cs.visibility==='hidden')continue;
+      var r=el.getBoundingClientRect();
+      if(area(r)<=0)continue;
+      /* 只排除「覆蓋幾乎整個畫面」的元素（如全屏遮罩）；全寬但很矮的底部列仍須閃避 */
+      if(r.width>vw*0.98&&r.height>vh*0.55)continue;
+      /* 只關心下半部或左右邊緣的元素（真正會擋到浮動鈕的） */
+      if(r.top>vh*0.45||r.left<EDGE+60||r.right>vw-EDGE-60)list.push(r);
+    }
+    return list;
+  }
+  /* 候選位置：由右下角往上、再到左下角；回傳第一個不重疊者 */
+  function autoPlace(){
+    var vh=window.innerHeight||document.documentElement.clientHeight;
+    var vw=window.innerWidth||document.documentElement.clientWidth;
+    var obs=obstacles();
+    var bottomBase=vh-SIZE-EDGE;
+    var slots=[];
+    /* 右側：底部起，每次上移 (SIZE+PAD) */
+    for(var y=bottomBase;y>=vh*0.30;y-=(SIZE+PAD))slots.push({x:vw-SIZE-EDGE,y:y});
+    /* 左側：底部起 */
+    for(var y2=bottomBase;y2>=vh*0.30;y2-=(SIZE+PAD))slots.push({x:EDGE,y:y2});
+    for(var s=0;s<slots.length;s++){
+      var r={left:slots[s].x,top:slots[s].y,right:slots[s].x+SIZE,bottom:slots[s].y+SIZE,width:SIZE,height:SIZE};
+      var hit=false;
+      for(var o=0;o<obs.length;o++){if(overlaps(r,obs[o],PAD)){hit=true;break;}}
+      if(!hit)return slots[s];
+    }
+    return {x:vw-SIZE-EDGE,y:vh*0.30}; /* 全衝突時的後備 */
+  }
+  function setPos(x,y){
+    fab.style.left=x+'px';fab.style.top=y+'px';fab.style.right='auto';fab.style.bottom='auto';
+  }
+  function rememberPos(x,y){
+    try{localStorage.setItem(POS_KEY,JSON.stringify({x:Math.round(x),y:Math.round(y),w:window.innerWidth,h:window.innerHeight}));}catch(e){}
+  }
+  function applyPos(){
+    var saved=null;
+    try{saved=JSON.parse(localStorage.getItem(POS_KEY));}catch(e){}
+    var vh=window.innerHeight||document.documentElement.clientHeight;
+    var vw=window.innerWidth||document.documentElement.clientWidth;
+    if(saved&&isFinite(saved.x)&&isFinite(saved.y)&&saved.w&&Math.abs(saved.w-vw)<160){
+      /* 用過的位置：橫向依目前寬度靠邊吸附、縱向不超出畫面 */
+      var x=saved.x>vw/2?(vw-SIZE-EDGE):EDGE;
+      var y=Math.max(8,Math.min(saved.y,vh-SIZE-8));
+      setPos(x,y);
+    }else{
+      var p=autoPlace();setPos(p.x,p.y);
+    }
+  }
+  applyPos();
+  /* 版面就緒後再校正一次（部分按鈕由頁面 JS 延遲產生） */
+  setTimeout(applyPos,300);
+  window.addEventListener('resize',function(){clearTimeout(fab._rt);fab._rt=setTimeout(applyPos,200);});
+  window.addEventListener('orientationchange',function(){setTimeout(applyPos,400);});
+
+  /* ---- 可按住拖曳微調位置 ---- */
+  var dragging=false, moved=false, sx=0, sy=0, ox=0, oy=0, longTimer=null;
+  fab.addEventListener('pointerdown',function(e){
+    if(e.button&&e.button!==0)return;
+    dragging=true;moved=false;
+    sx=e.clientX;sy=e.clientY;
+    var r=fab.getBoundingClientRect();ox=r.left;oy=r.top;
+    try{fab.setPointerCapture(e.pointerId);}catch(err){}
+    longTimer=setTimeout(function(){if(dragging&&!moved){moved=true;fab.classList.add('drag');}},350);
+  });
+  fab.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    var dx=e.clientX-sx, dy=e.clientY-sy;
+    if(!moved&&Math.abs(dx)+Math.abs(dy)>7){moved=true;fab.classList.add('drag');clearTimeout(longTimer);}
+    if(!moved)return;
+    var vw=window.innerWidth||document.documentElement.clientWidth;
+    var vh=window.innerHeight||document.documentElement.clientHeight;
+    var x=Math.max(0,Math.min(ox+dx,vw-SIZE));
+    var y=Math.max(0,Math.min(oy+dy,vh-SIZE));
+    setPos(x,y);
+  });
+  function endDrag(e){
+    if(!dragging)return;
+    clearTimeout(longTimer);dragging=false;
+    fab.classList.remove('drag');
+    if(moved){var r=fab.getBoundingClientRect();rememberPos(r.left,r.top);}
+    setTimeout(function(){moved=false;},50); /* 讓 click 事件有機會被抑制 */
+    try{fab.releasePointerCapture(e.pointerId);}catch(err){}
+  }
+  fab.addEventListener('pointerup',endDrag);
+  fab.addEventListener('pointercancel',endDrag);
+
+  fab.addEventListener('click',function(e){
+    if(moved){e.preventDefault();e.stopPropagation();moved=false;return;}
+    open();
+  });
   sheet.querySelector('.jhelp-x').addEventListener('click',close);
   sheet.querySelector('.jhelp-ok').addEventListener('click',close);
   mask.addEventListener('click',function(e){if(e.target===mask)close();});
