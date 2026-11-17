@@ -246,8 +246,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,.key:focus-visible,.cat
         <div class="b g" id="cInc" onclick="setChartType('income')">收入</div>
       </div>
       <div class="grp">
-        <div class="b on" id="cWeek" onclick="setChartMode('week')">週</div>
-        <div class="b" id="cMonth" onclick="setChartMode('month')">月</div>
+        <div class="b" id="cWeek" onclick="setChartMode('week')">週</div>
+        <div class="b on" id="cMonth" onclick="setChartMode('month')">月</div>
         <div class="b" id="cYear" onclick="setChartMode('year')">年</div>
       </div>
     </div>
@@ -350,7 +350,7 @@ var SUG_EMO=['🍜','🛍️','🧴','🚌','🥬','🍎','☕','🍪','🏃','�
 
 var S=null, curType='expense', selCat=null, curAcc='a_none';
 var expr='', justEval=false, sheetDate=todayStr(), listFilt='all';
-var chartType='expense', chartMode='week';
+var chartType='expense', chartMode='month';
 var fAcc='all', fCat='all';
 var editId=null;
 
@@ -857,5 +857,6 @@ renderSummary();renderCats();
 <script src="backup.js"></script>
 <script src="theme.js"></script>
 <script src="share.js"></script>
+  <script src="help.js"></script>
 </body>
 </html>

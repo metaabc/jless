@@ -43,6 +43,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .card .bar i.over{background:var(--green)}
 .card .pt{font-size:calc(11.5px*var(--fs));font-weight:700;margin-top:7px;color:var(--muted)}
 .card .pt.over{color:var(--green)}
+.card .pinmark{position:absolute;top:8px;left:9px;font-size:13px;opacity:.85}
 .card{position:relative}
 .cards.lv-list{grid-template-columns:1fr}
 .cards .lv-grip{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:8px;font-size:14px;background:var(--line2);color:var(--muted)}
@@ -151,7 +152,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,.lt:focus-visible,.card
       <button onclick="addRecord()">記錄</button>
     </div>
     <div id="dRecs" style="margin-top:6px"></div>
-    <button class="btn ghost" style="margin-top:12px" onclick="editFromDetail()">✏️ 編輯指標</button>
+    <button class="btn ghost" style="margin-top:12px" id="pinBtn" onclick="togglePin()">📌 設為首頁顯示</button>
+    <button class="btn ghost" style="margin-top:8px" onclick="editFromDetail()">✏️ 編輯指標</button>
     <button class="btn danger" style="margin-top:8px" onclick="delMetric()">🗑️ 刪除此指標</button>
   </div>
 </div>
@@ -177,7 +179,7 @@ function uid(){return 'm'+Date.now().toString(36)+Math.random().toString(36).sli
 function pad(n){return (n<10?'0':'')+n;}
 function todayStr(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-function defaultState(){return {v:1,lists:[{id:uid(),name:'我的指標',metrics:[]}]};}
+function defaultState(){return {v:1,pinId:'',lists:[{id:uid(),name:'我的指標',metrics:[]}]};}
 function load(){try{var raw=localStorage.getItem(KEY);if(raw){var d=JSON.parse(raw);if(d&&Array.isArray(d.lists)&&d.lists.length)return d;}}catch(e){}return defaultState();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast('儲存失敗');}}
 var S=load();
@@ -236,7 +238,8 @@ function renderCards(){
     else if(lv&&m.targetVal>0){var p=Math.max(0,Math.min(100,Math.round(lv.value/m.targetVal*100)));bar='<div class="bar"><i class="'+(st==='over'?'over':(st==='ok'?'ok':''))+'" style="width:'+p+'%"></i></div>';}
     var pt=progText(m,lv?lv.value:null);
     var d=document.createElement('div');d.className='card lv-item';d.dataset.id=m.id;
-    d.innerHTML='<div class="lv-grip" title="拖動排序">⋮⋮</div>'+
+    d.innerHTML=(S.pinId===m.id?'<div class="pinmark" title="首頁顯示中">📌</div>':'')+
+      '<div class="lv-grip" title="拖動排序">⋮⋮</div>'+
       '<div class="nm">'+esc(m.name)+'</div>'+
       (lv?'<div class="val">'+fmt(lv.value)+(m.unit?'<small>'+esc(m.unit)+'</small>':'')+'</div>':'<div class="val" style="color:var(--muted);font-size:calc(16px*var(--fs))">—</div>')+
       '<div class="tg">'+esc(tag)+'</div>'+bar+(pt?'<div class="pt'+(st==='over'?' over':'')+'">'+esc(pt)+'</div>':'');
@@ -259,18 +262,19 @@ function saveMetric(){
   var name=document.getElementById('mName').value.trim();if(!name){toast('請填寫名稱');return;}
   var unit=document.getElementById('mUnit').value.trim();
   var m;
-  if(editId){m=byId(editId);}else{var l=curListObj();m={id:uid(),records:[]};l.metrics.push(m);}
+  if(editId){m=byId(editId);}else{var l=curListObj();m={id:uid(),records:[]};l.metrics.push(m);if(!S.pinId)S.pinId=m.id;} /* 首個指標自動釘選首頁，一開即用 */
   m.name=name;m.unit=unit;
   if(editRange){var mn=parseFloat(document.getElementById('mMin').value),mx=parseFloat(document.getElementById('mMax').value);if(isNaN(mn)||isNaN(mx)){toast('請填寫區間');return;}m.targetType='range';m.targetMin=mn;m.targetMax=mx;}
   else{var v=parseFloat(document.getElementById('mTargetVal').value);m.targetType='value';m.targetVal=isNaN(v)?0:v;}
   m.chartType=editChartType||'line';
   save();closeMetricEditor();renderCards();toast('已儲存');
 }
-function delMetric(){if(!confirm('刪除這個指標及其所有記錄？'))return;var l=curListObj();l.metrics=l.metrics.filter(function(x){return x.id!==detailId;});save();closeDetail();renderCards();}
+function delMetric(){if(!confirm('刪除這個指標及其所有記錄？'))return;var l=curListObj();l.metrics=l.metrics.filter(function(x){return x.id!==detailId;});if(S.pinId===detailId)S.pinId='';save();closeDetail();renderCards();}
 function editFromDetail(){var id=detailId;closeDetail();openMetricEditor(id);}
+function togglePin(){var m=byId(detailId);if(!m)return;S.pinId=(S.pinId===m.id?'':m.id);save();document.getElementById('pinBtn').textContent=(S.pinId===m.id?'📌 取消首頁顯示':'📌 設為首頁顯示');renderCards();toast(S.pinId?'已設為首頁顯示':'已取消首頁顯示');}
 
 /* 詳情 */
-function openDetail(id){detailId=id;var m=byId(id);if(!m)return;document.getElementById('dName').textContent=m.name;document.getElementById('dTarget').textContent=targetText(m)+(m.records.length?(' · 共 '+m.records.length+' 筆'):'');document.getElementById('rDate').value=todayStr();document.getElementById('rVal').value='';renderChart(m);renderRecs(m);document.getElementById('dMask').classList.add('show');}
+function openDetail(id){detailId=id;var m=byId(id);if(!m)return;document.getElementById('dName').textContent=m.name;document.getElementById('dTarget').textContent=targetText(m)+(m.records.length?(' · 共 '+m.records.length+' 筆'):'');document.getElementById('pinBtn').textContent=(S.pinId===m.id?'📌 取消首頁顯示':'📌 設為首頁顯示');document.getElementById('rDate').value=todayStr();document.getElementById('rVal').value='';renderChart(m);renderRecs(m);document.getElementById('dMask').classList.add('show');}
 function closeDetail(){document.getElementById('dMask').classList.remove('show');}
 function renderChart(m){
   var svg=document.getElementById('dChart');var recs=m.records.slice().sort(function(a,b){return a.date<b.date?-1:1;});
@@ -419,5 +423,6 @@ renderTabs();renderCards();
 <script src="backup.js"></script>
 <script src="theme.js"></script>
 <script src="share.js"></script>
+  <script src="help.js"></script>
 </body>
 </html>

@@ -388,6 +388,24 @@ let state = load();
 
 /* ===== 渲染 ===== */
 function appExtra(file){
+  if(file==='metric.html'){
+    try{
+      var md=JSON.parse(localStorage.getItem('jless_metric_v1'));
+      if(md&&md.pinId&&Array.isArray(md.lists)){
+        var pm=null;
+        for(var li=0;li<md.lists.length&&!pm;li++){var arr=md.lists[li].metrics||[];for(var mi=0;mi<arr.length;mi++){if(arr[mi].id===md.pinId){pm=arr[mi];break;}}}
+        if(pm){
+          var fnum=function(n){return (Math.round(n*100)/100).toLocaleString('zh-Hant');};
+          var tg=pm.targetType==='range'?('目標 '+fnum(pm.targetMin)+'～'+fnum(pm.targetMax)):((pm.targetVal>0)?('目標 '+fnum(pm.targetVal)):'');
+          var lv=null;
+          if(Array.isArray(pm.records)&&pm.records.length){lv=pm.records.slice().sort(function(a,b){return a.date<b.date?-1:1;})[0];}
+          var cur=lv?fnum(lv.value):'—';
+          var unit=pm.unit?(' '+pm.unit):'';
+          return '<span class="tag">📈 '+String(pm.name||'').slice(0,10)+'：'+cur+unit+(tg?' / '+tg:'')+'</span>';
+        }
+      }
+    }catch(e){}
+  }
   if(file==='todo.html'){
     try{
       var d=JSON.parse(localStorage.getItem('jless_todo_v1'));

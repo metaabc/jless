@@ -228,5 +228,6 @@ var toastTimer=null;
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},1800);}
 renderSummary();renderCalendar();renderLeaveList();
 </script>
+  <script src="help.js"></script>
 </body>
 </html>
