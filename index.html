@@ -482,6 +482,13 @@ function appExtra(file){
           var a=+cl.a||0; tot+=a; if(cl.u) used+=a;
         });});
         var left=tot-used;
+        var soon=0,t0=new Date();t0.setHours(0,0,0,0);
+        (Array.isArray(c.favs)?c.favs:[]).forEach(function(f){
+          if(!f||!f.expiry)return;
+          var d=new Date(f.expiry+'T00:00:00');
+          if(!isNaN(d.getTime())&&d>=t0&&d<=new Date(t0.getTime()+7*864e5))soon++;
+        });
+        if(soon>0) return '<span class="soon">🔔 7日內到期：'+soon+' 項</span>';
         if(left>0) return '<span class="tag">💰 未用：'+left.toLocaleString()+'</span>';
       }
     }catch(e){}
@@ -495,7 +502,26 @@ function appExtra(file){
           var dd=new Date(t.ts);
           if(dd.getFullYear()===y&&dd.getMonth()===mo&&t.type==='expense') se+=(+t.amount||0);
         });
+        var bt=+((q.budget&&q.budget.total)||0);
+        if(bt>0){
+          var pct=Math.round(se/bt*100);
+          return '<span class="'+(se>bt?'soon':'tag')+'">🧾 預算 '+pct+'%（ '+se.toLocaleString()+' / '+bt.toLocaleString()+' ）</span>';
+        }
         if(se>0) return '<span class="tag">🧾 開支：'+se.toLocaleString()+'</span>';
+      }
+    }catch(e){}
+  }
+  if(file==='remember.html'){
+    try{
+      var r=JSON.parse(localStorage.getItem('flashcard_list_v1'));
+      if(r){
+        var today=new Date();today.setHours(0,0,0,0);var n=0,wrong=0;
+        var lists=Array.isArray(r.lists)?r.lists:(r.cards?[{cards:r.cards}]:[]);
+        lists.forEach(function(l){(Array.isArray(l.cards)?l.cards:[]).forEach(function(c){
+          if(c.nextDue&&new Date(c.nextDue)<=today)n++;
+          if((+c.wrongCount||0)>0)wrong++;
+        });});
+        if(n>0)return '<span class="soon">🗂️ 待溫習：'+n+(wrong?' · 錯題 '+wrong:'')+'</span>';
       }
     }catch(e){}
   }
