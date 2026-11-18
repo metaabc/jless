@@ -1,0 +1,17 @@
+{
+  "name": "JLess 相簿 — 本機相片管理",
+  "short_name": "JLess 相簿",
+  "description": "相片永遠不上雲端。本機建立相簿、自動縮圖、多選分享，完全離線。",
+  "start_url": "album.html",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fffaf3",
+  "theme_color": "#fffaf3",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "jless-logo-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "jless-logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "jless-logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

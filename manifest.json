@@ -1,0 +1,17 @@
+{
+  "name": "JLess小助手 — 免安裝本機工具箱",
+  "short_name": "JLess",
+  "description": "待辦、記帳、筆記、小習慣、指標、相簿等常用工具，一開即用、離線可用，資料只存本機。",
+  "start_url": "index.html",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fffaf3",
+  "theme_color": "#fffaf3",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "jless-logo-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "jless-logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "jless-logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

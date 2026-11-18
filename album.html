@@ -13,16 +13,17 @@
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
 <link rel="canonical" href="album.html">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="apple-touch-icon" href="habit-logo-180.png">
+<link rel="apple-touch-icon" href="jless-logo-180.png">
+<link rel="manifest" href="album-manifest.json">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="JLess小助手">
 <meta property="og:title" content="相簿 — 本機相片管理・自動縮圖・多選分享｜JLess小助手">
 <meta property="og:description" content="在本機建立多個相簿、上載相片時自動縮小節省空間，提供六種瀏覽排版、愛心收藏，以及 iPhone 式拖拉多選一次分享。相片不上传伺服器，完全離線。">
-<meta property="og:image" content="habit-logo.png">
+<meta property="og:image" content="jless-logo-512.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="相簿 — 本機相片管理・自動縮圖・多選分享｜JLess小助手">
 <meta name="twitter:description" content="在本機建立多個相簿、上載相片時自動縮小節省空間，提供六種瀏覽排版、愛心收藏，以及 iPhone 式拖拉多選一次分享。相片不上传伺服器，完全離線。">
-<meta name="twitter:image" content="habit-logo.png">
+<meta name="twitter:image" content="jless-logo-512.png">
 
 <!-- Google Analytics（統計；不傳個人／敏感資料，離線時靜默） -->
 <script defer src="ga.js"></script>
@@ -60,6 +61,8 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .btn.primary:active{transform:scale(.99)}
 .empty{text-align:center;color:var(--muted);padding:48px 20px;font-size:calc(13px * var(--fs));line-height:1.8}
 .empty .big{font-size:calc(34px * var(--fs));margin-bottom:8px}
+.empty .gobtn{display:inline-block;margin-top:12px;background:var(--accent);color:#fff;border-radius:12px;padding:11px 20px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none;font-size:calc(13.5px * var(--fs))}
+.empty .gobtn:active{transform:scale(.97)}
 
 /* 相片網格／多種佈局 */
 .gal{display:grid;gap:8px;padding:10px 16px 4px}
@@ -85,6 +88,26 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .ly-list .pmeta b{display:block;font-size:calc(13.5px * var(--fs));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ly-list .pmeta small{font-size:calc(11px * var(--fs));color:var(--muted)}
 .ly-list .cap{display:none}
+/* 標籤小olicies */
+.ptags{position:absolute;left:5px;bottom:5px;right:5px;display:flex;gap:3px;flex-wrap:wrap;pointer-events:none;z-index:2}
+.ptags .tg{background:rgba(0,0,0,.5);color:#fff;border-radius:6px;padding:1px 5px;font-size:calc(9px * var(--fs));white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.ly-list .ptags{position:static;margin-top:3px}
+.ly-list .ptags .tg{background:var(--accent-soft);color:var(--accent)}
+/* 時間軸布局 */
+.ly-timeline{display:block;padding:10px 16px 4px}
+.ly-timeline .tmonth{font-size:calc(14px * var(--fs));font-weight:800;color:var(--ink);margin:16px 0 9px;padding-left:4px;border-left:3px solid var(--accent);line-height:1.2}
+.ly-timeline .tmonth small{color:var(--muted);font-weight:400;font-size:calc(10.5px * var(--fs));margin-left:6px}
+.ly-timeline .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ly-timeline .ph img{aspect-ratio:1;object-fit:cover}
+/* 回憶卡 */
+.memory{background:linear-gradient(135deg,var(--accent-soft),#fff6e8);border:1px solid var(--accent-line);border-radius:16px;margin:14px 16px 0;padding:12px 14px}
+.memory h3{margin:0 0 4px;font-size:calc(13.5px * var(--fs));display:flex;align-items:center;gap:6px}
+.memory .msub{font-size:calc(11px * var(--fs));color:var(--ink2);margin:0 0 9px}
+.memory .mrow2{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.memory .mrow2::-webkit-scrollbar{display:none}
+.memory .mthumb{flex:0 0 74px;height:74px;border-radius:10px;overflow:hidden;border:2px solid #fff;cursor:pointer;background:var(--line2)}
+.memory .mthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.memory .mthumb div{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:calc(9.5px * var(--fs));color:var(--muted);padding:4px}
 /* 選取／分享小鈕 */
 .ph .sbtn{position:absolute;top:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;
   border:none;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;user-select:none;-webkit-user-select:none;z-index:2;line-height:1}
@@ -167,8 +190,16 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 .vtop{display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 12px) 16px 8px;font-size:calc(12.5px * var(--fs));color:#f0dfe6}
 .vtop button{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:10px;padding:6px 12px;font-size:14px;cursor:pointer}
 .vimgwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 12px;overflow:hidden}
-.vimgwrap img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
-.vmeta{text-align:center;font-size:calc(11px * var(--fs));color:#cdb6c1;padding:4px 16px}
+.vimgwrap img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;transform-origin:center center;touch-action:none}
+.vimgwrap.zoomed img{cursor:grab}
+.vmeta{text-align:center;font-size:calc(11px * var(--fs));color:#cdb6c1;padding:4px 16px;min-height:16px}
+.vtagline{text-align:center;font-size:calc(11px * var(--fs));color:#f0dfe6;padding:0 16px 4px}
+.vtagline .tg{display:inline-block;background:rgba(255,255,255,.16);border-radius:6px;padding:2px 7px;margin:2px;cursor:pointer}
+.vzoomhint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.55);color:#fff;padding:6px 12px;border-radius:9px;font-size:12px;pointer-events:none;opacity:0;transition:opacity .2s}
+.vzoomhint.show{opacity:1}
+.vnote-in{width:calc(100% - 32px);margin:0 16px 8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:9px;padding:9px 10px;font-size:calc(12.5px * var(--fs));outline:none;display:none}
+.vnote-in:focus{border-color:rgba(255,255,255,.5)}
+.vnote-in.show{display:block}
 .vbot{display:flex;align-items:center;justify-content:space-around;gap:4px;padding:10px 12px calc(12px + env(safe-area-inset-bottom))}
 .vbot button{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:12px;min-width:46px;height:42px;font-size:17px;cursor:pointer}
 .vbot button:active{background:rgba(255,255,255,.28)}
@@ -193,10 +224,11 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
   "inLanguage": "zh-Hant",
   "isAccessibleForFree": true,
   "featureList": [
-    "建立多個相簿",
-    "上載自動縮圖省空間",
-    "六種瀏覽排版",
-    "拖拉多選一次分享"
+    "IndexedDB 大量相片儲存",
+    "回憶時光與時間軸瀏覽",
+    "標籤備註與增強搜尋",
+    "幻燈片與雙指縮放",
+    "拖拉多選分享與品牌角標"
   ],
   "offers": {
     "@type": "Offer",
@@ -215,13 +247,14 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 <div class="app">
   <header>
     <div class="topbar">
-      <div class="title"><span class="logo">🖼️</span><div><div>相簿</div><div class="sub">收藏美好瞬間 · 僅存本機</div></div></div>
+      <div class="title"><span class="logo">🖼️</span><div><div>相簿</div><div class="sub">美好瞬間永遠不上雲 · 只有你看得到</div></div></div>
     </div>
   </header>
 
   <main>
-    <!-- 主頁：喜愛相片 -->
+    <!-- 主頁：回憶 + 喜愛相片 -->
     <section class="view show" id="vHome">
+      <div id="memoryBox"></div>
       <div class="toolrow"><button class="selbtn" id="homeSelBtn" onclick="toggleSelectMode()">☑️ 選取</button><span class="thint">選取後可按住拖拉連續選取、來回滑動可取消 · 點 📤 單張分享</span></div>
       <div class="lysw" id="homeLySw"></div>
       <div id="homeGal"></div>
@@ -238,7 +271,7 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
         <div class="hint" id="pickHint">相片只會儲存在此瀏覽器，不會上傳到任何伺服器。</div>
       </div>
       <div class="toolrow">
-        <input class="srch" id="albQ" placeholder="🔍 搜尋檔名" oninput="renderAlbum()">
+        <input class="srch" id="albQ" placeholder="🔍 搜尋檔名・標籤・備註" oninput="renderAlbum()">
         <div class="seg"><span class="on" id="fAll" onclick="setFilter('all')">全部</span><span id="fFav" onclick="setFilter('fav')">❤️ 喜愛</span></div>
         <button class="selbtn" id="albSelBtn" onclick="toggleSelectMode()">☑️ 選取</button>
       </div>
@@ -284,7 +317,19 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
       <div class="card-box">
         <h3>▦ 瀏覽佈局</h3>
         <div class="lypick" id="lyPick"></div>
-        <div class="hint">此設定同時套用「主頁」與「相簿」，也可在該頁上方快速切換。</div>
+        <div class="hint">此設定同時套用「主頁」與「相簿」，也可在該頁上方快速切換。時間軸會按月分組，適合回顧大量相片。</div>
+      </div>
+      <div class="card-box">
+        <h3>📤 分享設定</h3>
+        <div class="setrow">
+          <div class="lab">分享圖加品牌小標<small>分享時在角落加低調小字，讓朋友認識這個 App</small></div>
+          <div class="seg2" id="brandSeg"><span id="brOn" onclick="setBrand(true)">開啟</span><span id="brOff" onclick="setBrand(false)">關閉</span></div>
+        </div>
+      </div>
+      <div class="card-box" id="pwaBox">
+        <h3>📲 加到手機主畫面</h3>
+        <div class="hint" id="pwaHint">在手機瀏覽器選「加到主畫面」，即可像 App 一樣一點開啟，全螢幕、無網址列。</div>
+        <button class="btn" id="pwaBtn" onclick="showInstallTip()" style="display:none">📲 安裝到主畫面</button>
       </div>
 
       <div class="card-box">
@@ -295,7 +340,7 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
           <div><b id="stSaved">0 KB</b><small>已節省</small></div>
         </div>
         <div class="bar"><i id="stBar"></i></div>
-        <div class="hint">瀏覽器本機儲存上限一般為 5–10 MB。若顯示「空間不足」，請調低縮圖設定或刪除部分相片。</div>
+        <div class="hint" id="storeHint">相片本體存放於瀏覽器的 IndexedDB，容量遠大於一般 5–10 MB 上限，可長期累積數百張。仍建議定期匯出備份。</div>
       </div>
 
       <div class="card-box">
@@ -306,7 +351,7 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
         <button class="btn" onclick="clearAll()" style="color:#d8392b">🗑️ 清除所有相片</button>
         <div class="hint">備份檔包含相片本體，檔案可能很大；僅建議在同裝置間轉移使用。</div>
       </div>
-      <div class="note">※ 所有相片僅存於本機，不經第三方、不傳個人資料。</div>
+      <div class="note">🔒 相片永遠不上雲端，不經第三方、不傳個人資料 — 只有你看得到。</div>
     </section>
   </main>
 
@@ -329,11 +374,17 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 <!-- 全屏查看器 -->
 <div class="viewer" id="viewer" onclick="if(event.target===this)closeViewer()">
   <div class="vtop"><span id="vTitle"></span><button onclick="closeViewer()">✕ 關閉</button></div>
-  <div class="vimgwrap"><img id="vImg" src="" alt="相片"></div>
+  <div class="vimgwrap" id="vImgWrap"><img id="vImg" src="" alt="相片"></div>
+  <div class="vzoomhint" id="vZoomHint">雙指縮放 · 拖曳移動</div>
   <div class="vmeta" id="vMeta"></div>
+  <div class="vtagline" id="vTagLine"></div>
+  <input class="vnote-in" id="vNoteIn" placeholder="備註（按 Enter 儲存）" onkeydown="if(event.key==='Enter')saveViewNote()">
   <div class="vbot">
     <button onclick="viewNav(-1)" title="上一張">‹</button>
+    <button onclick="viewPlay()" id="vPlay" title="幻燈片">▶</button>
     <button id="vFav" onclick="viewFav()" title="喜愛">♡</button>
+    <button onclick="viewEditInfo()" title="標籤與備註">🏷</button>
+    <button onclick="viewMove()" title="移至相簿">📁</button>
     <button onclick="viewShare()" title="分享">📤</button>
     <button onclick="viewDownload()" title="下載">⬇️</button>
     <button onclick="viewDel()" title="刪除">🗑️</button>
@@ -346,47 +397,146 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 <script>
 /* ============ 資料模型 ============ */
 var KEY='jless_album_v1';
+var DB_NAME='jless_album_db', DB_STORE='photos', DB_VER=1;
+var db=null;                         /* IndexedDB 連線；null=降級用 localStorage 全程存 dataURL */
+var readOnlyMode=false;              /* 降級且讀不到本體時唯讀，避免覆蓋 DB 內資料 */
 var S=null, albumFilter='all', viewIds=[], viewPos=0;
 var selectMode=false, selected={};   /* 多選模式：selected[photoId]=true */
 var curAlbum='all';                  /* 目前瀏覽的相簿 id；'all'=全部相簿 */
 var LAYOUTS=[{k:'g2',n:'网格 2',i:'▦'},{k:'g3',n:'网格 3',i:'▦'},{k:'g4',n:'网格 4',i:'▦'},
-  {k:'masonry',n:'瀑布流',i:'▤'},{k:'list',n:'列表',i:'☰'},{k:'compact',n:'緊湊',i:'▪'}];
+  {k:'masonry',n:'瀑布流',i:'▤'},{k:'list',n:'列表',i:'☰'},{k:'compact',n:'緊湊',i:'▪'},
+  {k:'timeline',n:'時間軸',i:'🕰'}];
 
 function newAlbumObj(name){return {id:uid(),name:(name||'我的相簿').slice(0,24),ts:Date.now()};}
 function defaultState(){
   var a=newAlbumObj('我的相簿');
-  return {v:2,albums:[a],photos:[],cfg:{autoShrink:true,maxEdge:1280,quality:0.82,layout:'g3'}};
+  return {v:3,albums:[a],photos:[],cfg:{autoShrink:true,maxEdge:1280,quality:0.82,layout:'g3',shareBrand:false,memory:false}};
+}
+/* 把任意原始 State 正規化（向後相容舊備份／舊 localStorage） */
+function normalize(d){
+  var s=defaultState();
+  if(!d||typeof d!=='object')return s;
+  var albums=Array.isArray(d.albums)?d.albums.filter(function(a){return a&&a.id&&a.name;}):[];
+  if(!albums.length)albums=[newAlbumObj('我的相簿')];
+  s.albums=albums;
+  if(Array.isArray(d.photos)){
+    s.photos=d.photos.filter(function(p){return p&&p.id;}).map(function(p){
+      var q=Object.assign({},p);
+      if(!q.albumId||!albums.some(function(a){return a.id===q.albumId;}))q.albumId=albums[0].id;
+      if(!Array.isArray(q.tags))q.tags=[];
+      if(typeof q.note!=='string')q.note='';
+      if(!q.ts)q.ts=Date.now();
+      return q;
+    });
+  }
+  if(d.cfg&&typeof d.cfg==='object'){
+    if(typeof d.cfg.autoShrink==='boolean')s.cfg.autoShrink=d.cfg.autoShrink;
+    if(d.cfg.maxEdge!=null)s.cfg.maxEdge=+d.cfg.maxEdge;
+    if(d.cfg.quality!=null)s.cfg.quality=+d.cfg.quality;
+    if(typeof d.cfg.layout==='string')s.cfg.layout=d.cfg.layout;
+    if(typeof d.cfg.shareBrand==='boolean')s.cfg.shareBrand=d.cfg.shareBrand;
+    if(typeof d.cfg.memory==='boolean')s.cfg.memory=d.cfg.memory;
+  }
+  return s;
 }
 function load(){
-  try{
-    var raw=localStorage.getItem(KEY);
-    if(raw){var d=JSON.parse(raw);if(d&&typeof d==='object'){
-      var s=defaultState();
-      /* 相簿：舊資料沒有 albums 時自動建立，並把舊相片全歸入 */
-      var albums=Array.isArray(d.albums)?d.albums.filter(function(a){return a&&a.id&&a.name;}):[];
-      if(!albums.length)albums=[newAlbumObj('我的相簿')];
-      s.albums=albums;
-      if(Array.isArray(d.photos)){
-        s.photos=d.photos.map(function(p){
-          var q=Object.assign({},p);
-          if(!q.albumId||!albums.some(function(a){return a.id===q.albumId;}))q.albumId=albums[0].id;
-          return q;
-        });
-      }
-      if(d.cfg&&typeof d.cfg==='object'){
-        if(typeof d.cfg.autoShrink==='boolean')s.cfg.autoShrink=d.cfg.autoShrink;
-        if(d.cfg.maxEdge!=null)s.cfg.maxEdge=+d.cfg.maxEdge;
-        if(d.cfg.quality!=null)s.cfg.quality=+d.cfg.quality;
-        if(typeof d.cfg.layout==='string')s.cfg.layout=d.cfg.layout;
-      }
-      return s;
-    }}
-  }catch(e){}
+  try{var raw=localStorage.getItem(KEY);if(raw)return normalize(JSON.parse(raw));}catch(e){}
   return defaultState();
+}
+/* localStorage 版本：DB 不可用時仍存完整 dataURL（舊行為）；DB 可用時只存中繼 */
+function metaState(){
+  var copy=Object.assign({},S);
+  copy.photos=S.photos.map(function(p){
+    var q={};for(var k in p){if(Object.prototype.hasOwnProperty.call(p,k)&&k!=='data')q[k]=p[k];}
+    return q;
+  });
+  return copy;
+}
+function save(){
+  if(readOnlyMode){toast('目前為唯讀模式，無法儲存變更');return false;}
+  var payload=db?metaState():S;
+  try{localStorage.setItem(KEY,JSON.stringify(payload));return true;}
+  catch(e){toast('儲存失敗：本機空間不足，請調低縮圖設定或刪除相片');return false;}
+}
+/* ---- IndexedDB helpers（全部靜默失敗，失敗即降級） ---- */
+function openDB(){
+  return new Promise(function(res){
+    try{
+      if(!window.indexedDB){res(null);return;}
+      var req=indexedDB.open(DB_NAME,DB_VER);
+      req.onupgradeneeded=function(){var d=req.result;if(!d.objectStoreNames.contains(DB_STORE))d.createObjectStore(DB_STORE,{keyPath:'id'});};
+      req.onsuccess=function(){res(req.result);};
+      req.onerror=function(){res(null);};
+      req.onblocked=function(){res(null);};
+    }catch(e){res(null);}
+  });
+}
+function idbPut(id,data){
+  if(!db)return Promise.resolve(false);
+  return new Promise(function(res){
+    try{var tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put({id:id,data:data});
+      tx.oncomplete=function(){res(true);};tx.onerror=function(){res(false);};tx.onabort=function(){res(false);};
+    }catch(e){res(false);}
+  });
+}
+function idbDel(id){
+  if(!db)return Promise.resolve(false);
+  return new Promise(function(res){
+    try{var tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).delete(id);
+      tx.oncomplete=function(){res(true);};tx.onerror=function(){res(false);};
+    }catch(e){res(false);}
+  });
+}
+function idbClear(){
+  if(!db)return Promise.resolve(false);
+  return new Promise(function(res){
+    try{var tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).clear();
+      tx.oncomplete=function(){res(true);};tx.onerror=function(){res(false);};
+    }catch(e){res(false);}
+  });
+}
+function idbGetAll(){
+  if(!db)return Promise.resolve({});
+  return new Promise(function(res){
+    try{var tx=db.transaction(DB_STORE,'readonly');var r=tx.objectStore(DB_STORE).getAll();
+      r.onsuccess=function(){var m={};(r.result||[]).forEach(function(x){m[x.id]=x.data;});res(m);};
+      r.onerror=function(){res({});};
+    }catch(e){res({});}
+  });
+}
+/* 非同步初始化：遷移舊資料 → 由 DB 載回 dataURL → 才.render */
+async function init(){
+  try{
+    db=await openDB();
+    if(db){
+      var raw=null;try{raw=localStorage.getItem(KEY);}catch(e){}
+      var legacy=false;
+      if(raw){try{var d=JSON.parse(raw);legacy=!!(d&&Array.isArray(d.photos)&&d.photos.some(function(p){return p&&typeof p.data==='string'&&p.data.length>0;}));}catch(e){}}
+      if(legacy){
+        /* 舊資料：相片本體還在 localStorage → 搬到 DB，再把 localStorage 改為只存中繼 */
+        for(var i=0;i<S.photos.length;i++){if(S.photos[i].data)await idbPut(S.photos[i].id,S.photos[i].data);}
+        save();
+      }else{
+        var map=await idbGetAll();
+        S.photos.forEach(function(p){if(map[p.id])p.data=map[p.id];else p.data=null;});
+      }
+    }
+  }catch(e){db=null;/* DB 初始化失敗 → 降級；若 localStorage 仍存完整 data 則可繼續 */}
+  /* 降級保護：DB 不可用但中繼版的相片缺 data → 唯有唯讀，避免 save 覆蓋掉 DB 內的本體 */
+  if(!db&&S.photos.length&&S.photos.some(function(p){return !p.data;})){
+    readOnlyMode=true;
+    toast('無法讀取相片本體（瀏覽器儲存受限）；請勿清除資料，先用原瀏覽器開啟');
+  }
+  buildMemIndex();
+  renderAllA();goView('vHome');
+}
+/* 匯入備份後：把資料寫入 DB（若可用），並把 localStorage 轉為中繼版 */
+async function adoptData(){
+  if(db){for(var i=0;i<S.photos.length;i++){if(S.photos[i].data)await idbPut(S.photos[i].id,S.photos[i].data);}}
+  save();buildMemIndex();
 }
 function albumById(id){var r=null;S.albums.forEach(function(a){if(a.id===id)r=a;});return r;}
 function albumName(id){var a=albumById(id);return a?a.name:'未分類';}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true;}catch(e){toast('儲存失敗：本機空間不足，請調低縮圖設定或刪除相片');return false;}}
 function uid(){return 'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function fmtBytes(b){b=+b||0;if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(2)+' MB';}
@@ -394,6 +544,11 @@ function dayStr(ts){var d=new Date(ts||Date.now());return d.getFullYear()+'/'+pa
 function ymd(){var d=new Date();return ''+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());}
 function pad(n){return (n<10?'0':'')+n;}
 function photoById(id){var r=null;S.photos.forEach(function(p){if(p.id===id)r=p;});return r;}
+/* 重複偵測：以 dataURL 長度 + 頭尾取樣建立索引（避免完整比對大量字串） */
+var memIndex=null;
+function dataSig(d){if(!d||typeof d!=='string')return '';return d.length+'_'+d.slice(0,64)+'_'+d.slice(-64);}
+function buildMemIndex(){memIndex={};S.photos.forEach(function(p){var s=dataSig(p.data);if(s)memIndex[s]=true;});}
+function isDuplicate(d){var s=dataSig(d);return !!(s&&memIndex&&memIndex[s]);}
 
 /* ============ toast ============ */
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2200);}
@@ -411,6 +566,28 @@ function dataUrlToFile(dataUrl,name){
   }catch(e){return null;}
 }
 function safeName(p){return ((p.name||'photo').replace(/\.[^.]+$/,'')||'photo')+'.jpg';}
+/* 可選品牌角標：在图片右下角加低調小字（不覆蓋主體） */
+function addBrand(dataUrl,cb){
+  if(!S.cfg.shareBrand){cb(dataUrl);return;}
+  var img=new Image();
+  img.onload=function(){
+    try{
+      var w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+      var c=document.createElement('canvas');c.width=w;c.height=h;
+      var ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+      var fs=Math.max(12,Math.round(Math.min(w,h)*0.035));
+      ctx.font='600 '+fs+'px -apple-system, sans-serif';
+      var txt='JLess 相簿';var tw=ctx.measureText(txt).width;
+      var pad=Math.round(fs*0.6),bw=tw+pad*2,bh=fs+pad*1.4;
+      ctx.fillStyle='rgba(0,0,0,.38)';ctx.fillRect(w-bw-Math.round(fs),h-bh-Math.round(fs),bw,bh);
+      ctx.fillStyle='rgba(255,255,255,.92)';ctx.textBaseline='middle';
+      ctx.fillText(txt,w-bw-Math.round(fs)+pad,h-bh-Math.round(fs)+bh/2);
+      cb(c.toDataURL('image/jpeg',0.92));
+    }catch(e){cb(dataUrl);}
+  };
+  img.onerror=function(){cb(dataUrl);};
+  img.src=dataUrl;
+}
 function downloadOne(p){
   try{
     var a=document.createElement('a');a.href=p.data;a.download=safeName(p);
@@ -421,25 +598,33 @@ function downloadOne(p){
 function sharePhotos(ids){
   var ps=(ids||[]).map(photoById).filter(Boolean);
   if(!ps.length){toast('沒有可分享的相片');return;}
-  var files=[];
-  for(var i=0;i<ps.length;i++){
-    var f=dataUrlToFile(ps[i].data,safeName(ps[i]));
-    if(!f){toast('相片格式無法分享');return;}
-    files.push(f);
-  }
-  if(navigator.share&&typeof navigator.canShare==='function'){
-    var can=false;
-    try{can=navigator.canShare({files:files});}catch(e){can=false;}
-    if(can){
-      navigator.share({files:files,title:'相簿相片 ('+files.length+')'})
-        .then(function(){toast('已分享 '+files.length+' 張');})
-        .catch(function(e){if(!e||e.name!=='AbortError')toast('分享失敗，可改用下載');});
-      return;
+  var prepared=[],done=0,failed=false;
+  ps.forEach(function(p){
+    addBrand(p.data,function(data){
+      var f=dataUrlToFile(data,safeName(p));
+      if(!f)failed=true;else prepared.push(f);
+      if(++done===ps.length)finish();
+    });
+  });
+  function finish(){
+    if(failed||!prepared.length){toast('相片格式無法分享');return;}
+    var files=prepared;
+    if(navigator.share&&typeof navigator.canShare==='function'){
+      var can=false;
+      try{can=navigator.canShare({files:files});}catch(e){can=false;}
+      if(can){
+        navigator.share({files:files,title:'相簿相片 ('+files.length+')'})
+          .then(function(){toast('已分享 '+files.length+' 張');})
+          .catch(function(e){if(!e||e.name!=='AbortError')toast('分享失敗，可改用下載');});
+        return;
+      }
     }
+    toast('此瀏覽器不支援一次分享多檔，改為逐張下載 '+files.length+' 張');
+    files.forEach(function(f,i){setTimeout(function(){
+      var u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(u);},2000);
+    },i*250);});
   }
-  /* 退回：逐張下載（錯開時間，避免部分瀏覽器封鎖連續下載） */
-  toast('此瀏覽器不支援一次分享多檔，改為逐張下載 '+files.length+' 張');
-  ps.forEach(function(p,i){setTimeout(function(){downloadOne(p);},i*250);});
 }
 
 /* ============ 選取模式 ============ */
@@ -590,29 +775,35 @@ function onPickFiles(e){
   input.value='';
   if(!files.length){toast('請選擇圖片檔');return;}
   toast('正在處理 '+files.length+' 張相片…');
-  var batch=[],done=0;
+  var batch=[],done=0,dupCount=0;
   files.forEach(function(f){
     var fr=new FileReader();
-    fr.onerror=function(){if(++done===files.length)commitBatch(batch);};
+    fr.onerror=function(){if(++done===files.length)commitBatch(batch,dupCount);};
     fr.onload=function(){
       var orig=Math.round((fr.result||'').length*0.75);
       processFile(fr.result,function(r){
-        if(r)batch.push({id:uid(),name:(f.name||'相片').slice(0,50),data:r.data,w:r.w,h:r.h,
-          size:Math.round(r.data.length*0.75),orig:orig,fav:false,ts:Date.now()+batch.length});
-        if(++done===files.length)commitBatch(batch);
+        if(r){
+          if(isDuplicate(r.data))dupCount++;
+          else{batch.push({id:uid(),name:(f.name||'相片').slice(0,50),data:r.data,w:r.w,h:r.h,
+            size:Math.round(r.data.length*0.75),orig:orig,fav:false,tags:[],note:'',ts:Date.now()+batch.length});
+            var sg=dataSig(r.data);if(sg){memIndex=memIndex||{};memIndex[sg]=true;}}
+        }
+        if(++done===files.length)commitBatch(batch,dupCount);
       });
     };
     fr.readAsDataURL(f);
   });
 }
-function commitBatch(batch){
-  if(!batch.length){toast('沒有可加入的相片（檔格式可能不支援）');return;}
+async function commitBatch(batch,dup){
+  if(!batch.length){toast(dup?('已略過 '+dup+' 張重複相片'):'沒有可加入的相片（檔格式可能不支援）');return;}
   var before=S.photos.length,saved=0;
   var target=(curAlbum!=='all'&&albumById(curAlbum))?curAlbum:(S.albums[0]&&S.albums[0].id);
   batch.forEach(function(p){p.albumId=target;S.photos.unshift(p);if(p.orig>p.size)saved+=(p.orig-p.size);});
-  if(!save()){S.photos.splice(before);toast('空間不足，相片未加入；請調低縮圖設定後重試');return;}
-  renderAllA();
-  toast('已加入 '+batch.length+' 張'+(saved>1048576?('，節省 '+fmtBytes(saved)):''));
+  if(!save()){S.photos.splice(0,batch.length);toast('空間不足，相片未加入；請調低縮圖設定後重試');return;}
+  /* DB 可用：把本體逐張寫入 IndexedDB；中繼已在 save() 存入 localStorage */
+  if(db){for(var i=0;i<batch.length;i++){var ok=await idbPut(batch[i].id,batch[i].data);if(!ok){toast('部分相片本體寫入失敗，請檢查瀏覽器儲存設定');break;}}}
+  buildMemIndex();renderAllA();
+  toast('已加入 '+batch.length+' 張'+(dup?('，略過 '+dup+' 張重複'):'')+(saved>1048576?('，節省 '+fmtBytes(saved)):''));
 }
 
 /* ============ 相簿：切換與管理 ============ */
@@ -676,7 +867,7 @@ function delPhoto(id){
   var p=photoById(id);if(!p)return;
   if(!confirm('刪除相片「'+(p.name||'未命名')+'」？此動作無法復原。'))return;
   S.photos=S.photos.filter(function(x){return x.id!==id;});
-  save();renderAllA();
+  save();if(db)idbDel(id);buildMemIndex();renderAllA();
   if(document.getElementById('viewer').classList.contains('show')){
     viewIds=viewIds.filter(function(x){return x!==id;});
     if(viewPos>=viewIds.length)viewPos=viewIds.length-1;
@@ -695,7 +886,10 @@ function filteredPhotos(){
   return S.photos.filter(function(p){
     if(curAlbum!=='all'&&p.albumId!==curAlbum)return false;
     if(albumFilter==='fav'&&!p.fav)return false;
-    if(q&&(p.name||'').toLowerCase().indexOf(q)<0)return false;
+    if(q){
+      var hay=((p.name||'')+' '+(p.note||'')+' '+(Array.isArray(p.tags)?p.tags.join(' '):'')).toLowerCase();
+      if(hay.indexOf(q)<0)return false;
+    }
     return true;
   });
 }
@@ -703,30 +897,74 @@ function filteredPhotos(){
 /* ============ 畫廊渲染 ============ */
 function photoHTML(p,idx){
   var ly=S.cfg.layout;
-  var meta='<div class="pmeta"><b>'+esc(p.name||'未命名')+'</b><small>'+dayStr(p.ts)+' · '+p.w+'×'+p.h+' · '+fmtBytes(p.size)+'</small></div>';
+  var tags=(Array.isArray(p.tags)&&p.tags.length)?('<div class="ptags">'+p.tags.slice(0,3).map(function(t){return '<span class="tg">#'+esc(t)+'</span>';}).join('')+'</div>'):'';
+  var meta='<div class="pmeta"><b>'+esc(p.name||'未命名')+'</b><small>'+dayStr(p.ts)+' · '+p.w+'×'+p.h+' · '+fmtBytes(p.size)+'</small>'+(p.note?('<small>'+esc(p.note.slice(0,32))+'</small>'):'')+tags+'</div>';
   var img='<img loading="lazy" draggable="false" src="'+p.data+'" alt="'+esc(p.name||'相片')+'">';
   var cap=(ly==='list')?'':'<div class="cap">'+esc(p.name||'未命名')+'</div>';
   if(selectMode){
     var on=!!selected[p.id];
     return '<div class="ph'+(on?' picked':'')+'" data-id="'+p.id+'" data-idx="'+idx+'" onclick="togglePick(\''+p.id+'\')">'+
-      img+((ly==='list')?meta:'')+
+      img+((ly==='list')?meta:'')+(ly==='list'?'':tags)+
       '<button class="sbtn pick'+(on?' on':'')+'" title="選取" onclick="event.stopPropagation();togglePick(\''+p.id+'\')">'+(on?'✓':'')+'</button>'+cap+
     '</div>';
   }
   return '<div class="ph" onclick="openViewer(\''+p.id+'\')">'+
-    img+((ly==='list')?meta:'')+
+    img+((ly==='list')?meta:'')+(ly==='list'?'':tags)+
     '<button class="sbtn share" title="分享這張" onclick="event.stopPropagation();sharePhotos([\''+p.id+'\'])">📤</button>'+
     '<button class="fav'+(p.fav?' on':'')+'" title="喜愛" onclick="event.stopPropagation();toggleFav(\''+p.id+'\')">'+(p.fav?'♥':'♡')+'</button>'+cap+
   '</div>';
 }
 function renderGallery(boxId,list){
   var box=document.getElementById(boxId);
-  if(!list.length){box.className='';box.innerHTML='<div class="empty"><div class="big">🖼️</div>尚無相片。<br>到「相簿」上載，再按 ♡ 加入喜愛。</div>';return;}
-  box.className='gal ly-'+(LAYOUTS.some(function(l){return l.k===S.cfg.layout;})?S.cfg.layout:'g3');
+  if(!list.length){
+    var isHome=(boxId==='homeGal');
+    box.className='';
+    box.innerHTML='<div class="empty"><div class="big">🖼️</div>'+
+      (isHome?'尚無喜愛相片。<br>到「相簿」點 ♡ 加入，或立即上載第一張。':'尚無相片。<br>上載第一張，開始收藏美好瞬間。')+
+      '<br><span class="gobtn" onclick="goView(\'vAlbum\');setTimeout(function(){document.getElementById(\'fileIn\').click();},120)">＋ 上載第一張相片</span></div>';
+    return;
+  }
+  var layout=LAYOUTS.some(function(l){return l.k===S.cfg.layout;})?S.cfg.layout:'g3';
+  if(layout==='timeline'){
+    box.className='ly-timeline';
+    var groups={},order=[];
+    list.forEach(function(p){var d=new Date(p.ts||0),k=d.getFullYear()+'年'+(d.getMonth()+1)+'月';if(!groups[k]){groups[k]=[];order.push(k);}groups[k].push(p);});
+    box.innerHTML=order.map(function(k){
+      return '<div class="tmonth">'+esc(k)+' <small>'+groups[k].length+' 張</small></div><div class="tgrid">'+
+        groups[k].map(function(p,i){return photoHTML(p,list.indexOf(p));}).join('')+'</div>';
+    }).join('');
+    return;
+  }
+  box.className='gal ly-'+layout;
   box.innerHTML=list.map(function(p,i){return photoHTML(p,i);}).join('');
 }
-function renderHome(){renderGallery('homeGal',S.photos.filter(function(p){return p.fav;}));renderSwitches();}
+function renderHome(){renderMemory();renderGallery('homeGal',S.photos.filter(function(p){return p.fav;}));renderSwitches();}
 function renderAlbum(){renderGallery('albGal',filteredPhotos());renderSwitches();renderAlbTabs();}
+/* 回憶：找出「去年的今天 / 往年到今天」的舊相片，製造回訪理由 */
+function renderMemory(){
+  var box=document.getElementById('memoryBox');if(!box)return;
+  var now=new Date(),md=now.getMonth()+1,dd=now.getDate(),yr=now.getFullYear();
+  var hits=S.photos.filter(function(p){
+    var t=new Date(p.ts||0);if(t.getFullYear()>=yr)return false;
+    return (t.getMonth()+1)===md&&t.getDate()===dd;
+  });
+  if(!hits.length){
+    /* 降級：最近 30 天以前的舊相片，取每月 1 張 */
+    var seen={};hits=S.photos.filter(function(p){
+      if(!p.ts||Date.now()-p.ts<30*86400000)return false;
+      var t=new Date(p.ts),k=t.getFullYear()+'-'+t.getMonth();
+      if(seen[k])return false;seen[k]=true;return true;
+    }).reverse();
+  }
+  if(!hits.length){box.innerHTML='';return;}
+  hits=hits.slice(0,12);
+  var sub=hits[0]&&new Date(hits[0].ts).getFullYear()<yr?('去年的今天 · '+fmtMemDate(hits[0].ts)):'那些日子 · '+hits.length+' 張回憶';
+  box.innerHTML='<div class="memory"><h3>✨ 回憶時光</h3><p class="msub">'+esc(sub)+'</p><div class="mrow2">'+
+    hits.map(function(p){return '<div class="mthumb" onclick="openViewer(\''+p.id+'\')">'+
+      (p.data?('<img loading="lazy" src="'+p.data+'" alt="回憶">'):('<div>'+fmtMemDate(p.ts)+'</div>'))+'</div>';}).join('')+
+    '</div></div>';
+}
+function fmtMemDate(ts){var d=new Date(ts||0);return d.getFullYear()+'/'+pad(d.getMonth()+1)+'/'+pad(d.getDate());}
 function renderSwitches(){
   ['homeLySw','albLySw'].forEach(function(id){
     var el=document.getElementById(id);if(!el)return;
@@ -745,17 +983,66 @@ function openViewer(id){
   viewPos=Math.max(0,viewIds.indexOf(id));
   drawViewer();document.getElementById('viewer').classList.add('show');
 }
-function closeViewer(){document.getElementById('viewer').classList.remove('show');}
+function closeViewer(){stopSlides();document.getElementById('vNoteIn').classList.remove('show');document.getElementById('viewer').classList.remove('show');}
 function drawViewer(){
   var p=photoById(viewIds[viewPos]);if(!p){closeViewer();return;}
-  document.getElementById('vImg').src=p.data;
+  var img=document.getElementById('vImg');img.src=p.data;
+  if(viewerZoom.reset)viewerZoom.reset();
   document.getElementById('vTitle').textContent=(viewIds.length?(viewPos+1)+' / '+viewIds.length:'')+' · '+(p.name||'未命名');
   var f=document.getElementById('vFav');f.textContent=p.fav?'♥':'♡';f.style.color=p.fav?'#ff5a7a':'';
   document.getElementById('vMeta').textContent=p.w+'×'+p.h+' · '+dayStr(p.ts)+' · '+fmtBytes(p.size)+(p.orig?('（原 '+fmtBytes(p.orig)+'）'):'');
+  var tl=document.getElementById('vTagLine');
+  tl.innerHTML=(Array.isArray(p.tags)&&p.tags.length)?p.tags.map(function(t,i){return '<span class="tg" onclick="filterByTag('+viewPos+','+i+')">#'+esc(t)+'</span>';}).join('')+(p.note?('<div style="margin-top:3px">'+esc(p.note)+'</div>'):''):(p.note?esc(p.note):'');
+  var ni=document.getElementById('vNoteIn');ni.value=p.note||'';ni.classList.remove('show');
+  var pb=document.getElementById('vPlay');pb.textContent=slideTimer?'⏸':'▶';
 }
-function viewNav(d){if(viewIds.length<2)return;viewPos=(viewPos+d+viewIds.length)%viewIds.length;drawViewer();}
+function filterByTag(pos,tagIdx){
+  var p=photoById(viewIds[pos]);if(!p||!p.tags||!p.tags[tagIdx])return;
+  var tag=p.tags[tagIdx];
+  closeViewer();goView('vAlbum');setFilter('all');
+  var q=document.getElementById('albQ');q.value=tag;renderAlbum();
+  toast('已篩選標籤 #'+tag);
+}
+function viewNav(d){stopSlides();if(viewIds.length<2)return;viewPos=(viewPos+d+viewIds.length)%viewIds.length;drawViewer();}
 function viewFav(){var p=photoById(viewIds[viewPos]);if(p)toggleFav(p.id);}
 function viewDel(){var p=photoById(viewIds[viewPos]);if(p)delPhoto(p.id);}
+/* 標籤 / 備註編輯 */
+function viewEditInfo(){
+  var p=photoById(viewIds[viewPos]);if(!p)return;
+  var raw=prompt('標籤（用空白或逗號分隔，例：旅行 家人 2024）：',(Array.isArray(p.tags)?p.tags.join(' '):''));
+  if(raw==null)return;
+  p.tags=raw.split(/[\s,，、]+/).map(function(s){return s.replace(/^#/,'').trim();}).filter(Boolean).slice(0,8);
+  var ni=document.getElementById('vNoteIn');ni.classList.add('show');ni.value=p.note||'';ni.focus();
+  save();renderAllA();drawViewer();toast('標籤已儲存，可接著輸入備註');
+}
+function saveViewNote(){
+  var p=photoById(viewIds[viewPos]);if(!p)return;
+  p.note=(document.getElementById('vNoteIn').value||'').trim().slice(0,200);
+  save();renderAllA();drawViewer();document.getElementById('vNoteIn').classList.remove('show');toast('備註已儲存');
+}
+/* 移至相簿 */
+function viewMove(){
+  var p=photoById(viewIds[viewPos]);if(!p)return;
+  if(S.albums.length<2){toast('只有一個相簿，無需移動');return;}
+  var opts=S.albums.map(function(a,i){return (i+1)+'. '+a.name+(p.albumId===a.id?'（目前）':'');}).join('\n');
+  var raw=prompt('移至哪個相簿？輸入編號：\n'+opts,'');
+  if(raw==null)return;
+  var idx=parseInt(raw,10)-1,target=S.albums[idx];
+  if(!target){toast('編號不正確');return;}
+  p.albumId=target.id;save();renderAllA();drawViewer();toast('已移至「'+target.name+'」');
+}
+/* 幻燈片 */
+var slideTimer=null;
+function viewPlay(){
+  if(slideTimer){stopSlides();toast('已暫停播放');return;}
+  if(viewIds.length<2){toast('只有一張相片');return;}
+  slideTimer=setInterval(function(){
+    if(!document.getElementById('viewer').classList.contains('show')){stopSlides();return;}
+    viewPos=(viewPos+1)%viewIds.length;drawViewer();
+  },3000);
+  document.getElementById('vPlay').textContent='⏸';toast('幻燈片播放中（3 秒 / 張）');
+}
+function stopSlides(){if(slideTimer){clearInterval(slideTimer);slideTimer=null;}var pb=document.getElementById('vPlay');if(pb)pb.textContent='▶';}
 function viewDownload(){
   var p=photoById(viewIds[viewPos]);if(!p)return;
   var a=document.createElement('a');a.href=p.data;a.download=(p.name||'photo').replace(/\.[^.]+$/,'')+'.jpg';
@@ -765,23 +1052,58 @@ function viewShare(){
   var p=photoById(viewIds[viewPos]);if(!p)return;
   sharePhotos([p.id]);
 }
+var viewerZoom={scale:1,tx:0,ty:0,reset:null};
 (function(){
-  var vx=0,vy=0;
-  var v=document.getElementById('viewer');
-  v.addEventListener('touchstart',function(e){vx=e.touches[0].clientX;vy=e.touches[0].clientY;},{passive:true});
-  v.addEventListener('touchend',function(e){
-    var dx=e.changedTouches[0].clientX-vx,dy=e.changedTouches[0].clientY-vy;
-    if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy))viewNav(dx<0?1:-1);
+  var vx=0,vy=0,pinch=null,pan=null,scale=1,tx=0,ty=0,hintT=null;
+  var v=document.getElementById('viewer'),wrap=document.getElementById('vImgWrap'),img=document.getElementById('vImg');
+  viewerZoom.reset=function(){scale=1;tx=0;ty=0;img.style.transform='';wrap.classList.remove('zoomed');};
+  function dist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
+  function apply(){img.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')';}
+  function hint(){var h=document.getElementById('vZoomHint');h.classList.add('show');clearTimeout(hintT);hintT=setTimeout(function(){h.classList.remove('show');},1400);}
+  v.addEventListener('touchstart',function(e){
+    if(e.touches.length===2){
+      pinch={d:dist(e.touches),s:scale};pan=null;hint();return;
+    }
+    if(e.touches.length===1){
+      vx=e.touches[0].clientX;vy=e.touches[0].clientY;
+      if(scale>1){pan={x:e.touches[0].clientX-tx,y:e.touches[0].clientY-ty};}
+    }
   },{passive:true});
+  v.addEventListener('touchmove',function(e){
+    if(e.touches.length===2&&pinch){
+      var d=dist(e.touches);scale=Math.max(1,Math.min(4,pinch.s*d/pinch.d));
+      if(scale<=1){tx=0;ty=0;wrap.classList.remove('zoomed');}else{wrap.classList.add('zoomed');}
+      apply();e.preventDefault();return;
+    }
+    if(e.touches.length===1&&pan&&scale>1){
+      tx=e.touches[0].clientX-pan.x;ty=e.touches[0].clientY-pan.y;apply();e.preventDefault();return;
+    }
+  },{passive:false});
+  v.addEventListener('touchend',function(e){
+    if(pinch){pinch=null;if(scale<=1){tx=0;ty=0;apply();}return;}
+    if(pan){pan=null;return;}
+    if(e.changedTouches.length!==1)return;
+    var dx=e.changedTouches[0].clientX-vx,dy=e.changedTouches[0].clientY-vy;
+    if(scale<=1&&Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy))viewNav(dx<0?1:-1);
+  },{passive:true});
+  v.addEventListener('dblclick',function(){scale=(scale>1?1:2);if(scale===1){tx=0;ty=0;wrap.classList.remove('zoomed');}else{wrap.classList.add('zoomed');hint();}apply();});
   document.addEventListener('keydown',function(e){
     if(!v.classList.contains('show'))return;
-    if(e.key==='Escape')closeViewer();
+    if(e.key==='Escape'){if(scale>1){scale=1;tx=0;ty=0;wrap.classList.remove('zoomed');apply();}else closeViewer();}
     if(e.key==='ArrowLeft')viewNav(-1);
     if(e.key==='ArrowRight')viewNav(1);
   });
 })();
 
 /* ============ 設定 ============ */
+function setBrand(v){S.cfg.shareBrand=!!v;save();renderSet();toast(v?'分享圖將加品牌小標':'已關閉品牌小標');}
+var deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;var b=document.getElementById('pwaBtn');if(b)b.style.display='block';});
+function showInstallTip(){
+  if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(function(){deferredPrompt=null;var b=document.getElementById('pwaBtn');if(b)b.style.display='none';});return;}
+  var ios=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  alert(ios?'在 Safari 點下方「分享」鈕 → 選「加入主畫面」即可。':'在瀏覽器選單選「安裝應用程式」或「加到主畫面」即可。');
+}
 function setShrink(v){S.cfg.autoShrink=!!v;save();renderSet();toast(v?'已開啟自動縮小':'已關閉自動縮小（上載原圖）');updatePickHint();}
 function setEdge(v){S.cfg.maxEdge=+v||0;save();renderSet();updatePickHint();}
 function setQuality(v){S.cfg.quality=+v||0.82;save();renderSet();updatePickHint();}
@@ -798,34 +1120,54 @@ function renderSet(){
   document.getElementById('lyPick').innerHTML=LAYOUTS.map(function(l){
     return '<div class="opt'+(l.k===S.cfg.layout?' on':'')+'" onclick="setLayout(\''+l.k+'\')"><span class="i">'+l.i+'</span><span class="n">'+l.n+'</span></div>';
   }).join('');
+  document.getElementById('brOn').classList.toggle('on',!!S.cfg.shareBrand);
+  document.getElementById('brOff').classList.toggle('on',!S.cfg.shareBrand);
   var used=0,orig=0;
   S.photos.forEach(function(p){used+=p.size||0;orig+=p.orig||0;});
   document.getElementById('stCount').textContent=S.photos.length;
   document.getElementById('stUsed').textContent=fmtBytes(used);
   document.getElementById('stSaved').textContent=fmtBytes(Math.max(0,orig-used));
-  document.getElementById('stBar').style.width=Math.min(100,(used/(5*1048576))*100).toFixed(1)+'%';
+  document.getElementById('stBar').style.width=Math.min(100,(S.photos.length/500)*100).toFixed(1)+'%';
   updatePickHint();
 }
+/* 匯出：把 DB 與 localStorage 的中繼合併成完整 State（含相片本體） */
+function fullState(){
+  var o=metaState();
+  o.photos=S.photos.map(function(p){var q=Object.assign({},p);q.data=p.data;return q;});
+  return o;
+}
 function exportBak(){
-  if(!window.JLessBackup||typeof JLessBackup.export!=='function'){toast('備份模組未載入');return;}
-  JLessBackup.export([KEY],'jless-album-'+ymd()+'.json');toast('已匯出備份');
+  var obj={app:'jless-album',v:3,exportedAt:new Date().toISOString(),state:fullState()};
+  var blob;
+  try{blob=new Blob([JSON.stringify(obj)],{type:'application/json'});}catch(e){toast('匯出失敗');return;}
+  var url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='jless-album-'+ymd()+'.json';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},4000);
+  toast('已匯出 '+S.photos.length+' 張相片');
 }
 function importBak(e){
   var f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
-  if(!window.JLessBackup||typeof JLessBackup.importFromFile!=='function'){toast('備份模組未載入');return;}
-  JLessBackup.importFromFile(f,[KEY],function(ok,msg){
-    if(ok){S=load();renderAllA();toast('已匯入相片');}
-    else toast('匯入失敗：'+(msg||'檔案格式不正確'));
-  });
+  var fr=new FileReader();
+  fr.onerror=function(){toast('讀取備份檔失敗');};
+  fr.onload=function(){
+    try{
+      var d=JSON.parse(fr.result);
+      var st=d&&d.state?d.state:d; /* 相容 JLessBackup 的 {items:{KEY:...}} 與舊純 State */
+      if(!st||!Array.isArray(st.photos))throw new Error('format');
+      S=normalize(st);
+      adoptData().then(function(){renderAllA();toast('已匯入 '+S.photos.length+' 張相片');});
+    }catch(err){toast('匯入失敗：檔案格式不正確');}
+  };
+  fr.readAsText(f);
 }
 function clearAll(){
   if(!S.photos.length){toast('沒有相片可清除');return;}
   if(!confirm('確定清除全部 '+S.photos.length+' 張相片？此動作無法復原。'))return;
-  S.photos=[];selected={};save();renderAlbTabs();renderAllA();toast('已清除所有相片（相簿保留）');
+  S.photos=[];selected={};save();if(db)idbClear();buildMemIndex();renderAlbTabs();renderAllA();toast('已清除所有相片（相簿保留）');
 }
 
 /* ============ 初始化 ============ */
-S=load();renderAllA();goView('vHome');
+S=load();init();
 </script>
 <script src="backup.js"></script>
 <script src="theme.js"></script>
