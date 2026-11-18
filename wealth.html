@@ -6,7 +6,24 @@
 <meta name="theme-color" content="#fffaf3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>財富</title>
+<title>財富 — 美股港股倉位損益與交易記錄｜JLess小助手</title>
+<meta name="jless-seo" content="v1">
+<meta name="description" content="記錄美股與港股買賣交易，支援同一標的經多間銀行分帳，手動更新現價並計算未實現與已實現損益。美股現價經 Finnhub、港股經公開行情取得，僅供參考。">
+<meta name="keywords" content="股票損益,倉位管理,美股,港股,交易記錄,投資追蹤,繁體中文">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+<link rel="canonical" href="wealth.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="habit-logo-180.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="JLess小助手">
+<meta property="og:title" content="財富 — 美股港股倉位損益與交易記錄｜JLess小助手">
+<meta property="og:description" content="記錄美股與港股買賣交易，支援同一標的經多間銀行分帳，手動更新現價並計算未實現與已實現損益。美股現價經 Finnhub、港股經公開行情取得，僅供參考。">
+<meta property="og:image" content="habit-logo.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="財富 — 美股港股倉位損益與交易記錄｜JLess小助手">
+<meta name="twitter:description" content="記錄美股與港股買賣交易，支援同一標的經多間銀行分帳，手動更新現價並計算未實現與已實現損益。美股現價經 Finnhub、港股經公開行情取得，僅供參考。">
+<meta name="twitter:image" content="habit-logo.png">
+
 <!-- Google Analytics（統計；不傳個人／敏感資料，離線時靜默） -->
 <script defer src="ga.js"></script>
 <link rel="stylesheet" href="theme.css">
@@ -163,8 +180,38 @@ textarea#batchSyms:focus{border-color:var(--accent)}
   z-index:99;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:86%;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "財富 — 美股港股倉位損益與交易記錄｜JLess小助手",
+  "description": "記錄美股與港股買賣交易，支援同一標的經多間銀行分帳，手動更新現價並計算未實現與已實現損益。美股現價經 Finnhub、港股經公開行情取得，僅供參考。",
+  "url": "wealth.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "需支援 HTML5 與 JavaScript 的現代瀏覽器",
+  "inLanguage": "zh-Hant",
+  "isAccessibleForFree": true,
+  "featureList": [
+    "美股港股批量新增",
+    "多銀行分帳",
+    "手動更新現價",
+    "未實現與已實現損益"
+  ],
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "HKD"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "JLess小助手"
+  }
+}
+</script>
 </head>
 <body>
+<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">股票損益</h1>
 <div class="app">
   <header>
     <div class="topbar">

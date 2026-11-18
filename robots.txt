@@ -1,0 +1,8 @@
+# JLess小助手 - robots.txt
+# 允許所有搜尋引擎抓取所有頁面
+User-agent: *
+Allow: /
+
+# Sitemap（提交到 Google Search Console / Bing Webmaster Tools 時使用）
+# 若部署在子目錄，請把 /sitemap.xml 改成實際路徑
+Sitemap: /sitemap.xml

@@ -4,7 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#fffaf3">
-<title>計時 · 倒數 · 番茄鐘</title>
+<title>計時 — 倒數・碼表・番茄鐘｜JLess小助手</title>
+<meta name="jless-seo" content="v1">
+<meta name="description" content="輸入時間即開始倒數，適合烹飪與休息提醒；碼表可開始暫停與分段計時；內建番茄鐘專注節奏，讀書工作都好用。免安裝、離線可用。">
+<meta name="keywords" content="計時器,倒數計時,碼表,番茄鐘,計時,繁體中文">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+<link rel="canonical" href="timer.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="habit-logo-180.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="JLess小助手">
+<meta property="og:title" content="計時 — 倒數・碼表・番茄鐘｜JLess小助手">
+<meta property="og:description" content="輸入時間即開始倒數，適合烹飪與休息提醒；碼表可開始暫停與分段計時；內建番茄鐘專注節奏，讀書工作都好用。免安裝、離線可用。">
+<meta property="og:image" content="habit-logo.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="計時 — 倒數・碼表・番茄鐘｜JLess小助手">
+<meta name="twitter:description" content="輸入時間即開始倒數，適合烹飪與休息提醒；碼表可開始暫停與分段計時；內建番茄鐘專注節奏，讀書工作都好用。免安裝、離線可用。">
+<meta name="twitter:image" content="habit-logo.png">
+
 <!-- Google Analytics（統計；不傳個人／敏感資料，離線時靜默） -->
 <script defer src="ga.js"></script>
 <link rel="stylesheet" href="theme.css">
@@ -68,8 +85,37 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 30px);transform:translateX(-50%) translateY(20px);background:rgba(40,20,30,.92);color:#fff;padding:11px 18px;border-radius:12px;font-size:calc(13.5px*var(--fs));font-weight:600;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:86%}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "計時 — 倒數・碼表・番茄鐘｜JLess小助手",
+  "description": "輸入時間即開始倒數，適合烹飪與休息提醒；碼表可開始暫停與分段計時；內建番茄鐘專注節奏，讀書工作都好用。免安裝、離線可用。",
+  "url": "timer.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "需支援 HTML5 與 JavaScript 的現代瀏覽器",
+  "inLanguage": "zh-Hant",
+  "isAccessibleForFree": true,
+  "featureList": [
+    "倒數計時",
+    "碼表分段計時",
+    "番茄鐘專注節奏"
+  ],
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "HKD"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "JLess小助手"
+  }
+}
+</script>
 </head>
 <body>
+<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">計時器</h1>
 <div class="app">
   <header><div class="topbar"><div class="title"><span class="logo">⏱️</span>計時 · 倒數 · 番茄鐘</div></div></header>
   <div class="content">
