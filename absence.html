@@ -49,13 +49,33 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .btn.primary{background:var(--accent);color:#fff;box-shadow:0 5px 16px rgba(120,60,80,.2)}
 .btn.ghost{background:var(--panel);color:var(--ink2);border:1px solid var(--line);margin-top:8px;font-weight:700}
 .btn.danger{background:#fdecea;color:#cf5a4c;border:1px solid #f6d4ce;margin-top:8px;font-weight:700}
-.summary{display:flex;gap:10px;margin-bottom:12px}
-.summary .box{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center;box-shadow:0 2px 8px rgba(120,60,80,.06)}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.summary .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 6px;text-align:center;box-shadow:0 2px 8px rgba(120,60,80,.06);min-width:0}
 .summary .v{font-size:calc(20px*var(--fs));font-weight:800;color:var(--ink)}
 .summary .v.ill{color:#cf5a4c}
 .summary .v.fam{color:var(--accent)}
 .summary .v.tot{color:#2e8f7e}
 .summary .l{font-size:calc(11px*var(--fs));color:var(--muted);font-weight:700;margin-top:2px}
+.summary .s{font-size:calc(10px*var(--fs));color:var(--muted);margin-top:1px}
+/* 月曆 */
+.cal{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:14px;box-shadow:0 2px 8px rgba(120,60,80,.06)}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-head .mm{font-weight:800;font-size:calc(15px*var(--fs))}
+.cal-head button{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:18px;cursor:pointer;color:var(--ink2)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.week div{text-align:center;font-size:calc(11px*var(--fs));color:var(--muted);font-weight:700;padding:4px 0}
+.grid7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cd{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:calc(13px*var(--fs));line-height:1;color:var(--ink2);position:relative;background:var(--bg)}
+.cd.other{color:#cdbcc4;background:transparent}
+.cd.today{border:1px solid var(--accent);font-weight:800}
+.cd.abs{background:#fdecea;color:#cf5a4c;font-weight:800}
+.cd.lv{background:#e8f0ff;color:#2563eb;font-weight:800}
+.cd.we{opacity:.5}
+.cd .dot{position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.8}
+.cd .ldot{position:absolute;bottom:4px;right:5px;width:5px;height:5px;border-radius:50%;background:#2563eb;opacity:.85}
+.rst{display:flex;justify-content:space-between;padding:7px 2px;border-bottom:1px solid var(--line2);font-size:calc(13px*var(--fs))}
+.rst:last-child{border-bottom:none}
+.rst b{color:var(--ink)}
 .list .item{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:8px}
 .list .item .dt{flex:0 0 auto;font-weight:800;font-size:calc(14px*var(--fs));min-width:88px}
 .list .item .rs{flex:1;font-size:calc(13px*var(--fs));color:var(--ink2)}
@@ -95,6 +115,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">缺勤記錄</h1>
@@ -102,9 +123,24 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
   <header><div class="topbar"><div class="title"><span class="logo">🤒</span>缺勤</div></div></header>
   <div class="content">
     <div class="summary">
-      <div class="box"><div class="v ill" id="sumIll">0</div><div class="l">因病（日）</div></div>
-      <div class="box"><div class="v fam" id="sumFam">0</div><div class="l">親屬患病（日）</div></div>
-      <div class="box"><div class="v tot" id="sumTot">0</div><div class="l">總計（日）</div></div>
+      <div class="box"><div class="v ill" id="sumIll">0</div><div class="l">因病（日）</div><div class="s" id="sumIllWd">工作日 0</div></div>
+      <div class="box"><div class="v fam" id="sumFam">0</div><div class="l">親屬患病（日）</div><div class="s" id="sumFamWd">工作日 0</div></div>
+      <div class="box"><div class="v tot" id="sumTot">0</div><div class="l">總計（日）</div><div class="s" id="sumTotWd">工作日 0</div></div>
+    </div>
+    <div class="cal">
+      <div class="cal-head">
+        <button onclick="shiftMonth(-1)">‹</button>
+        <div class="mm" id="calMM"></div>
+        <button onclick="shiftMonth(1)">›</button>
+      </div>
+      <div class="week"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+      <div class="grid7" id="calGrid"></div>
+      <div class="hint">🔴 缺勤　🔵 年假（唯讀，來自「年假」頁）　淡色為週末。天數統計已跳過週六、日。</div>
+    </div>
+    <div class="card">
+      <h3>📊 依原因統計</h3>
+      <div id="reasonStats"></div>
+      <div class="hint" style="margin-bottom:0">工作日＝跳過週六、日的天數；沒有法定假日資料，故不另扣除假日。</div>
     </div>
     <div class="card">
       <div class="field"><label>開始日期（預設今日）</label><input type="date" id="aDate"></div>
@@ -136,6 +172,10 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 <script src="share.js"></script>
 <script>
 var KEY='jless_absence_v1';
+var LKEY='jless_leave_v1';
+function esc(s){return (window.JLess&&JLess.util&&JLess.util.esc)?JLess.util.esc(s):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function snap(label){if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,label);}catch(e){}}}
+function reasonText(r){return r==='ill'?'因病缺勤':'因親屬患病而缺勤';}
 function uid(){return 'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function pad(n){return (n<10?'0':'')+n;}
 function todayStr(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
@@ -152,6 +192,53 @@ function daysOf(r){
   }
   return 1;
 }
+/* 展開一段日期為 YYYY-MM-DD 陣列 */
+function dateList(r){
+  var end=(r.end&&r.end>r.date)?r.end:r.date;
+  var d=new Date(r.date+'T00:00:00'),last=new Date(end+'T00:00:00'),out=[],guard=0;
+  while(d<=last&&guard++<4000){out.push(d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()));d.setDate(d.getDate()+1);}
+  return out;
+}
+function isWorkday(date){var d=new Date(date+'T00:00:00');var w=d.getDay();return w!==0&&w!==6;}
+function workdaysOf(r){return dateList(r).filter(isWorkday).length;}
+/* 唯讀年假資料 */
+function loadLeaves(){try{var d=JSON.parse(localStorage.getItem(LKEY));if(d&&Array.isArray(d.leaves))return d.leaves;}catch(e){}return [];}
+function leaveMap(){
+  var map={};
+  loadLeaves().forEach(function(l){
+    var k=l.date;if(!k)return;
+    (map[k]=map[k]||[]).push(l.status==='used'?'年假（已用）':'年假（已安排）');
+  });
+  return map;
+}
+var viewY,viewM;
+function ymd(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);}
+function shiftMonth(d){viewM+=d;if(viewM<0){viewM=11;viewY--;}if(viewM>11){viewM=0;viewY++;}renderCalendar();}
+function renderCalendar(){
+  var t=new Date();if(viewY==null){viewY=t.getFullYear();viewM=t.getMonth();}
+  document.getElementById('calMM').textContent=viewY+' 年 '+(viewM+1)+' 月';
+  var first=new Date(viewY,viewM,1),startWd=first.getDay();
+  var days=new Date(viewY,viewM+1,0).getDate(),prevDays=new Date(viewY,viewM,0).getDate();
+  var grid=document.getElementById('calGrid');grid.innerHTML='';
+  for(var i=0;i<startWd;i++){var o=document.createElement('div');o.className='cd other';o.textContent=prevDays-startWd+i+1;grid.appendChild(o);}
+  var tStr=todayStr(),lMap=leaveMap();
+  var aMap={};
+  S.records.forEach(function(r){
+    dateList(r).forEach(function(k){(aMap[k]=aMap[k]||[]).push(reasonText(r)+(r.half?'（半日）':''));});
+  });
+  for(var n=1;n<=days;n++){
+    var date=ymd(viewY,viewM,n),ab=aMap[date],lv=lMap[date];
+    var cell=document.createElement('div');
+    cell.className='cd'+(date===tStr?' today':'')+(ab?' abs':(lv?' lv':''));
+    if(!ab&&!lv&&!isWorkday(date))cell.className+=' we';
+    cell.textContent=n;
+    if(ab){var dot=document.createElement('span');dot.className='dot';cell.appendChild(dot);cell.title=ab.join('、');}
+    if(lv){var ld=document.createElement('span');ld.className='ldot';cell.appendChild(ld);cell.title=(cell.title?cell.title+' / ':'')+lv.join('、');}
+    grid.appendChild(cell);
+  }
+  var total=startWd+days,tail=42-total;if(tail<0)tail+=7;
+  for(var k=0;k<tail;k++){var x=document.createElement('div');x.className='cd other';x.textContent=k+1;grid.appendChild(x);}
+}
 function addAbsence(){
   var date=document.getElementById('aDate').value||todayStr();
   var end=(document.getElementById('aEnd').value||'').trim();
@@ -159,43 +246,65 @@ function addAbsence(){
   var reason=document.getElementById('aReason').value;
   var note=(document.getElementById('aNote').value||'').trim();
   S.records.push({id:uid(),date:date,end:end,reason:reason,half:half,note:note});
-  save();renderList();toast('已新增');
+  save();renderAll();toast('已新增');
   document.getElementById('aNote').value='';
   document.getElementById('aEnd').value='';
 }
-function delAbsence(id){S.records=S.records.filter(function(x){return x.id!==id;});save();renderList();}
+function delAbsence(id){
+  var r=S.records.filter(function(x){return x.id===id;})[0];
+  snap('缺勤：'+(r?reasonText(r):'記錄'));
+  S.records=S.records.filter(function(x){return x.id!==id;});
+  save();renderAll();
+}
+/* 統計：原日數與工作日數並列 */
+function statTotals(){
+  var st={ill:{d:0,w:0},family:{d:0,w:0},tot:{d:0,w:0}};
+  S.records.forEach(function(x){
+    var d=daysOf(x),w=workdaysOf(x),k=(x.reason==='ill'?'ill':'family');
+    st[k].d+=d;st[k].w+=w;st.tot.d+=d;st.tot.w+=w;
+  });
+  return st;
+}
+function renderAll(){
+  var st=statTotals();
+  document.getElementById('sumIll').textContent=st.ill.d;
+  document.getElementById('sumFam').textContent=st.family.d;
+  document.getElementById('sumTot').textContent=st.tot.d;
+  document.getElementById('sumIllWd').textContent='工作日 '+st.ill.w;
+  document.getElementById('sumFamWd').textContent='工作日 '+st.family.w;
+  document.getElementById('sumTotWd').textContent='工作日 '+st.tot.w;
+  var rs=document.getElementById('reasonStats');
+  rs.innerHTML=['ill','family'].map(function(k){
+    return '<div class="rst"><span>'+reasonText(k)+'</span><b>'+st[k].d+' 日 · 工作日 '+st[k].w+'</b></div>';
+  }).join('')+'<div class="rst"><span>合計</span><b>'+st.tot.d+' 日 · 工作日 '+st.tot.w+'</b></div>'+
+    '<div class="rst"><span>年假（唯讀，來自年假頁）</span><b>'+loadLeaves().length+' 筆</b></div>';
+  renderList();renderCalendar();
+}
 function renderList(){
-  var ill=0,fam=0,tot=0;
-  S.records.forEach(function(x){var d=daysOf(x);tot+=d;if(x.reason==='ill')ill+=d;else if(x.reason==='family')fam+=d;});
-  document.getElementById('sumIll').textContent=ill;
-  document.getElementById('sumFam').textContent=fam;
-  document.getElementById('sumTot').textContent=tot;
   var box=document.getElementById('list');
   if(!S.records.length){box.innerHTML='<div class="empty">尚無缺勤記錄。</div>';return;}
   var arr=S.records.slice().sort(function(a,b){return a.date<b.date?1:(a.date>b.date?-1:0);});
   box.innerHTML='';
   arr.forEach(function(r){
-    var reasonTxt=r.reason==='ill'?'因病缺勤':'因親屬患病而缺勤';
     var dtTxt=(r.end && r.end>r.date)?(r.date+' ~ '+r.end):r.date;
     var d=document.createElement('div');d.className='item';
     d.innerHTML='<div class="dt">'+dtTxt+'</div>'+
-      '<div class="rs">'+(r.half?'半日 · ':'')+reasonTxt+(r.note?'<span class="h">'+esc(r.note)+'</span>':'')+'</div>'+
+      '<div class="rs">'+(r.half?'半日 · ':'')+reasonText(r.reason)+
+        '<span class="h">'+daysOf(r)+' 日／工作日 '+workdaysOf(r)+(r.note?' · '+esc(r.note):'')+'</span></div>'+
       '<div class="x" onclick="delAbsence(\''+r.id+'\')">✕</div>';
     box.appendChild(d);
   });
 }
-function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function shareAbsence(){
-  var ill=0,fam=0,tot=0;
-  S.records.forEach(function(x){var d=daysOf(x);tot+=d;if(x.reason==='ill')ill+=d;else if(x.reason==='family')fam+=d;});
-  var body='缺勤統計\n因病缺勤：'+ill+' 日\n因親屬患病而缺勤：'+fam+' 日\n總計：'+tot+' 日';
+  var st=statTotals();
+  var body='缺勤統計（天數已跳過週六、日）\n因病缺勤：'+st.ill.d+' 日（工作日 '+st.ill.w+'）\n因親屬患病而缺勤：'+st.family.d+' 日（工作日 '+st.family.w+'）\n總計：'+st.tot.d+' 日（工作日 '+st.tot.w+'）';
   if(window.JLessShare){JLessShare.shareText('缺勤統計',body,function(ok){toast(ok?'已開啟分享':'已複製文字');});}
   else{navigator.clipboard&&navigator.clipboard.writeText(body);toast('已複製');}
 }
-function resetAbsence(){if(!confirm('清除所有缺勤記錄？'))return;S.records=[];save();renderList();toast('已清除');}
+function resetAbsence(){if(!confirm('清除所有缺勤記錄？'))return;snap('缺勤：全部（清除）');S.records=[];save();renderAll();toast('已清除');}
 var toastTimer=null;
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},1800);}
-initDate();renderList();
+initDate();renderAll();
 </script>
   <script src="help.js"></script>
 </body>

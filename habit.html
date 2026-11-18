@@ -267,6 +267,23 @@ body.sheet-open .toast.on{transform:translate(-50%,0)}
 
 /* ---------- v2：計次 / 循環 ---------- */
 .hrow2 .cnt{font-size:calc(10.5px * var(--fs));font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+.wk-prog{display:flex;align-items:center;gap:6px;margin-top:6px}
+.wk-prog .wkt{flex:1;height:6px;border-radius:99px;background:var(--line2);overflow:hidden}
+.wk-prog .wkt i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .3s}
+.wk-prog .wkv{font-size:calc(10px * var(--fs));font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+.quick-actions{display:flex;gap:8px;margin:8px 2px 2px}
+.quick-actions button{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);
+  color:var(--ink2);font-size:calc(12.5px * var(--fs));font-weight:800;cursor:pointer;user-select:none;-webkit-user-select:none}
+.quick-actions button:active{transform:scale(.98)}
+.quick-actions .qa-y{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent)}
+.catch-row{display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid var(--line);border-radius:13px;margin-bottom:8px;background:var(--card);cursor:pointer}
+.catch-row.on{background:#f2fbf7;border-color:var(--green-line)}
+.catch-row .cbd{width:24px;height:24px;border-radius:8px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex:0 0 auto}
+.catch-row.on .cbd{background:var(--green);border-color:var(--green)}
+.catch-row .cbd:empty::after{content:""}
+.catch-row .ce{font-size:calc(18px * var(--fs))}
+.catch-row .cn{flex:1;min-width:0;font-size:calc(14px * var(--fs));font-weight:800;word-break:break-all}
+.catch-row .cs{font-size:calc(10.5px * var(--fs));color:var(--muted);font-weight:700}
 .hlog{margin-left:auto;font-size:calc(9.5px * var(--fs));font-weight:800;color:var(--accent);background:var(--accent-soft);
   border:1px solid var(--accent-line);border-radius:99px;padding:3px 8px;white-space:nowrap;flex:0 0 auto}
 .hlog:active{transform:scale(.96)}
@@ -458,6 +475,7 @@ h1{font-size:calc(17px * var(--fs))}
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -502,6 +520,10 @@ h1{font-size:calc(17px * var(--fs))}
       <button type="button" id="weekNext" aria-label="下一週">›</button>
     </div>
     <div class="wkd" id="weekDays"></div>
+    <div class="quick-actions">
+      <button type="button" id="btnCatchYesterday" class="qa-y">↩ 補記昨日</button>
+      <button type="button" id="btnAllToday">✅ 今日全部打卡</button>
+    </div>
     <div id="todayList"></div>
   </div>
 
@@ -710,6 +732,14 @@ h1{font-size:calc(17px * var(--fs))}
   <button class="set-btn" data-close type="button" style="text-align:center;background:var(--accent);border-color:var(--accent);color:#fff">完成</button>
 </div>
 
+<!-- 補記昨日：可選哪些習慣 -->
+<div class="sheet" id="catchSheet">
+  <div class="sheet-head"><h3>補記昨日</h3><button class="x" data-close type="button">✕</button></div>
+  <div class="day-sum" id="catchSum">勾選要補打的習慣，將以「補打」寫入昨日。</div>
+  <div id="catchList"></div>
+  <button class="set-btn" id="catchConfirm" type="button" style="text-align:center;background:var(--accent);border-color:var(--accent);color:#fff">補打所選</button>
+</div>
+
 <!-- v3.5：點習慣 → 該習慣熱力圖 -->
 <div class="sheet" id="habitHeatSheet">
   <div class="sheet-head"><h3 id="hHeatTitle" data-noi18n>習慣</h3><button class="x" data-close type="button">✕</button></div>
@@ -835,7 +865,7 @@ function setLang(v){
 var EMOJIS=['💧','📖','🏃','🧘','🌅','🥗','✍️','🛌','🎧','🚶','🧹','💊','☕','🌱','🦷','📵','🎨','🧠','🚭','🍎','🙏','🪴','🏋️','⏰'];
 var DW=['日','一','二','三','四','五','六'];
 var CHEERS=['好叻，繼續落去 💪','又完成一個 ✨','持之以恆就係咁嚟 🌱','今日都有做到 👍','慢慢嚟，最緊要持續 🙂'];
-var SHEETS=['editSheet','settingsSheet','helpSheet','logSheet','shareSheet','tplSheet','roundSheet','mHistSheet','daySheet','habitHeatSheet'];
+var SHEETS=['editSheet','settingsSheet','helpSheet','logSheet','shareSheet','tplSheet','roundSheet','mHistSheet','daySheet','catchSheet','habitHeatSheet'];
 /* habits : {id,name,emoji,goal(每週期望次數),cycle(每輪幾多次),created}
    logs   : { 'YYYY-MM-DD': [{k,id,t,back?}] } ← 每日每習慣最多一筆
    metrics: {id,name,unit,better,created,points[],targets[],log[]} */
@@ -1102,6 +1132,45 @@ function allDoneStreak(){
 function weekCount(h){var f=weekFirst(today()),n=0;for(var i=0;i<7;i++){if(has(h.id,addDays(f,i)))n++;}return n;}
 function weekCountAt(h,f){var n=0;for(var i=0;i<7;i++){if(has(h.id,addDays(f,i)))n++;}return n;}
 
+/* ============ 補記昨日 / 今日全部打卡 ============ */
+var catchSel={};
+function yesterdayIso(){return addDays(today(),-1);}
+function openCatch(){
+  var y=yesterdayIso(),hs=habitsOn(y).filter(function(h){return !has(h.id,y);});
+  if(!hs.length){toast('昨日沒有未完成的習慣');return;}
+  catchSel={};hs.forEach(function(h){catchSel[h.id]=true;});
+  renderCatch();openSheet('catchSheet');
+}
+function renderCatch(){
+  var y=yesterdayIso(),hs=habitsOn(y).filter(function(h){return !has(h.id,y);});
+  if(!hs.length){$('catchList').innerHTML='<div class="empty" style="padding:18px">昨日沒有未完成的習慣</div>';$('catchSum').textContent='';return;}
+  var n=hs.filter(function(h){return catchSel[h.id];}).length;
+  $('catchSum').textContent='補打日期：'+fmtDate(y)+' · 已勾選 '+n+' / '+hs.length;
+  $('catchList').innerHTML=hs.map(function(h){
+    var on=!!catchSel[h.id];
+    return '<div class="catch-row'+(on?' on':'')+'" data-catch="'+esc(h.id)+'"><span class="cbd">'+(on?'✓':'')+'</span>'
+      +'<span class="ce">'+esc(h.emoji)+'</span><span class="cn">'+esc(h.name)+'</span><span class="cs">每週 '+h.goal+' 次</span></div>';
+  }).join('');
+}
+function confirmCatch(){
+  var y=yesterdayIso();
+  var ids=Object.keys(catchSel).filter(function(k){return catchSel[k]&&!has(k,y)&&findH(k);});
+  if(!ids.length){toast('沒有選擇要補打的習慣');return;}
+  ids.forEach(function(id){addEntry(id,y,true);});
+  closeSheet();renderAll();toast('已補打 '+ids.length+' 項（'+fmtMD(y)+'）');
+}
+function punchAllToday(){
+  var t=today(),hs=habitsOn(t),added=0,skipped=0;
+  hs.forEach(function(h){
+    if(countOn(h.id,t)>0)return;
+    /* 每週 N 次目標：本週已達標就不再重複打卡 */
+    if(weekCount(h)>=h.goal){skipped++;return;}
+    addEntry(h.id,t,false);added++;
+  });
+  renderAll();
+  toast('今日已打卡 '+added+' 項'+(skipped?'，略過 '+skipped+' 項（已達本週目標）':''));
+}
+
 /* ============ 週數切換（補打舊週） ============ */
 function weekStartShown(){return addDays(weekFirst(today()),weekOffset*7);}
 function weekNo(s){ /* ISO 8601 週數 */
@@ -1200,6 +1269,7 @@ function renderToday(){
           +'<span class="hbadge'+(st?'':' zero')+'">'+(st?F('🔥 {0} 日',st):tx('由今日開始'))+'</span></div>'
         +'<div class="hrow2">'+F('{0} <b>{1}</b> / {2} 次',tx(wkLabel),wc,x.goal)+(ok?' <span class="ok">'+F('{0}達標',tx(wkLabel))+'</span>':'')
           +'<span class="cnt">'+F('累計 {0} 次',ci.total)+'</span></div>'
+        +'<div class="wk-prog" title="'+F('每週目標 {0} 次',x.goal)+'"><span class="wkt"><i style="width:'+Math.min(100,Math.round(wc/x.goal*100))+'%"></i></span><span class="wkv">每週 '+x.goal+' 次</span></div>'
         +cyc
       +'</div>'
       +'<button class="hmore" data-edit="'+id+'" type="button" aria-label="'+tx('編輯習慣')+'">⋯</button>'
@@ -2056,6 +2126,14 @@ $('dayList').addEventListener('click',function(e){
 $('weekPrev').addEventListener('click',function(){shiftWeek(-1);});
 $('weekNext').addEventListener('click',function(){shiftWeek(1);});
 $('weekBack').addEventListener('click',function(){weekOffset=0;renderAll();});
+/* v4：補記昨日 / 今日全部打卡 */
+$('btnCatchYesterday').addEventListener('click',openCatch);
+$('btnAllToday').addEventListener('click',punchAllToday);
+$('catchList').addEventListener('click',function(e){
+  var row=e.target.closest&&e.target.closest('[data-catch]');if(!row)return;
+  var id=row.getAttribute('data-catch');catchSel[id]=!catchSel[id];renderCatch();
+});
+$('catchConfirm').addEventListener('click',confirmCatch);
 
 /* v3：浮動分享鈕 */
 $('fabShare').addEventListener('click',function(){

@@ -97,6 +97,8 @@ main{max-width:1240px;margin:0 auto;padding:clamp(12px,2.2vw,22px)}
 .card .title:hover{color:var(--pri)}
 .card .url{font-size:calc(12px * var(--fs-scale,1));color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .desc{font-size:calc(12.5px * var(--fs-scale,1));color:var(--sub);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .bmnote{font-size:calc(12px * var(--fs-scale,1));color:var(--sub);background:var(--bg);border-left:2px solid var(--gold);padding:3px 7px;border-radius:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+.link-dead{font-size:calc(10.5px * var(--fs-scale,1));color:#b3382e;background:#fdecea;border:1px solid #f6d4ce;border-radius:99px;padding:1px 7px;white-space:nowrap}
 .card .tags{display:flex;flex-wrap:wrap;gap:5px}
 .tag{font-size:calc(11.5px * var(--fs-scale,1));padding:2px 9px;background:var(--pri-bg);color:var(--pri);border-radius:99px;white-space:nowrap}
 .card .foot{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;border-top:1px solid var(--line)}
@@ -404,6 +406,7 @@ body.selmode .card,body.selmode .row{cursor:pointer;touch-action:none}
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 
@@ -481,6 +484,9 @@ body.selmode .card,body.selmode .row{cursor:pointer;touch-action:none}
     <input type="text" id="fUrl">
     <label>說明</label>
     <textarea id="fDesc"></textarea>
+    <label>離線筆記（只存本機，不會上傳）</label>
+    <textarea id="fNote" rows="3" placeholder="記下備註、密碼提示、使用心得…"></textarea>
+    <div class="hint" id="noteTsHint" style="min-height:0"></div>
     <label>Logo / 預覽圖</label>
     <div class="img-row">
       <div class="img-prev" id="fImgPrev"><span class="noimg">🌐</span></div>
@@ -649,6 +655,10 @@ function load(){
       d.bookmarks.forEach(b=>{
         if(!Array.isArray(b.cats)) b.cats = [];
         if(typeof b.seq !== 'number'){ b.seq = b.pinned ? p++ : u++; }
+        if(typeof b.note !== 'string') b.note = '';
+        if(typeof b.noteTs !== 'number') b.noteTs = typeof b.added === 'number' ? b.added : 0;
+        if(b.linkState !== 'ok' && b.linkState !== 'dead') b.linkState = '';
+        if(typeof b.checkTs !== 'number') b.checkTs = 0;
       });
       return d;
     }
@@ -661,6 +671,8 @@ function load(){
   };
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(db)); }
+/* 刪除前快照到共用回收桶（jless-common.js 不存在時安靜降級） */
+function trashSnap(label){ try{ if(window.JLess&&JLess.trash&&JLess.trash.snapshot)JLess.trash.snapshot(LS_KEY,label); }catch(e){} }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 // 新書籤置於所屬群組（置頂/未置頂）最前
 function nextSeqTop(pinned){
@@ -971,6 +983,9 @@ function openBookmarkModal(bm){
   document.getElementById('fTitle').value = bm?.title || '';
   document.getElementById('fUrl').value = bm?.url || '';
   document.getElementById('fDesc').value = bm?.desc || '';
+  document.getElementById('fNote').value = bm?.note || '';
+  var nt = document.getElementById('noteTsHint');
+  if(nt) nt.textContent = (bm && bm.noteTs) ? ('筆記儲存日期：' + new Date(bm.noteTs).toLocaleString('zh-TW')) : '';
   document.getElementById('fTagInput').value = '';
   pickedTags = bm ? [...(bm.tags||[])] : [];
   pickedCats = bm ? [...(bm.cats||[])] : [];
@@ -995,6 +1010,10 @@ document.getElementById('bmSave').onclick = ()=>{
     url,
     title: document.getElementById('fTitle').value.trim() || hostOf(url),
     desc: document.getElementById('fDesc').value.trim(),
+    note: document.getElementById('fNote').value.trim(),
+    noteTs: editId ? (db.bookmarks.find(b=>b.id===editId)?.noteTs || 0) : 0,
+    linkState: editId ? (db.bookmarks.find(b=>b.id===editId)?.linkState || '') : '',
+    checkTs: editId ? (db.bookmarks.find(b=>b.id===editId)?.checkTs || 0) : 0,
     img: window._pendingImg || '',
     tags: pickedTags.map(t=>t.trim()).filter(Boolean),
     cats: pickedCats.map(t=>t.trim()).filter(Boolean),
@@ -1003,6 +1022,8 @@ document.getElementById('bmSave').onclick = ()=>{
     seq: editId ? (db.bookmarks.find(b=>b.id===editId)?.seq ?? nextSeqTop(false)) : nextSeqTop(false),
     added: editId ? db.bookmarks.find(b=>b.id===editId).added : Date.now()
   };
+  const _old = editId ? db.bookmarks.find(b=>b.id===editId) : null;
+  if(bm.note !== (_old?.note || '')) bm.noteTs = Date.now();
   if(editId){
     const i = db.bookmarks.findIndex(b=>b.id===editId);
     db.bookmarks[i] = bm;
@@ -1027,9 +1048,30 @@ function avatar(b){
 }
 function actionsHTML(b){
   if(isTouch) return `<button class="iconbtn more" data-act="menu" title="操作選單" aria-label="操作選單" style="color:var(--pri)">⋯</button>`;
-  return `<button class="iconbtn pin ${b.pinned?'on':''}" data-act="pin" title="${b.pinned?'取消置頂':'置頂'}" aria-label="${b.pinned?'取消置頂':'置頂'}">📌</button>
+  return `<button class="iconbtn check" data-act="check" title="檢查連結是否仍有效（手動）" aria-label="檢查連結">🔎</button>
+          <button class="iconbtn pin ${b.pinned?'on':''}" data-act="pin" title="${b.pinned?'取消置頂':'置頂'}" aria-label="${b.pinned?'取消置頂':'置頂'}">📌</button>
           <button class="iconbtn edit" data-act="edit" title="編輯" aria-label="編輯">✏️</button>
           <button class="iconbtn del" data-act="del" title="刪除" aria-label="刪除">🗑️</button>`;
+}
+/* 使用者主動檢查單一連結：只在點擊時發出請求，失敗靜默標記，不自動批量檢查 */
+async function checkBookmark(id){
+  const b = db.bookmarks.find(x=>x.id===id); if(!b) return;
+  if(!/^https?:\/\//i.test(b.url||'')){ toast('此網址不支援自動檢查'); return; }
+  const ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(()=>ctrl.abort(), 6000) : null;
+  let ok=false;
+  try{
+    const opt = {method:'HEAD', mode:'no-cors'}; if(ctrl)opt.signal=ctrl.signal;
+    try{ await fetch(b.url, opt); ok=true; }
+    catch(e1){
+      const opt2={method:'GET', mode:'no-cors'}; if(ctrl)opt2.signal=ctrl.signal;
+      try{ await fetch(b.url, opt2); ok=true; }catch(e2){ ok=false; }
+    }
+  }catch(e){ ok=false; }
+  finally{ if(timer)clearTimeout(timer); }
+  b.linkState = ok?'ok':'dead'; b.checkTs = Date.now();
+  save(); render();
+  toast(ok?'✓ 連結正常':'已標記為可能失效');
 }
 function cardHTML(b){
   return `<div class="card${b.pinned?' pinned':''}${selected.has(b.id)?' sel':''}" data-id="${b.id}">
@@ -1037,8 +1079,9 @@ function cardHTML(b){
     <div class="thumb" data-act="open">${b.img?`<img src="${esc(b.img)}" loading="lazy" draggable="false" onerror="this.parentElement.innerHTML='<span class=noimg>🌐</span>'">`:'<span class="noimg">🌐</span>'}</div>
     <div class="body">
       <div class="title" data-act="open" title="${esc(b.title)}">${esc(b.title)}</div>
-      <div class="url">${esc(hostOf(b.url))}</div>
+      <div class="url">${esc(hostOf(b.url))}${b.linkState==='dead'?' <span class="link-dead" title="手動檢查時無法連線，可能已失效">可能失效</span>':''}</div>
       ${b.desc?`<div class="desc">${esc(b.desc)}</div>`:''}
+      ${b.note?`<div class="bmnote" title="${esc(b.note)}">${esc(b.note)}</div>`:''}
       <div class="tags">${(b.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
     </div>
     <div class="foot">
@@ -1056,7 +1099,8 @@ function rowHTML(b, mode){
       <div class="selbox"></div>
       ${thumb}
       <div class="ctitle" data-act="open" title="${esc(b.title)}">${esc(b.title)}</div>
-      <div class="chost">${esc(hostOf(b.url))}</div>
+      <div class="chost">${esc(hostOf(b.url))}${b.linkState==='dead'?' <span class="link-dead">可能失效</span>':''}</div>
+      ${b.note?`<div class="bmnote">${esc(b.note)}</div>`:''}
       <div class="ctags">${tags}</div>
       ${acts}
     </div>`;
@@ -1066,8 +1110,9 @@ function rowHTML(b, mode){
     ${thumb}
     <div class="rmain">
       <div class="rtitle" data-act="open" title="${esc(b.title)}">${esc(b.title)}</div>
-      <div class="rurl">${esc(b.url)}</div>
+      <div class="rurl">${esc(b.url)}${b.linkState==='dead'?' <span class="link-dead">可能失效</span>':''}</div>
       ${mode==='dense'?'':`${b.desc?`<div class="rdesc">${esc(b.desc)}</div>`:''}`}
+      ${mode==='dense'?'':(b.note?`<div class="bmnote">${esc(b.note)}</div>`:'')}
       <div class="rtags">${tags}</div>
     </div>
     <span class="rtime">${new Date(b.added).toLocaleDateString('zh-TW')}</span>
@@ -1116,7 +1161,7 @@ function render(){
     else if(activeCat && !(b.cats||[]).includes(activeCat)) return false;
     if(activeTag && !(b.tags||[]).includes(activeTag)) return false;
     if(!q) return true;
-    return (b.title+' '+b.url+' '+(b.tags||[]).join(' ')+' '+(b.desc||'')).toLowerCase().includes(q);
+    return (b.title+' '+b.url+' '+(b.tags||[]).join(' ')+' '+(b.desc||'')+' '+(b.note||'')).toLowerCase().includes(q);
   });
   list.sort((a,b)=> (b.pinned-a.pinned) || ((a.seq||0)-(b.seq||0)));
 
@@ -1151,6 +1196,7 @@ document.getElementById('grid').addEventListener('click', e=>{
   const actEl = e.target.closest('[data-act]');
   const act = actEl ? actEl.dataset.act : '';
   if(act==='open'){ window.open(b.url,'_blank'); return; }
+  if(act==='check'){ checkBookmark(b.id); return; }
   if(act==='pin'){ b.pinned=!b.pinned; save(); render(); return; }
   if(act==='edit'){ openBookmarkModal(b); return; }
   if(act==='menu'){ openCardMenu(b); return; }
@@ -1271,6 +1317,7 @@ document.getElementById('batchDel').onclick = ()=>{
   if(!selected.size) return;
   const removed = db.bookmarks.filter(b=>selected.has(b.id));
   if(!removed.length) return;
+  trashSnap('書籤：批次刪除 '+removed.length+' 筆');
   db.bookmarks = db.bookmarks.filter(b=>!selected.has(b.id));
   selected.clear(); save(); render(); updateBatchBar();
   toast(`已刪除 ${removed.length} 個書籤`, 4000, ()=>{
@@ -1323,6 +1370,7 @@ function deleteWithUndo(id){
   const i = db.bookmarks.findIndex(x=>x.id===id);
   if(i<0) return;
   const b = db.bookmarks[i];
+  trashSnap('書籤：'+(b.title||hostOf(b.url)));
   const snap = db.bookmarks.splice(i,1)[0];
   selected.delete(id);
   save(); render(); updateBatchBar();
@@ -1336,6 +1384,7 @@ function deleteWithUndo(id){
 function openCardMenu(b){
   openSheet(esc(b.title), [
     {label:'編輯', icon:'✏️', onClick:()=> openBookmarkModal(b)},
+    {label: b.linkState==='dead' ? '重新檢查連結' : '檢查連結', icon:'🔎', onClick:()=> checkBookmark(b.id)},
     {label: b.pinned ? '取消置頂' : '置頂', icon:'📌', onClick:()=>{ b.pinned=!b.pinned; save(); render(); toast(b.pinned?'已置頂':'已取消置頂'); }},
     {label:'加入選取', icon:'☑️', onClick:()=>{
       if(!selectMode){ selectMode=true; document.body.classList.add('selmode'); document.getElementById('btnSelect').classList.add('pri'); }
@@ -1566,6 +1615,7 @@ document.getElementById('stSave').onclick = ()=>{
 };
 document.getElementById('btnClearAll').onclick = ()=>{
   if(confirm('⚠️ 確定清空全部書籤？此操作無法復原！') && confirm('再次確認：真的要清空全部書籤嗎？')){
+    trashSnap('書籤：清空全部');
     db.bookmarks = []; save(); closeModals(); render(); toast('已清空全部書籤');
   }
 };

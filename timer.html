@@ -85,6 +85,12 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .laps li b{color:var(--accent)}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 30px);transform:translateX(-50%) translateY(20px);background:rgba(40,20,30,.92);color:#fff;padding:11px 18px;border-radius:12px;font-size:calc(13.5px*var(--fs));font-weight:600;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:86%}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* 同時倒數 */
+.mc{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:8px 10px;margin-bottom:7px}
+.mc.done{opacity:.62}
+.mcn{flex:1;min-width:0;font-size:calc(13px*var(--fs));font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc b{font-variant-numeric:tabular-nums;font-size:calc(14px*var(--fs));color:var(--accent)}
+.mcb{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:5px 8px;font-size:calc(11.5px*var(--fs));cursor:pointer;color:var(--ink2);font-weight:700;flex:0 0 auto}
 </style>
 <script type="application/ld+json">
 {
@@ -114,6 +120,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">計時器</h1>
@@ -170,6 +177,16 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
         <button class="btn ghost" onclick="cdSet()">⚙ 設定倒數時間</button>
         <div class="hint">點上方快捷，或自訂分秒後按「設定倒數時間」，再按開始。</div>
       </div>
+      <div class="card">
+        <h3>⏳ 同時進行多個倒數</h3>
+        <div class="row2">
+          <div class="field"><label>名稱</label><input type="text" id="mcName" maxlength="20" placeholder="例如：煮麵"></div>
+          <div class="field"><label>分鐘</label><input type="number" id="mcMin" inputmode="numeric" value="5" min="0"></div>
+        </div>
+        <button class="btn ghost" onclick="addMulti()">＋ 新增倒數（立即開始）</button>
+        <div id="mcList" style="margin-top:10px"></div>
+        <div class="hint" style="margin-bottom:0">可同時運行；完成時響聲＋頁內提示，（已授權時）並發出瀏覽器通知。狀態存本機，重新整理可還原。</div>
+      </div>
     </div>
 
     <!-- 番茄鐘 -->
@@ -191,6 +208,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
         <input type="checkbox" id="soundToggle" onchange="toggleSound(this.checked)">
       </label>
       <div class="hint" style="margin-bottom:0">關閉則只在畫面閃爍與彈出提示，不發聲；開啟時結束僅響一聲清脆提示。</div>
+      <button class="btn ghost" onclick="enableTimerNotify()">🔔 開啟瀏覽器通知</button>
     </div>
 
   </div>
@@ -440,10 +458,92 @@ function flash(){
 var toastTimer=null;
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},2000);}
 
+/* ===== 同時多個倒數（獨立於單一計時模式，狀態可還原） ===== */
+var MC_KEY='jless_timer_multi_v1';
+var multi=[];      /* {id,name,duration,remaining,end,running,done} */
+var mcTimerId=null;
+function escM(s){return (window.JLess&&JLess.util&&JLess.util.esc)?JLess.util.esc(s):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function saveMulti(){try{localStorage.setItem(MC_KEY,JSON.stringify(multi.slice(0,30)));}catch(e){}}
+function multiLeft(t){return t.done?0:(t.running?Math.max(0,t.end-Date.now()):t.remaining);}
+function loadMulti(){
+  var arr=[];try{var a=JSON.parse(localStorage.getItem(MC_KEY));if(Array.isArray(a))arr=a;}catch(e){}
+  var expired=[];
+  multi=arr.slice(0,30).map(function(t){
+    var d=Math.max(0,+t.duration||0),left=+t.remaining||d;
+    var running=!!t.running&&!t.done;
+    if(running&&t.end&&Date.now()>=t.end){running=false;left=0;expired.push(t.name||'倒數');}
+    return {id:String(t.id||('m'+Math.random().toString(36).slice(2,8))),name:String(t.name||'倒數').slice(0,20),duration:d,remaining:left,end:t.end||0,running:running,done:!!t.done||(!running&&left===0)};
+  });
+  if(expired.length){saveMulti();toast('有 '+expired.length+' 個倒數已完成：'+expired[0]);}
+  renderMulti();ensureMultiTimer();
+}
+function ensureMultiTimer(){if(!mcTimerId&&multi.some(function(t){return t.running;}))mcTimerId=setInterval(tickMulti,200);}
+function stopMultiTimer(){if(mcTimerId){clearInterval(mcTimerId);mcTimerId=null;}}
+function addMulti(){
+  var name=(document.getElementById('mcName').value||'').trim()||'倒數';
+  var m=Math.max(0,parseInt(document.getElementById('mcMin').value,10)||0);
+  if(m<=0){toast('請輸入大於 0 的分鐘');return;}
+  unlockAudio();
+  var dur=m*60000;
+  multi.push({id:'m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name.slice(0,20),duration:dur,remaining:dur,end:Date.now()+dur,running:true,done:false});
+  document.getElementById('mcName').value='';
+  saveMulti();renderMulti();ensureMultiTimer();toast('已新增倒數：'+name);
+}
+function toggleMulti(id){
+  var t=null;multi.forEach(function(x){if(x.id===id)t=x;});if(!t)return;
+  if(t.done){t.done=false;t.remaining=t.duration||60000;t.end=Date.now()+t.remaining;t.running=true;}
+  else if(t.running){t.remaining=Math.max(0,t.end-Date.now());t.running=false;}
+  else {if(!t.remaining)t.remaining=t.duration||60000;t.end=Date.now()+t.remaining;t.running=true;}
+  saveMulti();renderMulti();ensureMultiTimer();if(t.running)unlockAudio();
+}
+function delMulti(id){
+  multi=multi.filter(function(x){return x.id!==id;});
+  saveMulti();renderMulti();if(!multi.some(function(t){return t.running;}))stopMultiTimer();
+}
+function renderMulti(){
+  var box=document.getElementById('mcList');if(!box)return;
+  if(!multi.length){box.innerHTML='<div class="hint" style="margin:0">尚無同時倒數。</div>';return;}
+  box.innerHTML=multi.map(function(t){
+    var state=t.done?'↺ 重設':(t.running?'⏸ 暫停':'▶ 繼續');
+    return '<div class="mc'+(t.done?' done':'')+'">'+
+      '<span class="mcn" title="'+escM(t.name)+'">'+escM(t.name)+'</span>'+
+      '<b id="mt_'+t.id+'">'+fmtTime(multiLeft(t),false)+'</b>'+
+      '<button class="mcb" onclick="toggleMulti(\''+t.id+'\')">'+state+'</button>'+
+      '<button class="mcb" onclick="delMulti(\''+t.id+'\')">✕</button></div>';
+  }).join('');
+}
+function notifyTimerDone(name,id){
+  try{
+    if(window.JLess&&JLess.notify&&JLess.notify.schedule&&window.Notification&&Notification.permission==='granted')
+      JLess.notify.schedule('timer_'+(id||name),Date.now()+1000,'倒數完成：'+name,name+' 已倒數完成');
+  }catch(e){}
+}
+function tickMulti(){
+  var now=Date.now(),doneNames=[];
+  multi.forEach(function(t){
+    if(t.done||!t.running)return;
+    var left=Math.max(0,t.end-now);
+    var el=document.getElementById('mt_'+t.id);if(el)el.textContent=fmtTime(left,false);
+    if(left<=0){t.done=true;t.running=false;doneNames.push(t.name);notifyTimerDone(t.name,t.id);}
+  });
+  if(doneNames.length){
+    saveMulti();renderMulti();
+    if(soundOn)chime();
+    flash();
+    toast('⏰ '+doneNames[0]+' 倒數完成'+(doneNames.length>1?'（共 '+doneNames.length+' 個）':''));
+  }
+  if(!multi.some(function(t){return t.running;}))stopMultiTimer();
+}
+function enableTimerNotify(){
+  if(!(window.JLess&&JLess.notify&&JLess.notify.enable)){toast('此環境不支援瀏覽器通知');return;}
+  JLess.notify.enable().then(function(p){toast(p==='granted'?'已開啟瀏覽器通知':'未授權；完成時仍有聲音與頁內提示');}).catch(function(){toast('未授權；完成時仍有聲音與頁內提示');});
+}
+
 /* 初始化 */
 loadSound();
 setMode('sw');
 tick();
+loadMulti();
 </script>
   <script src="help.js"></script>
 </body>

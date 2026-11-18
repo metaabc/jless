@@ -82,6 +82,9 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .palette{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
 .palette .pc{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent}
 .palette .pc.on{border-color:#333}
+.tpl-row{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
+.tpl-row .tpl{border:1px solid rgba(0,0,0,.12);background:#fff;border-radius:10px;padding:9px 13px;min-height:40px;font-size:calc(12.5px*var(--fs));font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit}
+.tpl-row .tpl.on{background:#f59e0b;color:#fff;border-color:#f59e0b}
 .row2{display:flex;gap:10px;align-items:center;margin:6px 0 10px}
 .row2 label{font-size:calc(13px*var(--fs));color:var(--ink2)}
 .switch{position:relative;width:42px;height:24px;border-radius:999px;background:#ccc;display:inline-block;transition:background .15s}
@@ -139,6 +142,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">筆記</h1>
@@ -183,6 +187,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
   <div class="sheet">
     <div class="close" onclick="closeEditor()">✕</div>
     <h3 style="margin:2px 0 12px;font-size:calc(16px*var(--fs))" id="eTitle2">新增筆記</h3>
+    <div class="tpl-row" id="tplRow">
+      <button type="button" class="tpl" data-tpl="lesson">備課</button>
+      <button type="button" class="tpl" data-tpl="meeting">會議記錄</button>
+      <button type="button" class="tpl" data-tpl="shopping">購物清單</button>
+      <button type="button" class="tpl on" data-tpl="blank">空白</button>
+    </div>
     <div class="palette" id="palette"></div>
     <div class="field"><input type="text" id="eTitle" placeholder="標題" maxlength="80"></div>
     <div class="row2"><span class="switch" id="eCheckSwitch" onclick="toggleCheckMode()"><span></span></span><label>清單模式（勾選項目）</label></div>
@@ -232,6 +242,13 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 var KEY='jless_note_v1';
 var COLORS=['#ffffff','#fde7e9','#fdeccb','#eef6d8','#d7f0e6','#d8ecf7','#e7e0f7','#eceff1'];
 var COLOR_LABEL=['白','粉','橙','青綠','綠','藍','紫','灰'];
+/* 筆記模板：繁中標題與內容骨架 */
+var TEMPLATES={
+  blank:{title:'',body:'',check:false},
+  lesson:{title:'備課記錄',body:'科目／主題：\n\n教學目標：\n\n重點與流程：\n1. \n2. \n3. \n\n教材與資源：\n\n課後檢討：',check:false},
+  meeting:{title:'會議記錄',body:'會議名稱：\n日期／時間：\n出席者：\n\n討論議題：\n1. \n2. \n\n決議事項：\n\n待辦與負責人：\n\n下次會議：',check:false},
+  shopping:{title:'購物清單',body:'主食\n蔬菜水果\n肉類海鮮\n日用品\n其它',check:true}
+};
 function uid(){return 'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function pad(n){return (n<10?'0':'')+n;}
 function nowStr(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
@@ -241,8 +258,10 @@ function load(){try{var raw=localStorage.getItem(KEY);if(raw){var d=JSON.parse(r
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast('儲存失敗：可能圖片過大');}}
 var S=load();
 var curList=S.lists[0].id;
-var editId=null, editColor=COLORS[0], editCheck=false, editImg='', editItems=[], editPin=false;
+var editId=null, editColor=COLORS[0], editCheck=false, editImg='', editItems=[], editPin=false, editTpl='blank';
 var selMode=false, selIds={};
+/* 刪除前快照到共用回收桶（jless-common.js 不存在時安靜降級） */
+function trashSnap(label){try{if(window.JLess&&JLess.trash&&JLess.trash.snapshot)JLess.trash.snapshot(KEY,label);}catch(e){}}
 
 function curListObj(){for(var i=0;i<S.lists.length;i++)if(S.lists[i].id===curList)return S.lists[i];return S.lists[0];}
 function byId(id){for(var i=0;i<S.lists.length;i++){var n=S.lists[i].notes.filter(function(x){return x.id===id;})[0];if(n)return n;}return null;}
@@ -259,7 +278,7 @@ function renderTabs(){
   var a=document.createElement('div');a.className='add';a.textContent='＋';a.title='新增清單';a.onclick=addList;w.appendChild(a);
 }
 function addList(){var name=prompt('新清單名稱：','新清單');if(name===null)return;name=name.trim();if(!name)return;var l={id:uid(),name:name.slice(0,20),notes:[]};S.lists.push(l);curList=l.id;save();renderTabs();renderNotes();toast('已新增清單');}
-function delList(id,ev){ev.stopPropagation();if(S.lists.length<=1){toast('至少保留一個清單');return;}var l=S.lists.filter(function(x){return x.id===id;})[0];if(!confirm('刪除清單「'+(l?l.name:'')+'」及其筆記？'))return;S.lists=S.lists.filter(function(x){return x.id!==id;});curList=S.lists[0].id;save();renderTabs();renderNotes();}
+function delList(id,ev){ev.stopPropagation();if(S.lists.length<=1){toast('至少保留一個清單');return;}var l=S.lists.filter(function(x){return x.id===id;})[0];if(!confirm('刪除清單「'+(l?l.name:'')+'」及其筆記？'))return;trashSnap('筆記清單：'+((l&&l.name)||''));S.lists=S.lists.filter(function(x){return x.id!==id;});curList=S.lists[0].id;save();renderTabs();renderNotes();}
 
 /* 選取模式（移動用） */
 function toggleSel(){selMode=!selMode;if(!selMode)selIds={};document.getElementById('notes').classList.toggle('sel-mode',selMode);renderNotes();}
@@ -277,6 +296,8 @@ function renderNotes(){
   var l=curListObj();
   var arr=l.notes.slice();
   if(q)arr=arr.filter(function(n){return (n.title+' '+(n.body||'')+' '+(n.items?n.items.map(function(i){return i.text;}).join(' '):'')).toLowerCase().indexOf(q)>=0;});
+  /* 置頂優先（其餘維持原本順序） */
+  arr.sort(function(a,b){return (b.pin?1:0)-(a.pin?1:0);});
   if(!arr.length){box.innerHTML=selMode?'<div class="empty">選取模式：此清單沒有筆記</div>':(q?'<div class="empty">沒有相符的筆記</div>':'<div class="empty">這個清單還沒有筆記。<br>按右下角「＋」新增。</div>');updateSelBar();return;}
   box.innerHTML='';
   arr.forEach(function(n){box.appendChild(noteEl(n));});
@@ -306,22 +327,37 @@ function noteEl(n){
   return d;
 }
 function toggleItem(ev,id,iid){ev.stopPropagation();var n=byId(id);if(!n)return;var it=n.items.filter(function(x){return x.id===iid;})[0];if(it){it.done=!it.done;save();renderNotes();}}
-function delNote(id){if(!confirm('刪除這則筆記？'))return;for(var i=0;i<S.lists.length;i++){var before=S.lists[i].notes.length;S.lists[i].notes=S.lists[i].notes.filter(function(x){return x.id!==id;});if(S.lists[i].notes.length!==before){save();renderNotes();return;}}}
+function delNote(id){if(!confirm('刪除這則筆記？'))return;var target=byId(id);trashSnap('筆記：'+((target&&target.title)||'(無標題)'));for(var i=0;i<S.lists.length;i++){var before=S.lists[i].notes.length;S.lists[i].notes=S.lists[i].notes.filter(function(x){return x.id!==id;});if(S.lists[i].notes.length!==before){save();renderNotes();return;}}}
 
 /* 編輯器 */
 function renderPalette(){
   var w=document.getElementById('palette');w.innerHTML='';
   COLORS.forEach(function(c,i){var d=document.createElement('div');d.className='pc'+(c===editColor?' on':'');d.style.background=c;d.title=COLOR_LABEL[i];d.onclick=function(){editColor=c;renderPalette();};w.appendChild(d);});
 }
+function renderTpl(){var w=document.getElementById('tplRow');if(!w)return;Array.prototype.forEach.call(w.querySelectorAll('.tpl'),function(b){b.classList.toggle('on',b.dataset.tpl===editTpl);});}
+function applyTemplate(key){
+  var t=TEMPLATES[key];if(!t)return;
+  if(key!=='blank'){
+    var curTitle=document.getElementById('eTitle').value,curBody=document.getElementById('eBody').value;
+    if((curTitle.trim()||curBody.trim())&&!confirm('套用模板會取代目前的標題與內容，確定？'))return;
+  }
+  editTpl=key;
+  document.getElementById('eTitle').value=t.title;
+  if(t.check&&!editCheck)toggleCheckMode();
+  if(!t.check&&editCheck)toggleCheckMode();
+  document.getElementById('eBody').value=t.body;
+  renderTpl();
+}
 function toggleCheckMode(){editCheck=!editCheck;document.getElementById('eCheckSwitch').classList.toggle('on',editCheck);document.getElementById('eBody').placeholder=editCheck?'每行一個項目…':'內容…';}
 function openEditor(id){
-  editId=id||null;editImg='';editItems=[];editPin=false;
+  editId=id||null;editImg='';editItems=[];editPin=false;editTpl='blank';
   if(id){var n=byId(id);if(n){document.getElementById('eTitle2').textContent='編輯筆記';document.getElementById('eTitle').value=n.title||'';editColor=n.color||'#fff';editCheck=!!(n.items&&n.items.length);editPin=!!n.pin;editImg=n.img||'';if(editCheck){editItems=n.items.map(function(i){return {id:i.id,text:i.text,done:i.done};});document.getElementById('eBody').value=editItems.map(function(i){return i.text;}).join('\n');}else{document.getElementById('eBody').value=n.body||'';}}}
   else{document.getElementById('eTitle2').textContent='新增筆記';document.getElementById('eTitle').value='';document.getElementById('eBody').value='';editColor='#fff';editCheck=false;}
   document.getElementById('eCheckSwitch').classList.toggle('on',editCheck);
   document.getElementById('eBody').placeholder=editCheck?'每行一個項目…':'內容…';
-  renderPalette();renderThumb();updatePinBtn();document.getElementById('editMask').classList.add('show');
+  renderPalette();renderTpl();renderThumb();updatePinBtn();document.getElementById('editMask').classList.add('show');
 }
+Array.prototype.forEach.call(document.querySelectorAll('#tplRow .tpl'),function(b){b.onclick=function(){applyTemplate(b.dataset.tpl);};});
 function toggleEditPin(){editPin=!editPin;updatePinBtn();}
 function updatePinBtn(){var b=document.getElementById('pinToggleBtn');if(b)b.textContent=editPin?'📌 取消置頂':'📌 置頂';}
 function closeEditor(){document.getElementById('editMask').classList.remove('show');}
@@ -503,7 +539,7 @@ function closeSettings(){document.getElementById('setMask').classList.remove('sh
 function exportNT(){JLessBackup.export([KEY],'note-backup-'+nowStr().replace(/-/g,'')+'.json');toast('已匯出備份');}
 function importNT(){document.getElementById('ntFile').click();}
 function onNTFile(ev){var f=ev.target.files&&ev.target.files[0];ev.target.value='';if(!f)return;JLessBackup.importFromFile(f,[KEY],function(ok,msg){if(!ok){alert(msg||'匯入失敗');return;}S=load();renderNotes();toast('已匯入');});}
-function clearAll(){if(!confirm('清除全部筆記（含圖片），無法復原。\n建議先匯出備份。確定？'))return;S=defaultState();save();renderNotes();toast('已清除');}
+function clearAll(){if(!confirm('清除全部筆記（含圖片），無法復原。\n建議先匯出備份。確定？'))return;trashSnap('筆記：全部清除');S=defaultState();save();renderNotes();toast('已清除');}
 
 var toastTimer=null;
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},1800);}

@@ -180,6 +180,17 @@ textarea#batchSyms:focus{border-color:var(--accent)}
   background:rgba(40,20,30,.92);color:#fff;padding:11px 18px;border-radius:12px;font-size:calc(13.5px * var(--fs));font-weight:600;
   z-index:99;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:86%;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 月度損益與到價提示 */
+.monthgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.monthgrid .m{background:var(--bg);border:1px solid var(--line2);border-radius:11px;padding:9px 8px;text-align:center;min-width:0}
+.monthgrid .m i{font-style:normal;display:block;font-size:calc(10.5px * var(--fs));color:var(--muted)}
+.monthgrid .m b{display:block;margin-top:3px;font-size:calc(13px * var(--fs));font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alertbanner{margin:0 16px 10px}
+.alertbanner .ab{display:flex;gap:8px;align-items:flex-start;background:#fff7e6;border:1px solid #f4d9a8;color:#93570b;border-radius:11px;padding:9px 11px;margin-bottom:7px;font-size:calc(12.5px * var(--fs))}
+.alertbanner .ab b{display:block;font-weight:800}
+.alertbanner .ab .ax{margin-left:auto;flex:0 0 auto;cursor:pointer;font-weight:800}
+.bell{font-size:calc(11px * var(--fs));color:#d97706;margin-left:4px}
 </style>
 <script type="application/ld+json">
 {
@@ -210,6 +221,7 @@ textarea#batchSyms:focus{border-color:var(--accent)}
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">股票損益</h1>
@@ -233,8 +245,14 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <button class="upd" id="updBtn" onclick="updatePrices()">🔄 更新現價</button>
         <div class="upd-status" id="priceStatus"></div>
       </div>
+      <div id="alertBanner" class="alertbanner"></div>
+      <div class="card-box" style="margin-top:0">
+        <h3>📅 月度損益（本月）</h3>
+        <div class="monthgrid" id="monthBox"></div>
+        <div class="hint">當月已實現＝本月賣出獲利＋本月派息；浮動損益為目前全部持倉的未實現損益。僅於本機計算。</div>
+      </div>
       <div id="posList"></div>
-      <div class="note">※ 資料僅供參考，不構成投資建議；請自行核對。</div>
+      <div class="note">※ 資料僅供參考，不構成投資建議；請自行核對。現價只會在你按「更新現價」或開啟本頁時讀取快取值，不會背景輪詢。</div>
     </section>
 
     <!-- 交易 -->
@@ -244,13 +262,15 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <div class="mk-toggle">
           <span class="b on" id="ttBuy" onclick="setTradeType('buy')">買入</span>
           <span class="b" id="ttSell" onclick="setTradeType('sell')">賣出</span>
+          <span class="b" id="ttDiv" onclick="setTradeType('dividend')">派息</span>
         </div>
         <div class="fld"><label>標的</label><select id="tHid" onchange="onTradeHoldingChange()"></select></div>
         <div class="fld"><label>銀行／券商</label><select id="tBank"></select></div>
         <div class="fld"><label>日期</label><input type="date" id="tDate"></div>
-        <div class="fld"><label>價格（每股）</label><input type="number" id="tPrice" inputmode="decimal" step="any" placeholder="0.00"></div>
-        <div class="fld"><label>股數</label><input type="number" id="tShares" inputmode="decimal" step="any" placeholder="0"></div>
+        <div class="fld"><label id="tPriceLab">價格（每股）</label><input type="number" id="tPrice" inputmode="decimal" step="any" placeholder="0.00"></div>
+        <div class="fld"><label id="tSharesLab">股數</label><input type="number" id="tShares" inputmode="decimal" step="any" placeholder="0"></div>
         <div class="fld"><label>手續費</label><input type="number" id="tFee" inputmode="decimal" step="any" value="0"></div>
+        <div class="fld"><label id="tDivLab">派息總額（選填）</label><input type="number" id="tDiv" inputmode="decimal" step="any" value="0"></div>
         <div class="fld"><label>備註</label><input id="tNote" maxlength="40" placeholder="選填"></div>
         <button class="btn primary" onclick="saveTrade()">保存記錄</button>
       </div>
@@ -296,6 +316,11 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         </div>
       </div>
       <div class="card-box">
+        <h3>🔔 到價通知</h3>
+        <div class="hint" style="margin-top:0">到價提示只會在「更新現價」或開啟本頁時檢查已快取的現價；不會背景輪詢，也不會定時呼叫 API。未授權瀏覽器通知時，仍會在頁內顯示提示。</div>
+        <button class="btn" onclick="enableNotify()">開啟瀏覽器通知</button>
+      </div>
+      <div class="card-box">
         <h3>證券分布（按銀行）</h3>
         <div id="bankOverview"></div>
       </div>
@@ -305,6 +330,7 @@ textarea#batchSyms:focus{border-color:var(--accent)}
         <button class="btn primary" onclick="exportQB()">⬇️ 匯出本應用備份</button>
         <button class="btn" onclick="importQB()">⬆️ 匯入本應用備份</button>
         <button class="btn" onclick="exportCSV()">📤 匯出持倉 CSV</button>
+        <button class="btn" style="color:#cf5a4c" onclick="clearAllWealth()">🗑 清空全部資料</button>
         <input type="file" id="qbFile" accept="application/json,.json" style="display:none" onchange="onQBFile(event)">
       </div>
     </section>
@@ -358,14 +384,21 @@ function plClass(v){return v>0?'up':(v<0?'down':'flat');}
 function plSign(v){return (v>0?'+':'')+fmt(v);}
 function ymd(){var d=new Date();return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());}
 
-function defaultState(){return {v:1,holdings:[],trades:[],banks:[],lastFetch:{}};}
+function defaultState(){return {v:1,holdings:[],trades:[],banks:[],lastFetch:{},profileCache:{}};}
 function fmtTs(ts){if(!ts)return '';var d=new Date(ts);var p=function(n){return (n<10?'0':'')+n;};return p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());}
+function snap(label){if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,label);}catch(e){}}}
 function load(){
   try{var raw=localStorage.getItem(KEY);if(raw){var d=JSON.parse(raw);if(d&&typeof d==='object'){
     if(!Array.isArray(d.holdings))d.holdings=[];
     if(!Array.isArray(d.trades))d.trades=[];
     if(!Array.isArray(d.banks))d.banks=[];
-    d.holdings.forEach(function(h){if(h.price===''||h.price==null||isNaN(+h.price))h.price=null;else h.price=+h.price;});
+    if(!d.profileCache||typeof d.profileCache!=='object')d.profileCache={};
+    d.holdings.forEach(function(h){
+      if(h.price===''||h.price==null||isNaN(+h.price))h.price=null;else h.price=+h.price;
+      /* 舊交易／舊持倉沒有 alert 欄位時保持 null，向後相容 */
+      if(h.alertLow===''||h.alertLow==null||!isFinite(+h.alertLow))h.alertLow=null;else h.alertLow=+h.alertLow;
+      if(h.alertHigh===''||h.alertHigh==null||!isFinite(+h.alertHigh))h.alertHigh=null;else h.alertHigh=+h.alertHigh;
+    });
     return d;}}}catch(e){}
   return defaultState();
 }
@@ -383,18 +416,20 @@ function banksOfHolding(h){
   if(!ids.length)ids.push((h.bank)||'');
   return ids;
 }
-/* bankId: 省略=全部；''=未指定；其他=特定銀行 id */
-function compute(h,bankId){
+/* bankId: 省略=全部；''=未指定；其他=特定銀行 id；untilTs: 只計入該時間點前的交易（月度統計用） */
+function compute(h,bankId,untilTs){
   var tr=S.trades.filter(function(t){
     if(t.hid!==h.id)return false;
     if(bankId!=null&&tradeBank(t,h)!==bankId)return false;
+    if(untilTs!=null&&(t.ts||0)>untilTs)return false;
     return true;
   }).sort(function(a,b){return (a.ts||0)-(b.ts||0);});
   var buySh=0,buyCost=0,realized=0;
   tr.forEach(function(t){
-    var sh=+t.shares||0,pr=+t.price||0,fe=+t.fee||0;
-    if(t.type==='buy'){buySh+=sh;buyCost+=pr*sh+fe;}
-    else{var avg=buySh>0?buyCost/buySh:0;var proceeds=pr*sh-fe;realized+=proceeds-avg*sh;}
+    var sh=+t.shares||0,pr=+t.price||0,fe=+t.fee||0,dv=+t.dividend||0;
+    if(t.type==='buy'){buySh+=sh;buyCost+=pr*sh+fe;realized+=dv;}
+    else if(t.type==='dividend'){realized+=dv;}
+    else{var avg=buySh>0?buyCost/buySh:0;var proceeds=pr*sh-fe;realized+=proceeds-avg*sh+dv;}
   });
   var net=buySh;tr.forEach(function(t){if(t.type==='sell')net-=(+t.shares||0);});if(net<0)net=0;
   var avg=buySh>0?buyCost/buySh:0;
@@ -420,6 +455,27 @@ function totals(){
   S.holdings.forEach(function(h){var c=computeAll(h);mv+=c.mv;cost+=c.cost;pnl+=c.pnl;real+=c.realized;});
   return {mv:mv,cost:cost,pnl:pnl,real:real};
 }
+/* 當月損益：已實現（含派息）＋目前持倉浮動損益 */
+function monthSummary(){
+  var now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  var start=new Date(y,m,1,0,0,0).getTime()-1;
+  var end=new Date(y,m+1,0,23,59,59,999).getTime();
+  var real=0,div=0;
+  S.holdings.forEach(function(h){
+    banksOfHolding(h).forEach(function(bid){
+      real+=compute(h,bid,end).realized-compute(h,bid,start).realized;
+    });
+  });
+  S.trades.forEach(function(t){var ts=t.ts||0;if(ts>start&&ts<=end)div+=(+t.dividend||0);});
+  return {real:real,div:div,float:totals().pnl};
+}
+function renderMonth(){
+  var el=document.getElementById('monthBox');if(!el)return;
+  var m=monthSummary();
+  el.innerHTML='<div class="m"><i>當月已實現</i><b class="pl '+plClass(m.real)+'">'+plSign(m.real)+'</b></div>'+
+    '<div class="m"><i>其中派息</i><b>'+fmt(m.div)+'</b></div>'+
+    '<div class="m"><i>持倉浮動</i><b class="pl '+plClass(m.float)+'">'+plSign(m.float)+'</b></div>';
+}
 
 /* ============ 視圖切換 ============ */
 function goView(v){
@@ -430,7 +486,7 @@ function goView(v){
   if(v==='vSym')renderSym();
   if(v==='vMine')renderMine();
 }
-function renderAllW(){renderPos();renderTrade();renderSym();renderMine();}
+function renderAllW(){renderPos();renderTrade();renderSym();renderMine();renderMonth();}
 
 /* ============ 持倉 ============ */
 function renderPos(){
@@ -438,7 +494,8 @@ function renderPos(){
   document.getElementById('sumMv').textContent=fmt(t.mv);
   document.getElementById('sumCost').textContent=fmt(t.cost);
   var pe=document.getElementById('sumPnl');pe.textContent=plSign(t.pnl);pe.className='val pl '+plClass(t.pnl);
-  var re=document.getElementById('sumReal');re.textContent=plSign(t.real);re.className='val pl '+plClass(t.real);
+  var re=document.getElementById('sumReal');  re.textContent=plSign(t.real);re.className='val pl '+plClass(t.real);
+  renderMonth();
   var box=document.getElementById('posList');
   if(!S.holdings.length){box.innerHTML='<div class="empty"><div class="big">💎</div>尚無倉位。<br>請到「標的」批量新增美股／港股，並在「交易」記錄買賣。</div>';return;}
   box.innerHTML=S.holdings.map(function(h){
@@ -449,7 +506,7 @@ function renderPos(){
     var plcls=c.net>0?plClass(c.pnl):'flat';
     return '<div class="pos" onclick="openDetail(\''+h.id+'\')">'+
       '<div class="prow">'+
-        '<div class="pleft"><div class="psym">'+esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span></div>'+
+        '<div class="pleft"><div class="psym">'+esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span>'+((h.alertLow!=null||h.alertHigh!=null)?'<span class="bell" title="已設到價提示">🔔</span>':'')+'</div>'+
           '<div class="pnm">'+(h.name?esc(h.name):'')+(btxt?' <span class="bnk">'+esc(btxt)+'</span>':'')+'</div></div>'+
         '<span class="pgo">›</span>'+
       '</div>'+
@@ -481,10 +538,59 @@ function renderPriceStatus(){
 }
 
 /* ============ 個股詳情 ============ */
-var detailId=null, detailInfo=null;
+var detailId=null, detailInfo=null, alertFormOpen=false;
+/* 到價提示：表單與检查（检查僅由 updatePrices / 開頁觸發，絕不輪詢） */
+function toggleAlertForm(){alertFormOpen=!alertFormOpen;renderDetail();}
+function saveAlert(){
+  var h=holdingById(detailId);if(!h)return;
+  function rv(id){var el=document.getElementById(id);if(!el)return null;var v=parseFloat(el.value);return (isFinite(v)&&v>0)?v:null;}
+  var lo=rv('alLow'),hi=rv('alHigh');
+  if(lo!=null&&hi!=null&&lo>=hi){toast('下限必須小於上限');return;}
+  h.alertLow=lo;h.alertHigh=hi;alertFormOpen=false;
+  save();renderDetail();renderPos();renderSym();
+  toast('已設定（下次更新現價時才會檢查）');
+}
+function enableNotify(){
+  if(!(window.JLess&&JLess.notify&&JLess.notify.enable)){toast('此環境不支援瀏覽器通知');return;}
+  JLess.notify.enable().then(function(p){toast(p==='granted'?'已開啟瀏覽器通知':'未授權；仍會顯示頁內提示');}).catch(function(){toast('未授權；仍會顯示頁內提示');});
+}
+function showAlertBanner(title,body){
+  var box=document.getElementById('alertBanner');if(!box)return;
+  var d=document.createElement('div');d.className='ab';
+  d.innerHTML='<span>🔔</span><span><b>'+esc(title)+'</b>'+esc(body)+'</span><span class="ax" onclick="this.parentNode.parentNode.removeChild(this.parentNode)">✕</span>';
+  box.insertBefore(d,box.firstChild);
+}
+function notifyAlert(id,title,body){
+  showAlertBanner(title,body);
+  try{
+    if(window.JLess&&JLess.notify&&JLess.notify.schedule&&window.Notification&&Notification.permission==='granted')
+      JLess.notify.schedule(id,Date.now()+1000,title,body);
+  }catch(e){}
+}
+/* 使用已快取的現價檢查到價提示；觸發後清除該方向，避免每次開頁重複通知 */
+function checkAlerts(){
+  if(!S||!S.holdings)return;
+  var fired=0;
+  S.holdings.forEach(function(h){
+    var p=(h.price!=null&&!isNaN(+h.price))?+h.price:null;
+    if(p==null)return;
+    var code=h.sym||h.id;
+    if(h.alertLow!=null&&p<=+h.alertLow){
+      notifyAlert('wealth_'+code+'_low','到價提示：'+code+' 跌至下限',
+        '現價 '+fmt(p)+' ≤ 下限 '+fmt(h.alertLow)+'（'+(h.market==='hk'?'港股':'美股')+'）');
+      h.alertLow=null;fired++;
+    }
+    if(h.alertHigh!=null&&p>=+h.alertHigh){
+      notifyAlert('wealth_'+code+'_high','到價提示：'+code+' 升至上限',
+        '現價 '+fmt(p)+' ≥ 上限 '+fmt(h.alertHigh)+'（'+(h.market==='hk'?'港股':'美股')+'）');
+      h.alertHigh=null;fired++;
+    }
+  });
+  if(fired){save();renderPos();renderSym();if(detailId)renderDetail();toast('到價提示：'+fired+' 筆');}
+}
 function openDetail(hid){
   var h=holdingById(hid);if(!h)return;
-  detailId=hid;
+  detailId=hid;alertFormOpen=false;
   ['vPos','vTrade','vSym','vMine','vDetail'].forEach(function(id){document.getElementById(id).classList.toggle('show',id==='vDetail');});
   document.querySelectorAll('.bottombar .bb').forEach(function(b){b.classList.remove('on');});
   document.getElementById('dtSym').innerHTML=esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span>';
@@ -560,16 +666,26 @@ function renderDetail(){
     '</div>';
   }
   html+='</div>';
+  /* 二之二、到價提示：只在使用者更新現價或開啟頁面時檢查快取價 */
+  html+='<div class="card-box"><h3>🔔 到價提示</h3>'+
+    kv('下限 / 上限', (h.alertLow!=null?fmt(h.alertLow):'未設')+' / '+(h.alertHigh!=null?fmt(h.alertHigh):'未設'))+
+    '<button class="btn" onclick="toggleAlertForm()">'+(alertFormOpen?'收起表單':'🔔 設定到價提示')+'</button>'+
+    (alertFormOpen?
+      '<div class="fld" style="margin-top:10px"><label>下限（現價 ≤ 此值）</label><input type="number" id="alLow" step="any" inputmode="decimal" value="'+(h.alertLow!=null?h.alertLow:'')+'" placeholder="留空＝不設"></div>'+
+      '<div class="fld"><label>上限（現價 ≥ 此值）</label><input type="number" id="alHigh" step="any" inputmode="decimal" value="'+(h.alertHigh!=null?h.alertHigh:'')+'" placeholder="留空＝不設"></div>'+
+      '<button class="btn primary" onclick="saveAlert()">儲存提示</button>':'')+
+    '<div class="hint">下次更新現價時才會檢查（開啟本頁時亦會檢查已快取的現價）；不會背景輪詢，也不會定時呼叫 API。觸發後該方向會自動清除；通知 id 以股票代碼＋方向區分，避免重複。</div></div>';
   /* 三、交易記錄（此標的） */
   var arr=S.trades.filter(function(t){return t.hid===h.id;}).sort(function(a,b){return b.ts-a.ts;});
   html+='<div class="card-box"><h3>交易記錄（'+arr.length+'）</h3>';
   if(!arr.length)html+='<div class="hint">尚無交易記錄。可到「交易」頁新增買入／賣出。</div>';
   else html+=arr.map(function(t){
     var bk=S.banks.filter(function(x){return x.id===tradeBank(t,h);})[0];
-    return '<div class="trow"><div class="tt"><span class="tag '+(t.type==='sell'?'ts':'tb')+'">'+(t.type==='sell'?'賣出':'買入')+'</span>'+
+    return '<div class="trow"><div class="tt"><span class="tag '+(t.type==='sell'?'ts':(t.type==='dividend'?'ts':'tb'))+'">'+(t.type==='sell'?'賣出':(t.type==='dividend'?'派息':'買入'))+'</span>'+
       (bk?'<span class="bnk">🏦'+esc(bk.name)+'</span>':'')+
       '<span class="tdate">'+t.date+'</span></div>'+
-      '<div class="tm">'+fmt(t.price)+' × '+fmt(t.shares)+' 股'+(+t.fee>0?(' · 費 '+fmt(t.fee)):'')+(t.note?(' · '+esc(t.note)):'')+'</div>'+
+      '<div class="tm">'+(t.type==='dividend'?'每股 '+fmt(t.price)+' × '+fmt(t.shares)+' 股':fmt(t.price)+' × '+fmt(t.shares)+' 股')+
+        (+t.fee>0?(' · 費 '+fmt(t.fee)):'')+(+t.dividend>0?(' · 派息 '+fmt(t.dividend)):'')+(t.note?(' · '+esc(t.note)):'')+'</div>'+
       '<div class="tdel" onclick="delDetailTrade(\''+t.id+'\')">✕</div></div>';
   }).join('');
   html+='<button class="btn" onclick="goTradeFor()">＋ 到交易頁新增記錄</button></div>';
@@ -582,6 +698,9 @@ function goTradeFor(){
 }
 function delDetailTrade(id){
   if(!confirm('刪除這筆記錄？'))return;
+  var t=S.trades.filter(function(x){return x.id===id;})[0];
+  var h=t?holdingById(t.hid):null;
+  snap('交易：'+(h?h.sym:'')+' '+(t&&t.type==='sell'?'賣出':(t&&t.type==='dividend'?'派息':'買入')));
   S.trades=S.trades.filter(function(t){return t.id!==id;});
   delete detailCache[detailId];
   save();renderDetail();renderPos();renderMine();toast('已刪除');
@@ -620,6 +739,7 @@ function delHolding(hid){
   var h=holdingById(hid);if(!h)return;
   var has=S.trades.some(function(t){return t.hid===hid;});
   if(has&&!confirm('此標的有交易記錄，刪除會一併移除相關記錄。確定？'))return;
+  snap('持倉：'+h.sym);
   S.holdings=S.holdings.filter(function(x){return x.id!==hid;});
   S.trades=S.trades.filter(function(t){return t.hid!==hid;});
   save();renderSym();renderPos();renderTrade();renderMine();
@@ -630,7 +750,7 @@ function renderSym(){
   if(!S.holdings.length){box.innerHTML='<div class="hint">尚無標的。上方批量新增美股／港股後，再到「交易」記錄買賣。</div>';return;}
   box.innerHTML=S.holdings.map(function(h){
     return '<div class="symrow">'+
-      '<div class="sm"><div class="ssym" style="cursor:pointer" onclick="openDetail(\''+h.id+'\')">'+esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span> <span style="font-size:11px;color:var(--muted)">詳情 ›</span></div>'+
+      '<div class="sm"><div class="ssym" style="cursor:pointer" onclick="openDetail(\''+h.id+'\')">'+esc(h.sym)+' <span class="mk '+(h.market==='hk'?'hk':'us')+'">'+(h.market==='hk'?'港股':'美股')+'</span>'+((h.alertLow!=null||h.alertHigh!=null)?'<span class="bell" title="已設到價提示">🔔</span>':'')+' <span style="font-size:11px;color:var(--muted)">詳情 ›</span></div>'+
         '<input class="sname" value="'+esc(h.name)+'" placeholder="名稱（選填）" onchange="setName(\''+h.id+'\',this.value)"></div>'+
       '<div class="spr"><span class="kl">現價</span><input class="pinput" type="number" step="any" inputmode="decimal" value="'+(h.price!=null?h.price:'')+'" placeholder="—" onchange="setPrice(\''+h.id+'\',this.value)"></div>'+
       '<select class="bnsel" title="預設銀行（新增交易時可另選）" onchange="setHoldingBank(\''+h.id+'\',this.value)">'+bankOpts(h.bank)+'</select>'+
@@ -640,7 +760,16 @@ function renderSym(){
 }
 
 /* ============ 交易：買賣記錄 ============ */
-function setTradeType(t){tradeType=t;document.getElementById('ttBuy').classList.toggle('on',t==='buy');document.getElementById('ttSell').classList.toggle('on',t==='sell');}
+function setTradeType(t){
+  tradeType=t;
+  document.getElementById('ttBuy').classList.toggle('on',t==='buy');
+  document.getElementById('ttSell').classList.toggle('on',t==='sell');
+  document.getElementById('ttDiv').classList.toggle('on',t==='dividend');
+  var pl=document.getElementById('tPriceLab'),sl=document.getElementById('tSharesLab'),dl=document.getElementById('tDivLab');
+  if(pl)pl.textContent=t==='dividend'?'每股派息':'價格（每股）';
+  if(sl)sl.textContent=t==='dividend'?'持股數（用來計算派出總額）':'股數';
+  if(dl)dl.textContent=t==='dividend'?'派息總額（填寫則覆蓋上面計算）':'派息總額（選填，計入盈虧）';
+}
 function populateTradeHolding(){
   var sel=document.getElementById('tHid');
   sel.innerHTML='<option value="">— 選擇標的 —</option>'+S.holdings.map(function(h){return '<option value="'+h.id+'">'+esc(h.sym)+(h.market==='hk'?' (港股)':' (美股)')+(h.name?(' '+esc(h.name)):'')+'</option>';}).join('');
@@ -656,18 +785,29 @@ function saveTrade(){
   var h=holdingById(hid);if(!h)return;
   var price=parseFloat(document.getElementById('tPrice').value);
   var shares=parseFloat(document.getElementById('tShares').value);
-  var fee=parseFloat(document.getElementById('tFee').value)||0;
+  var fee=Math.abs(parseFloat(document.getElementById('tFee').value)||0);
+  var divIn=parseFloat(document.getElementById('tDiv').value);
   var date=document.getElementById('tDate').value||todayStr();
-  if(!isFinite(price)||price<=0){toast('請輸入有效價格');return;}
+  var isDiv=tradeType==='dividend';
+  if(!isFinite(price)||price<(isDiv?0:0.000001)){toast(isDiv?'請輸入有效每股派息':'請輸入有效價格');return;}
   if(!isFinite(shares)||shares<=0){toast('請輸入有效股數');return;}
+  /* 派息總額：手動填寫優先；否則用每股派息 × 股數 − 手續費 */
+  var dividend=isFinite(divIn)&&divIn>0?Math.abs(divIn):Math.max(0,Math.abs(price)*Math.abs(shares)-fee);
+  if(!isDiv)dividend=isFinite(divIn)&&divIn>0?Math.abs(divIn):0;
   var bank=document.getElementById('tBank').value||'';
   if(bank)h.bank=bank;   /* 更新預設銀行，方便下次新增交易時預選 */
-  var t={id:uid(),hid:hid,type:tradeType,date:date,price:Math.abs(price),shares:Math.abs(shares),fee:Math.abs(fee),note:(document.getElementById('tNote').value||'').trim().slice(0,40),ts:dateToTs(date),bank:bank};
-  S.trades.push(t);save();renderTrade();renderPos();renderMine();
-  toast(tradeType==='buy'?'已記錄買入':'已記錄賣出');
-  document.getElementById('tPrice').value='';document.getElementById('tShares').value='';document.getElementById('tFee').value='0';document.getElementById('tNote').value='';
+  var t={id:uid(),hid:hid,type:isDiv?'dividend':tradeType,date:date,price:Math.abs(price),shares:Math.abs(shares),fee:fee,dividend:dividend,note:(document.getElementById('tNote').value||'').trim().slice(0,40),ts:dateToTs(date),bank:bank};
+  S.trades.push(t);save();renderTrade();renderPos();renderMine();renderMonth();
+  toast(isDiv?'已記錄派息':(tradeType==='buy'?'已記錄買入':'已記錄賣出'));
+  document.getElementById('tPrice').value='';document.getElementById('tShares').value='';document.getElementById('tFee').value='0';document.getElementById('tDiv').value='0';document.getElementById('tNote').value='';
 }
-function delTrade(id){if(!confirm('刪除這筆記錄？'))return;S.trades=S.trades.filter(function(t){return t.id!==id;});save();renderTrade();renderPos();renderMine();toast('已刪除');}
+function delTrade(id){
+  if(!confirm('刪除這筆記錄？'))return;
+  var t=S.trades.filter(function(x){return x.id===id;})[0];
+  var h=t?holdingById(t.hid):null;
+  snap('交易：'+(h?h.sym:'')+' '+(t&&t.type==='sell'?'賣出':(t&&t.type==='dividend'?'派息':'買入')));
+  S.trades=S.trades.filter(function(t){return t.id!==id;});save();renderTrade();renderPos();renderMine();renderMonth();toast('已刪除');
+}
 function renderTrade(){
   populateTradeHolding();
   if(!document.getElementById('tDate').value)document.getElementById('tDate').value=todayStr();
@@ -678,11 +818,12 @@ function renderTrade(){
     var h=holdingById(t.hid)||{sym:'?',market:'us'};
     var bk=S.banks.filter(function(x){return x.id===tradeBank(t,h);})[0];
     return '<div class="trow">'+
-      '<div class="tt"><span class="tag '+(t.type==='sell'?'ts':'tb')+'">'+(t.type==='sell'?'賣出':'買入')+'</span>'+
+      '<div class="tt"><span class="tag '+(t.type==='sell'||t.type==='dividend'?'ts':'tb')+'">'+(t.type==='sell'?'賣出':(t.type==='dividend'?'派息':'買入'))+'</span>'+
         '<span class="tsym">'+esc(h.sym)+(h.market==='hk'?'·港':'·美')+'</span>'+
         (bk?'<span class="bnk">🏦'+esc(bk.name)+'</span>':'')+
         '<span class="tdate">'+t.date+'</span></div>'+
-      '<div class="tm">'+fmt(t.price)+' × '+fmt(t.shares)+' 股'+(+t.fee>0?(' · 費 '+fmt(t.fee)):'')+(t.note?(' · '+esc(t.note)):'')+'</div>'+
+      '<div class="tm">'+(t.type==='dividend'?'每股 '+fmt(t.price)+' × '+fmt(t.shares)+' 股':fmt(t.price)+' × '+fmt(t.shares)+' 股')+
+        (+t.fee>0?(' · 費 '+fmt(t.fee)):'')+(+t.dividend>0?(' · 息 '+fmt(t.dividend)):'')+(t.note?(' · '+esc(t.note)):'')+'</div>'+
       '<div class="tdel" onclick="delTrade(\''+t.id+'\')">✕</div>'+
     '</div>';
   }).join('');
@@ -693,11 +834,13 @@ function addBank(){var inp=document.getElementById('newBank');var n=inp.value.tr
   if(S.banks.some(function(b){return b.name===n;})){toast('銀行已存在');return;}
   S.banks.push({id:uid(),name:n.slice(0,20)});inp.value='';save();renderMine();toast('已新增銀行');}
 function delBank(id){
+  var bk=S.banks.filter(function(x){return x.id===id;})[0];
   var usedH=S.holdings.some(function(h){return h.bank===id;});
   var usedT=S.trades.some(function(t){return t.bank===id;});
   if(usedH||usedT){if(!confirm('有標的／交易使用此銀行，刪除後相關記錄改為「不指定」。確定？'))return;
     S.holdings.forEach(function(h){if(h.bank===id)h.bank='';});
     S.trades.forEach(function(t){if(t.bank===id)t.bank='';});}
+  snap('銀行：'+(bk?bk.name:id));
   S.banks=S.banks.filter(function(b){return b.id!==id;});save();renderAllW();}
 function renderMine(){
   var kEl=document.getElementById('fhKey');if(kEl)kEl.value=getKey();
@@ -733,6 +876,18 @@ function fhSym(h){
   if(h.market==='hk'){var d=(h.sym||'').replace(/[^0-9]/g,'');if(!d)return null;if(d.length<4)d=d.padStart(4,'0');return d+'.HK';}
   return (h.sym||'').replace(/[^A-Z0-9.\-]/g,'').toUpperCase();
 }
+/* 公司資料（profile2）快取 7 天：更新現價不抓 profile2，详情優先讀快取 */
+function cachedProfile(h){
+  var ys=fhSym(h);if(!ys)return null;
+  var c=(S.profileCache||{})[ys];
+  if(c&&c.raw&&(Date.now()-c.ts<7*86400000))return c;
+  return null;
+}
+function storeProfile(ys,pr){
+  if(!pr)return;
+  S.profileCache=S.profileCache||{};
+  S.profileCache[ys]={ts:Date.now(),raw:pr};
+}
 /* 直連 Finnhub；帶 10s 逾時；任何失敗都回 null（靜默，不拋錯、不外洩 Key 於訊息） */
 function fhFetch(url){
   if(typeof fetch!=='function')return Promise.resolve(null);
@@ -749,8 +904,14 @@ function fetchQuote(h){
 }
 function fetchName(h){
   var ys=fhSym(h);if(!ys)return Promise.resolve(null);
+  var c=cachedProfile(h);
+  if(c)return Promise.resolve((c.raw&&typeof c.raw.name==='string'&&c.raw.name.trim())?c.raw.name.trim():null);
   var url='https://finnhub.io/api/v1/stock/profile2?symbol='+encodeURIComponent(ys)+'&token='+encodeURIComponent(getKey());
-  return fhFetch(url).then(function(j){if(!j)return null;var n=(j&&typeof j.name==='string'&&j.name.trim())?j.name.trim():null;return n;});
+  return fhFetch(url).then(function(j){
+    if(!j)return null;
+    storeProfile(ys,j);
+    var n=(typeof j.name==='string'&&j.name.trim())?j.name.trim():null;return n;
+  });
 }
 /* 美股詳情：合併 quote（現價/開高低收/涨跌幅）與 profile2（名稱/產業/市值/交易所/幣別）。
    僅在點入個股時才呼叫，且 5 分鐘快取，避免耗盡 Finnhub 免費額度（每分鐘 60 次）。 */
@@ -759,7 +920,9 @@ function fetchUSDetail(h){
   var ys=fhSym(h);if(!ys)return Promise.resolve(null);
   var tok=encodeURIComponent(getKey());
   var q=fhFetch('https://finnhub.io/api/v1/quote?symbol='+encodeURIComponent(ys)+'&token='+tok);
-  var p=fhFetch('https://finnhub.io/api/v1/stock/profile2?symbol='+encodeURIComponent(ys)+'&token='+tok);
+  var cp=cachedProfile(h);
+  var p=cp?Promise.resolve(cp.raw):fhFetch('https://finnhub.io/api/v1/stock/profile2?symbol='+encodeURIComponent(ys)+'&token='+tok)
+    .then(function(pr){if(pr)storeProfile(ys,pr);return pr;});
   return Promise.all([q,p]).then(function(a){
     var j=a[0],pr=a[1],d={};
     if(j&&typeof j.c==='number'&&isFinite(j.c)){d.price=j.c;d.prev=(typeof j.pc==='number'?j.pc:null);d.open=(typeof j.o==='number'?j.o:null);
@@ -818,27 +981,33 @@ function fetchHKQuote(h){
   var url='https://qt.gtimg.cn/q='+encodeURIComponent(ys);
   return fhFetchText(url).then(parseGtimg);
 }
-/* 更新現價：美股經 Finnhub 取得；港股經公開行情（免費、免 Key）取得 */
+/* 更新現價：美股每股 1 次 Finnhub quote call（不抓 profile2）；港股用公開端點。
+   僅由使用者點擊觸發；完成後順便檢查到價提示（不額外呼叫 API）。 */
 async function updatePrices(){
   if(!S.holdings.length){toast('尚無標的');return;}
-  var hasUS=S.holdings.some(function(h){return h.market!=='hk';});
+  var usList=S.holdings.filter(function(h){return h.market!=='hk';});
   var fk=getKey();
-  if(hasUS&&!fk){toast('美股需先於「我的」填寫 Finnhub Key；港股免 Key');goView('vMine');return;}
+  if(usList.length&&!fk){toast('美股需先於「我的」填寫 Finnhub Key；港股免 Key');goView('vMine');return;}
+  /* Finnhub 免費每分鐘 60 calls：美股多於 40 支先提示並只處理前 40 支 */
+  if(usList.length>40){
+    if(!confirm('美股共 '+usList.length+' 支，超過 Finnhub 免費方案每分鐘 60 次呼叫上限。本次只更新前 40 支，其餘請稍後再按「更新現價」。是否繼續？'))return;
+  }
   var btn=document.getElementById('updBtn');if(btn)btn.disabled=true;
   toast('更新現價中…');
-  var ok=0,fail=0, usOk=0,usFail=0,hkOk=0,hkFail=0;
+  var ok=0,fail=0, usOk=0,usFail=0,hkOk=0,hkFail=0, usSeen=0;
   for(var i=0;i<S.holdings.length;i++){
     var h=S.holdings[i];
+    if(h.market!=='hk'){
+      usSeen++;
+      if(usSeen>40)continue;   /* 分批：本輪略過，等待下次點擊 */
+    }
     try{
       if(h.market==='hk'){
-        /* 港股經公開行情（免費、免 Key、CORS） */
         var r=await fetchHKQuote(h);
         if(r){if(r.price!=null){h.price=r.price;hkOk++;ok++;}else hkFail++;if(r.name)h.name=r.name.slice(0,30);}
         else hkFail++;
       } else {
-        /* 美股經 Finnhub */
-        var p=null;
-        if(fk){ p=await fetchQuote(h); }
+        var p=fk?await fetchQuote(h):null;
         if(p!=null){ h.price=p; usOk++;ok++; } else usFail++;
       }
     }catch(e){fail++;if(h.market==='hk')hkFail++;else usFail++;}
@@ -850,7 +1019,9 @@ async function updatePrices(){
   save();
   renderPos();renderSym();
   if(btn)btn.disabled=false;
-  if(fail===0)toast('已更新 '+ok+' 檔現價');
+  /* 到價提示：只在此刻用剛快取的現價檢查 */
+  checkAlerts();
+  if(fail===0)toast('已更新 '+ok+' 檔現價'+(usSeen>40?'（尚有 '+(usSeen-40)+' 支美股待下次更新）':''));
   else toast('更新 '+ok+' 檔，'+fail+' 檔失敗（可手動輸入）');
 }
 /* 更新名稱：港股經公開行情（免費、免 Key）；美股經 Finnhub profile2，未設 Finnhub Key 則略過 */
@@ -877,7 +1048,12 @@ async function refreshNames(list){
 
 /* ============ 備份 / 匯入 / CSV ============ */
 function exportQB(){if(window.JLessBackup)JLessBackup.export([KEY],'wealth-backup-'+ymd()+'.json');toast('已匯出備份');}
-function importQB(){document.getElementById('qbFile').click();}
+function importQB(){snap('匯入前資料');document.getElementById('qbFile').click();}
+function clearAllWealth(){
+  if(!confirm('清空全部持倉、交易、銀行？API Key 不會被清除，且不會進入回收桶。'))return;
+  snap('清空全部資料');
+  S=defaultState();save();renderAllW();goView('vPos');toast('已清空全部資料');
+}
 function onQBFile(ev){
   var f=ev.target.files&&ev.target.files[0];ev.target.value='';if(!f)return;
   if(window.JLessBackup)JLessBackup.importFromFile(f,[KEY],function(ok,msg){
@@ -903,6 +1079,8 @@ function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.c
 /* ============ 初始化 ============ */
 loadCfg();
 S=load();renderAllW();goView('vPos');
+/* 開頁時檢查已快取的現價（不呼叫任何 API） */
+checkAlerts();
 </script>
 <script src="backup.js"></script>
 <script src="theme.js"></script>

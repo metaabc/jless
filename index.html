@@ -264,6 +264,7 @@
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <div class="app" id="app">
@@ -275,6 +276,7 @@
           <h1>小助手</h1>
         </div>
       </div>
+      <div class="gear" title="全域搜尋" onclick="JLess.search.open()">🔍</div>
       <div class="gear" id="gearBtn" title="設定" onclick="go('settings')">⚙️</div>
     </div>
   </header>
@@ -283,6 +285,7 @@
     <!-- Home -->
     <section class="view active" id="view-home">
       <div class="chips" id="chips"></div>
+      <div id="focusBox"></div>
       <div class="sec-title">
         <h2>應用</h2>
         <span class="home-tools">
@@ -319,7 +322,9 @@
       <div class="skin-box" id="skinBox"></div>
       <button class="reset" onclick="resetSettings()">重設為預設顯示</button>
       <div class="sec-title" style="margin-top:20px"><h2>資料備份</h2><span class="hint">全部應用的設定與資料</span></div>
-      <button class="reset" style="margin-top:0" onclick="exportAll()">⬇️ 匯出全部資料</button>
+      <button class="reset" style="margin-top:0" onclick="JLess.search.open()">🔍 全域搜尋</button>
+      <button class="reset" onclick="JLess.trash.open()">♻️ 回收桶（還原誤刪）</button>
+      <button class="reset" onclick="exportAll()">⬇️ 匯出全部資料</button>
       <button class="reset" onclick="importAll()">⬆️ 匯入全部資料（取代）</button>
       <input type="file" id="allFile" accept="application/json,.json" style="display:none" onchange="onAllFile(event)">
       <div class="note">匯出會包含本工具箱所有應用的設定與資料（一個 JSON 檔）。<br>匯入會以備份「取代」目前全部內容，匯入前請先匯出。</div>
@@ -622,7 +627,25 @@ function renderChips(){
     '<a class="chip" href="'+a.file+'" target="_blank" rel="noopener"><span class="ci">'+a.icon+'</span>'+a.name+'</a>'
   ).join('');
 }
+function renderFocus(){
+  var box=document.getElementById('focusBox');if(!box)return;
+  var items=[];
+  ['todo.html','metric.html','consume.html','wealth.html','album.html'].forEach(function(f){
+    var x=appExtra(f);if(x)items.push({f:f,h:x});
+  });
+  try{
+    var ns=(window.JLess&&JLess.notify.list?JLess.notify.list():[]).filter(function(n){return !n.done&&n.ts<=Date.now()+7*864e5;});
+    if(ns.length)items.unshift({f:'index.html',h:'<span class="soon">🔔 提醒：'+ns.length+' 項</span>'});
+  }catch(e){}
+  if(!items.length){box.innerHTML='';return;}
+  box.innerHTML='<div style="margin:10px 16px 0;padding:10px 12px;background:var(--panel,#fff);border:1px solid var(--line,#f0e2d8);border-radius:14px">'+
+    '<div style="font-size:12px;font-weight:700;color:var(--ink,#3b2530);margin-bottom:7px">今日焦點</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:6px">'+items.map(function(i){
+      return '<a href="'+i.f+'" target="_blank" rel="noopener" style="text-decoration:none">'+i.h+'</a>';
+    }).join('')+'</div></div>';
+}
 function renderHome(){
+  renderFocus();
   const list = orderedHomeList();
   document.getElementById('homeCount').textContent = list.length + ' 個';
   document.getElementById('homeGrid').innerHTML =

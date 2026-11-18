@@ -348,6 +348,16 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
   .drawer-foot{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
   .modal{padding-top:calc(18px + env(safe-area-inset-top));padding-bottom:calc(18px + env(safe-area-inset-bottom))}
 }
+/* 批量辨識與純文字結果歷史 */
+.histbox{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.histbox h3{font-size:calc(13px * var(--fs,1));color:var(--ink);margin:0 0 8px}
+.histitem{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px 10px;margin-bottom:7px}
+.histitem .ht{display:flex;align-items:center;gap:8px}
+.histitem .ht b{flex:1;min-width:0;font-size:calc(12.5px * var(--fs,1));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.histitem .ht span{font-size:calc(10.5px * var(--fs,1));color:var(--muted)}
+.histitem .hs{color:var(--muted);font-size:calc(11.5px * var(--fs,1));margin:4px 0 7px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.histitem .ha{display:flex;gap:6px;flex-wrap:wrap}
+.histitem .ha button{font-size:calc(11px * var(--fs,1));padding:5px 9px;border:1px solid var(--line);background:var(--bg);color:var(--ink2);border-radius:8px;cursor:pointer}
 </style>
 
 <!-- Google Analytics (GA4) -->
@@ -400,6 +410,7 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">圖文翻譯</h1>
@@ -473,6 +484,7 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
 
       <div class="toolbar">
         <button class="btn btn-mini" id="btnRotate" disabled>↻ 旋轉 90°</button>
+        <button class="btn btn-mini" id="btnBatchOCR" disabled title="逐張辨識已載入的所有圖片">⚡ 批量辨識全部</button>
         <button class="btn btn-mini" id="btnErase" disabled title="去除圖中的筆跡／手寫字">🧽 去筆跡</button>
         <button class="btn btn-mini" id="btnToggleOv" disabled>隱藏譯文</button>
         <button class="btn btn-mini" id="btnSaveImg" disabled>下載譯圖</button>
@@ -592,6 +604,12 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
         <button class="btn btn-mini" id="btnGoogle">在 Google 翻譯開啟</button>
       </div>
 
+      <div class="histbox">
+        <h3>🕘 辨識結果歷史（只存文字，不存圖片）</h3>
+        <div id="histList"></div>
+        <button class="btn btn-mini" id="btnClearHist">清空歷史</button>
+      </div>
+
       <p class="note">
         辨識用 Tesseract（WebAssembly，在本機瀏覽器執行，首次需下載語言包 10–40MB）。
         翻譯用 Google 翻譯公開介面，<b>只送出文字</b>，圖片不會上傳。
@@ -654,7 +672,7 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
     stage: $("stage"), drop: $("drop"), wrap: $("wrap"), canvas: $("canvas"), overlay: $("overlay"),
     meta: $("meta"),
     btnCam: $("btnCam"), btnUpload: $("btnUpload"), btnPasteTip: $("btnPasteTip"),
-    btnRotate: $("btnRotate"), btnToggleOv: $("btnToggleOv"), btnSaveImg: $("btnSaveImg"), btnClear: $("btnClear"),
+    btnRotate: $("btnRotate"), btnBatchOCR: $("btnBatchOCR"), btnToggleOv: $("btnToggleOv"), btnSaveImg: $("btnSaveImg"), btnClear: $("btnClear"),
     btnErase: $("btnErase"), erasebar: $("erasebar"), thumbs: $("thumbs"),
     btnPick: $("btnPick"), btnBrush: $("btnBrush"), btnAutoMask: $("btnAutoMask"),
     btnApplyErase: $("btnApplyErase"), btnCancelErase: $("btnCancelErase"),
@@ -675,6 +693,7 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
     btnShareCopy: $("btnShareCopy"), btnShareImg: $("btnShareImg"), btnShareClose: $("btnShareClose"),
     netBanner: $("netBanner"), btnBannerClose: $("btnBannerClose"),
     btnCopy: $("btnCopy"), btnDownload: $("btnDownload"), btnGoogle: $("btnGoogle"),
+    histList: $("histList"), btnClearHist: $("btnClearHist"),
     file: $("file"), fileCapture: $("fileCapture"),
     camModal: $("camModal"), camVideo: $("camVideo"), btnCamCancel: $("btnCamCancel"), btnShoot: $("btnShoot"),
     toast: $("toast")
@@ -726,6 +745,7 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
   function syncButtons() {
     var has = !!S.src, busy = S.busy, em = E.active;
     els.btnRotate.disabled = !has || busy || em;
+    if (els.btnBatchOCR) els.btnBatchOCR.disabled = !has || busy || em || S.pages.length < 1;
     els.btnClear.disabled = !has || busy || em;
     els.btnOCR.disabled = !has || busy || em;
     els.btnTranslate.disabled = !has || busy || em;
@@ -1547,48 +1567,137 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
     return out;
   }
 
+  /* ---------------- 結果歷史（只存文字，不存圖片） ---------------- */
+  var HIST_KEY = "imgtr_hist_v1";
+  var hist = [];
+  function loadHist() {
+    try { var r = localStorage.getItem(HIST_KEY); hist = r ? JSON.parse(r) : []; if (!Array.isArray(hist)) hist = []; }
+    catch (e) { hist = []; }
+    renderHist();
+  }
+  function saveHist() {
+    var copy = hist.slice();
+    while (copy.length) {
+      try { localStorage.setItem(HIST_KEY, JSON.stringify(copy)); hist = copy; return true; }
+      catch (e) { copy.pop(); }
+    }
+    try { localStorage.setItem(HIST_KEY, "[]"); } catch (e2) {}
+    hist = []; toast("儲存空間不足，歷史未完整儲存"); return false;
+  }
+  function pushHistory(title, ocr, trans) {
+    hist.unshift({
+      id: "h" + Date.now() + Math.random().toString(36).slice(2, 6),
+      ts: Date.now(),
+      title: String(title || "未命名").slice(0, 60),
+      ocr: String(ocr || "").slice(0, 20000),
+      trans: String(trans || "").slice(0, 20000)
+    });
+    if (hist.length > 30) hist = hist.slice(0, 30);
+    saveHist(); renderHist();
+  }
+  function histText(it) {
+    return (it.title ? ("【" + it.title + "】\n") : "") + (it.ocr || "") +
+      ((it.trans && it.trans !== it.ocr) ? ("\n\n--- 譯文 ---\n" + it.trans) : "");
+  }
+  function renderHist() {
+    if (!els.histList) return;
+    if (!hist.length) {
+      els.histList.innerHTML = '<div class="empty-note">尚無辨識紀錄。完成辨識後會自動加入（只存文字，不存圖片）。</div>';
+      return;
+    }
+    els.histList.innerHTML = hist.map(function (it, i) {
+      var snippet = String(it.ocr || "").replace(/\s+/g, " ").slice(0, 70);
+      return '<div class="histitem"><div class="ht"><b>' + esc(it.title || "未命名") + '</b><span>' + fmtDate(it.ts) + '</span></div>' +
+        '<div class="hs">' + esc(snippet) + '</div>' +
+        '<div class="ha"><button data-hcopy="' + i + '">複製</button><button data-hshare="' + i + '">分享</button><button data-hdel="' + i + '">刪除</button></div></div>';
+    }).join("");
+  }
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast("已複製"); }, function () { fallbackCopy(text); });
+    } else fallbackCopy(text);
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); toast("已複製"); } catch (e) { toast("複製失敗"); }
+    document.body.removeChild(ta);
+  }
+  function openShareWith(text) { els.shareText.value = text; els.shareModal.hidden = false; els.shareText.focus(); els.shareText.select(); }
+  if (els.histList) els.histList.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("button") : null; if (!b) return;
+    var i = +(b.getAttribute("data-hcopy") || b.getAttribute("data-hshare") || b.getAttribute("data-hdel"));
+    var it = hist[i]; if (!it) return;
+    if (b.hasAttribute("data-hcopy")) copyText(histText(it));
+    else if (b.hasAttribute("data-hshare")) openShareWith(histText(it));
+    else if (b.hasAttribute("data-hdel")) { hist.splice(i, 1); saveHist(); renderHist(); toast("已刪除"); }
+  });
+  if (els.btnClearHist) els.btnClearHist.addEventListener("click", function () {
+    if (!hist.length) { toast("歷史是空的"); return; }
+    if (!confirm("清空所有辨識結果歷史？（只清除文字紀錄）")) return;
+    hist = []; saveHist(); renderHist(); toast("已清空歷史");
+  });
+
+  /* ---------------- 單張／批量辨識 ---------------- */
+  async function doRecognize(quiet) {
+    var lang = OCR_LANG[els.srcLang.value] || "eng";
+    var w = await getWorker(lang);
+    var res = await w.recognize(els.canvas);
+    S.lines = extractLines(res.data || {});
+    S.cache = {};
+    saveCurrentPage();
+
+    if (!S.lines.length) {
+      if (!quiet) { setStatus("未偵測到文字，可試試旋轉或更清晰的圖片", "err", 1); toast("未偵測到文字"); renderReader(); }
+      return 0;
+    }
+    els.ocrText.value = S.lines.map(function (l) { return l.text; }).join("\n");
+    els.ocrText.hidden = true;
+    els.reader.hidden = false;
+    els.btnEditText.textContent = "編輯文字";
+    renderReader();
+    gaEvent("ocr_done", { lines: S.lines.length, lang: els.srcLang.value });
+    if (!quiet) { setStatus("辨識完成：" + S.lines.length + " 行文字", "ok", 1); switchTab("ocr"); }
+    els.transText.innerHTML = '<div class="empty-note">尚未翻譯。<br>按「翻譯並覆蓋」，譯文會疊回原圖對應位置。</div>';
+    els.pairs.innerHTML = '<div class="empty-note">尚未產生對照。<br>完成辨識與翻譯後，這裡會逐行對照原文與譯文。</div>';
+    renderOverlay();
+    pushHistory(S.name || ("圖片 " + (S.page + 1)), els.ocrText.value, "");
+    return S.lines.length;
+  }
+
   els.btnOCR.addEventListener("click", async function () {
     if (!S.src || S.busy) return;
     S.busy = true; syncButtons();
     setStatus(NET_OK === false ? "連線受限，仍嘗試載入 OCR 引擎…" : "準備 OCR…", "work", 0.02);
-
     try {
-      var lang = OCR_LANG[els.srcLang.value] || "eng";
-      var w = await getWorker(lang);
-      var res = await w.recognize(els.canvas);
-      S.lines = extractLines(res.data || {});
-      S.cache = {};
-
-      if (!S.lines.length) {
-        setStatus("未偵測到文字，可試試旋轉或更清晰的圖片", "err", 1);
-        toast("未偵測到文字");
-        renderReader();
-      } else {
-        els.ocrText.value = S.lines.map(function (l) { return l.text; }).join("\n");
-        els.ocrText.hidden = true;
-        els.reader.hidden = false;
-        els.btnEditText.textContent = "編輯文字";
-        renderReader();
-        gaEvent("ocr_done", { lines: S.lines.length, lang: els.srcLang.value });
-        setStatus("辨識完成：" + S.lines.length + " 行文字", "ok", 1);
-        switchTab("ocr");
-      }
-      els.transText.innerHTML = '<div class="empty-note">尚未翻譯。<br>按「翻譯並覆蓋」，譯文會疊回原圖對應位置。</div>';
-      els.pairs.innerHTML = '<div class="empty-note">尚未產生對照。<br>完成辨識與翻譯後，這裡會逐行對照原文與譯文。</div>';
-      renderOverlay();
+      await doRecognize(false);
     } catch (err) {
       console.error(err);
       var msg = err && err.message ? err.message : String(err);
       setStatus("辨識失敗：" + msg, "err", 0);
-      if (/逾時|連線|未載入|CORS/i.test(msg)) {
-        showNetBanner();
-        toast("OCR 引擎連不上，請直接用瀏覽器開啟本檔案");
-      } else {
-        toast("辨識失敗，可換更清晰的圖片或先旋轉");
-      }
+      if (/逾時|連線|未載入|CORS/i.test(msg)) { showNetBanner(); toast("OCR 引擎連不上，請直接用瀏覽器開啟本檔案"); }
+      else toast("辨識失敗，可換更清晰的圖片或先旋轉");
     } finally {
       S.busy = false; syncButtons();
     }
+  });
+
+  /* 批量：逐張切換並辨識已載入的所有圖片，逐張寫入純文字歷史 */
+  if (els.btnBatchOCR) els.btnBatchOCR.addEventListener("click", async function () {
+    if (S.busy || !S.pages.length) return;
+    saveCurrentPage();
+    var total = S.pages.length, ok = 0, fail = 0, lines = 0;
+    S.busy = true; syncButtons();
+    for (var i = 0; i < total; i++) {
+      activatePage(i, true);
+      setStatus("批量辨識 " + (i + 1) + " / " + total + "（" + (S.name || "圖片 " + (i + 1)) + "）", "work", i / total * 0.9);
+      try { lines += await doRecognize(true); ok++; }
+      catch (err) { console.error(err); fail++; }
+    }
+    S.busy = false; syncButtons();
+    setStatus("批量辨識完成：" + ok + "/" + total + " 張，共 " + lines + " 行文字", "ok", 1);
+    toast("批量辨識完成：" + ok + " 張" + (fail ? ("，" + fail + " 張失敗") : ""));
   });
 
   /* ---------------- 翻譯 ---------------- */
@@ -2493,6 +2602,7 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
     S.busy = false; syncButtons();
   });
 
+  loadHist();
   setStatus("等待圖片", "");
   syncButtons();
 })();

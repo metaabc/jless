@@ -637,6 +637,21 @@ h1{
 .fav-add{display:flex;gap:8px}
 .fav-add .inp{flex:1;min-width:0;padding:11px 13px;font-size:calc(14.5px * var(--fs,1));font-weight:600}
 .fav-add .btn{flex:0 0 auto;padding:11px 16px;font-size:calc(13.5px * var(--fs,1));border-radius:12px}
+.fav-add .fexp{flex:0 0 128px;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 8px;font-size:calc(12.5px * var(--fs,1));font-family:inherit;color:var(--ink);outline:none}
+.fav-add .fexp:focus{border-color:var(--accent)}
+.fav-expire{font-size:calc(10.5px * var(--fs,1));font-weight:800;color:var(--muted);margin-top:3px}
+.fav-expire.soon{color:#cf5a4c}
+.fav-expire.over{color:#cf5a4c}
+.fav-remind{font-size:calc(10.5px * var(--fs,1));font-weight:800;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:9px;padding:5px 9px;cursor:pointer;white-space:nowrap}
+.fav-soon{margin:4px 0 10px}
+.fav-soon-item{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--line2);font-size:calc(12.5px * var(--fs,1))}
+.fav-soon-item:last-child{border-bottom-color:transparent}
+.fav-soon-item .fn{flex:1;min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fav-soon-item .fd{color:var(--muted);font-size:calc(11px * var(--fs,1));white-space:nowrap}
+.fav-soon-item .fs{font-size:calc(10px * var(--fs,1));font-weight:800;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.fav-soon-item .fs.unused{background:var(--accent-soft);color:var(--accent)}
+.fav-soon-item .fs.over{background:#fdecea;color:#cf5a4c}
+.fav-opt{display:block;width:100%;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:13px;margin-bottom:9px;font-size:calc(14px * var(--fs,1));font-weight:800;color:var(--ink2);cursor:pointer;text-align:center}
 .fav-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0 2px}
 .fav-tools .fw{font-size:calc(11px * var(--fs,1));color:var(--muted)}
 .fav-list{
@@ -677,6 +692,7 @@ h1{
   -webkit-user-select:text;user-select:text;
 }
 .fav-txt:focus{background:#f4f9f6;box-shadow:0 0 0 2px #d8e7df;padding:5px 7px}
+.fav-mid{flex:1;min-width:0}
 .fav-cb{
   display:flex;
   flex:0 0 auto;
@@ -1248,6 +1264,7 @@ h1{
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 
@@ -1462,10 +1479,14 @@ h1{
   <div class="page-body">
   <div class="fav-add">
     <input class="inp" id="favInp" type="text" maxlength="90" enterkeyhint="done" autocomplete="off" placeholder="商家＋優惠">
+    <input class="fexp" id="favExp" type="date" aria-label="到期日（選填）" title="到期日（選填）">
     <button class="btn primary" id="favAddBtn" type="button">新增</button>
   </div>
   <div class="fav-tools">
     <span class="fw" id="favCount">0 筆收藏</span>
+  </div>
+  <div class="fav-soon" id="favSoon" style="display:none">
+    <div class="card-box" style="margin:0"><h3 style="margin:0 0 4px;font-size:calc(13px * var(--fs,1))">⏰ 即將過期（7 日內）</h3><div id="favSoonList"></div></div>
   </div>
   <div class="fav-list" id="favList"></div>
   <div class="fav-empty" id="favEmpty">還沒有收藏<br>上面輸入商家及優惠，一筆一行</div>
@@ -1488,6 +1509,20 @@ h1{
   </div>
   <div class="sheet-foot">收藏只存在這部手機　·　可選長圖或文字清單分享</div>
   </div>
+</div>
+
+<!-- 收藏到期提醒 -->
+<div class="sheet" id="favRemindSheet">
+  <div class="sheet-head"><h3>提醒到期</h3><button class="x" data-close type="button">✕</button></div>
+  <div class="hint" id="favRemindFor" style="margin:0 0 10px"></div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input type="date" id="favExpEdit" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:11px;padding:10px;font-size:calc(13px * var(--fs,1));color:var(--ink);outline:none">
+    <button type="button" id="favExpSave" style="flex:0 0 auto;border:none;border-radius:11px;background:var(--accent);color:#fff;padding:0 14px;font-weight:800;font-size:calc(13px * var(--fs,1));cursor:pointer">更新日期</button>
+  </div>
+  <button class="fav-opt" type="button" data-fav-days="7">📅 到期 7 日前提醒</button>
+  <button class="fav-opt" type="button" data-fav-days="3">📅 到期 3 日前提醒</button>
+  <button class="fav-opt" type="button" data-fav-days="0">📅 到期當日提醒</button>
+  <div class="hint" style="margin:4px 0 0">首次設定會要求通知權限；提醒在本機排程，需保持頁面開啟。</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1640,7 +1675,8 @@ function loadState(){
         d.favs=d.favs.filter(function(f){
           return f&&typeof f.text==='string'&&f.text.trim();
         }).map(function(f){
-          return {id:f.id||uid(),text:String(f.text).replace(/\s+/g,' ').trim().slice(0,200),t:+f.t||0};
+          return {id:f.id||uid(),text:String(f.text).replace(/\s+/g,' ').trim().slice(0,200),
+            t:+f.t||0,expiry:/^\d{4}-\d{2}-\d{2}$/.test(f.expiry)?f.expiry:''};
         });
         var found=false;
         for(var i=0;i<d.weeks.length;i++){ if(d.weeks[i].id===d.cur){ found=true; break; } }
@@ -3179,6 +3215,58 @@ function favs(){
   if(!Array.isArray(S.favs)) S.favs=[];
   return S.favs;
 }
+/* 到期日工具（向後相容：舊收藏沒有 expiry） */
+function favDaysLeft(iso){
+  if(!iso||!/^\d{4}-\d{2}-\d{2}$/.test(iso))return null;
+  var t=new Date();t.setHours(0,0,0,0);
+  var d=new Date(iso+'T00:00:00');
+  if(isNaN(d.getTime()))return null;
+  return Math.round((d-t)/86400000);
+}
+function trashSnap(label){if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,label||'收藏');}catch(e){}}}
+function escText(s){
+  if(window.JLess&&JLess.util&&JLess.util.esc)return JLess.util.esc(s);
+  return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});
+}
+function renderFavSoon(){
+  var box=$('favSoon'),list=$('favSoonList');if(!box||!list)return;
+  var arr=favs().filter(function(f){var d=favDaysLeft(f.expiry);return d!==null&&d>=0&&d<=7;})
+    .sort(function(a,b){return a.expiry<b.expiry?-1:(a.expiry>b.expiry?1:0);});
+  if(!arr.length){box.style.display='none';list.innerHTML='';return;}
+  box.style.display='';
+  list.innerHTML=arr.map(function(f){
+    var d=favDaysLeft(f.expiry);
+    return '<div class="fav-soon-item"><span class="fn">'+escText(f.text)+'</span>'+
+      '<span class="fd">'+f.expiry+(d===0?'（今日）':'（剩 '+d+' 日）')+'</span>'+
+      '<span class="fs unused">未到期</span></div>';
+  }).join('');
+}
+var favRemindId=null;
+function openFavRemind(id){
+  var f=favs().filter(function(x){return x.id===id;})[0];if(!f)return;
+  if(!f.expiry){toast('這筆收藏未有到期日');return;}
+  favRemindId=id;
+  $('favRemindFor').textContent=f.text.slice(0,40)+' · 到期 '+f.expiry;
+  $('favExpEdit').value=f.expiry||'';
+  openSheet('favRemindSheet');
+}
+function scheduleFavRemind(days){
+  var f=favs().filter(function(x){return x.id===favRemindId;})[0];if(!f||!f.expiry)return;
+  var go=function(){
+    if(!window.JLess||!JLess.notify||!JLess.notify.schedule){toast('此瀏覽器不支援本機提醒');return;}
+    var p=f.expiry.split('-'),d=new Date(+p[0],(+p[1])-1,+p[2],9,0,0,0);
+    d.setDate(d.getDate()-days);
+    var ts=d.getTime();
+    if(ts<=Date.now()){toast('該提醒時間已過，請選較早的提前日數');return;}
+    var when=days===0?'到期當日':('到期前 '+days+' 日');
+    JLess.notify.schedule('fav-exp-'+f.id+'-'+days,ts,'收藏到期提醒：'+f.text.slice(0,30),when+' · 到期日 '+f.expiry);
+    closeSheet();toast('已設定提醒：'+when+' 09:00');
+  };
+  if(window.JLess&&JLess.notify&&JLess.notify.enable){
+    var pr;try{pr=JLess.notify.enable();}catch(e){pr=null;}
+    if(pr&&typeof pr.then==='function')pr.then(go,go);else go();
+  }else go();
+}
 function favSelIds(){
   return Object.keys(favSel).filter(function(k){ return favSel[k]; });
 }
@@ -3210,6 +3298,8 @@ function renderFavs(){
     grip.textContent='☰';
     grip.addEventListener('click',function(e){ e.stopPropagation(); });
 
+    var mid=document.createElement('div');
+    mid.className='fav-mid';
     var tx=document.createElement('div');
     tx.className='fav-txt';
     tx.textContent=f.text;
@@ -3217,8 +3307,21 @@ function renderFavs(){
       e.stopPropagation();
       startFavEdit(tx,f);
     });
-
-    li.appendChild(cb); li.appendChild(grip); li.appendChild(tx);
+    mid.appendChild(tx);
+    var dl=favDaysLeft(f.expiry);
+    if(dl!==null){
+      var ex=document.createElement('div');
+      ex.className='fav-expire'+(dl<=7?' sooner':'')+(dl<0?' over':'');
+      ex.textContent='到期 '+f.expiry+(dl===0?'（今日）':(dl<0?'（已過期 '+Math.abs(dl)+' 日）':'（剩 '+dl+' 日）'));
+      mid.appendChild(ex);
+    }
+    li.appendChild(cb); li.appendChild(grip); li.appendChild(mid);
+    if(dl!==null){
+      var rb=document.createElement('button');
+      rb.type='button';rb.className='fav-remind';rb.textContent='🔔 提醒';
+      rb.addEventListener('click',function(e){e.stopPropagation();openFavRemind(f.id);});
+      li.appendChild(rb);
+    }
     /* 點行任何空白／方格＝勾選 */
     li.addEventListener('click',function(){
       favSel[f.id]=!favSel[f.id];
@@ -3232,6 +3335,7 @@ function renderFavs(){
   });
   $('favEmpty').style.display=arr.length?'none':'block';
   list.style.display=arr.length?'':'none';
+  renderFavSoon();
   updateFavBar();
 }
 
@@ -3262,8 +3366,9 @@ function addFav(){
   var el=$('favInp');
   var v=el.value.replace(/\s+/g,' ').trim();
   if(!v){ toast('請先輸入商家及優惠'); el.focus(); return; }
-  favs().unshift({id:uid(),text:v.slice(0,200),t:Date.now()});
-  el.value='';
+  var ex=$('favExp')&&$('favExp').value;
+  favs().unshift({id:uid(),text:v.slice(0,200),t:Date.now(),expiry:/^\d{4}-\d{2}-\d{2}$/.test(ex)?ex:''});
+  el.value='';if($('favExp'))$('favExp').value='';
   save();
   renderFavs();
   $('favList').scrollTop=0;
@@ -3364,9 +3469,19 @@ function copyText(t){
 
 $('favBtn').addEventListener('click',function(){
   favSel={};
-  $('favInp').value='';
+  $('favInp').value='';if($('favExp'))$('favExp').value='';
   renderFavs();
   openPage('favSheet');
+});
+$('favRemindSheet').addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-fav-days]');if(!b)return;
+  scheduleFavRemind(+b.getAttribute('data-fav-days'));
+});
+$('favExpSave').addEventListener('click',function(){
+  var f=favs().filter(function(x){return x.id===favRemindId;})[0];if(!f)return;
+  var v=$('favExpEdit').value;
+  if(v&&!/^\d{4}-\d{2}-\d{2}$/.test(v)){toast('到期日格式不正確');return;}
+  f.expiry=v||'';save();closeSheet();renderFavs();toast(v?'到期日已更新':'已移除到期日');
 });
 
 $('favAddBtn').addEventListener('click',addFav);
@@ -3386,6 +3501,8 @@ $('favDelBtn').addEventListener('click',function(){
     },2600);
     return;
   }
+  var names=favs().filter(function(f){return ids.indexOf(f.id)>=0;}).map(function(f){return f.text.slice(0,20);});
+  trashSnap('收藏：'+(names[0]||'')+(ids.length>1?(' 等 '+ids.length+' 筆'):''));
   S.favs=favs().filter(function(f){ return ids.indexOf(f.id)<0; });
   favSel={};
   save();

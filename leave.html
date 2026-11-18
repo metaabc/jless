@@ -37,12 +37,14 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:calc(17px*var(--fs))}
 .title .logo{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
 .content{padding:14px 16px 0}
-.summary{display:flex;gap:10px;margin-bottom:12px}
-.summary .box{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center;box-shadow:0 2px 8px rgba(120,60,80,.06)}
-.summary .v{font-size:calc(22px*var(--fs));font-weight:800;color:var(--ink)}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.summary .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 6px;text-align:center;box-shadow:0 2px 8px rgba(120,60,80,.06);min-width:0}
+.summary .v{font-size:calc(20px*var(--fs));font-weight:800;color:var(--ink)}
 .summary .v.acc{color:var(--accent)}
 .summary .v.ok{color:#2e8f7e}
-.summary .l{font-size:calc(11.5px*var(--fs));color:var(--muted);font-weight:700;margin-top:2px}
+.summary .v.info{color:#2563eb}
+.summary .l{font-size:calc(11px*var(--fs));color:var(--muted);font-weight:700;margin-top:2px}
+.summary .s{font-size:calc(10px*var(--fs));color:var(--muted);margin-top:1px}
 .totbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
 .totbox label{font-size:calc(13px*var(--fs));font-weight:700;color:var(--ink2);flex:0 0 auto}
 .totbox input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:calc(15px*var(--fs));text-align:right;background:var(--bg);outline:none;color:var(--ink)}
@@ -60,7 +62,10 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .day.today{border-color:var(--accent);font-weight:800}
 .day.used{background:var(--accent-soft);color:var(--accent);font-weight:800}
 .day.plan{background:#fff3da;color:#d97706;font-weight:800}
+.day.abs{background:#e8f0ff;color:#2563eb;font-weight:800}
+.day.we{opacity:.55}
 .day .dot{position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7}
+.day .adot{position:absolute;bottom:4px;right:5px;width:5px;height:5px;border-radius:50%;background:#2563eb;opacity:.85}
 .hint{font-size:calc(11.5px*var(--fs));color:var(--muted);line-height:1.6;margin:8px 2px 0}
 .list-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(120,60,80,.06);margin-top:12px}
 .list-card h3{margin:2px 0 4px;font-size:calc(14px*var(--fs));color:var(--ink2);font-weight:700}
@@ -117,6 +122,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">年假</h1>
@@ -124,9 +130,11 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
   <header><div class="topbar"><div class="title"><span class="logo">🏖️</span>年假</div></div></header>
   <div class="content">
     <div class="summary">
-      <div class="box"><div class="v" id="sumTotal">0</div><div class="l">總數（日）</div></div>
-      <div class="box"><div class="v acc" id="sumUsed">0</div><div class="l">已使用</div></div>
-      <div class="box"><div class="v ok" id="sumLeft">0</div><div class="l">未使用</div></div>
+      <div class="box"><div class="v" id="sumTotal">0</div><div class="l">年度總額（日）</div></div>
+      <div class="box"><div class="v acc" id="sumUsed">0</div><div class="l">已使用（日）</div></div>
+      <div class="box"><div class="v acc" id="sumWd">0</div><div class="l">已用工作日</div></div>
+      <div class="box"><div class="v ok" id="sumLeft">0</div><div class="l">剩餘年假（工作日）</div></div>
+      <div class="box"><div class="v info" id="sumNext">—</div><div class="l">距離下個假期（天）</div></div>
     </div>
     <div class="totbox">
       <label>年度可放年假（日）</label>
@@ -140,12 +148,18 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
       </div>
       <div class="week"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
       <div class="grid7" id="calGrid"></div>
-      <div class="hint">點選日期可新增／修改年假。🟣 已使用　🟠 已安排（未扣減）。</div>
+      <div class="hint">點選日期可新增／修改年假。🟣 已使用　🟠 已安排（未扣減）　🔵 缺勤（唯讀，來自「缺勤」頁）。天數統計已跳過週六、日；沒有法定假日資料，故不另扣除假日。</div>
     </div>
     <div class="list-card">
       <h3>所有年假（日期 · 狀態）</h3>
+      <div class="hint" id="planHint" style="margin-top:0"></div>
       <div id="leaveList"></div>
       <div class="hint" id="leaveEmpty" style="display:none">尚無年假記錄。</div>
+    </div>
+    <div class="list-card">
+      <h3>缺勤紀錄（唯讀 · 來自「缺勤」）</h3>
+      <div id="absenceList"></div>
+      <div class="hint" id="absenceEmpty" style="display:none">尚無缺勤紀錄。</div>
     </div>
   </div>
 </div>
@@ -174,6 +188,9 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 <script src="share.js"></script>
 <script>
 var KEY='jless_leave_v1';
+var AKEY='jless_absence_v1';
+function esc(s){return (window.JLess&&JLess.util&&JLess.util.esc)?JLess.util.esc(s):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function snap(label){if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,label);}catch(e){}}}
 function uid(){return 'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function load(){try{var d=JSON.parse(localStorage.getItem(KEY));if(d&&Array.isArray(d.leaves))return d;}catch(e){}return {total:0,leaves:[]};}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
@@ -183,14 +200,48 @@ function pad(n){return (n<10?'0':'')+n;}
 function ymd(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);}
 function todayStr(){var t=new Date();return ymd(t.getFullYear(),t.getMonth(),t.getDate());}
 function leaveOf(date){return S.leaves.filter(function(x){return x.date===date;})[0];}
+/* 工作日：只跳過週六、日（無法定假日資料，故不扣除假日） */
+function isWorkday(date){var d=new Date(date+'T00:00:00');var w=d.getDay();return w!==0&&w!==6;}
+function workdays(list){return list.filter(function(x){return isWorkday(x.date);}).length;}
+function dayDiff(a,b){return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);}
+/* 距離下個假期：今天起到最近一個已排/已用年假；今天有假期則為 0 */
+function nextLeaveDays(){
+  var t=todayStr(),best=null;
+  S.leaves.forEach(function(x){if(x.date>=t&&(best===null||x.date<best))best=x.date;});
+  return best===null?null:dayDiff(t,best);
+}
+/* 唯讀讀取缺勤頁資料，並展開成 date -> 原因陣列 */
+function loadAbsenceRecords(){try{var d=JSON.parse(localStorage.getItem(AKEY));if(d&&Array.isArray(d.records))return d.records;}catch(e){}return [];}
+function absenceMap(){
+  var map={};
+  loadAbsenceRecords().forEach(function(r){
+    var end=(r.end&&r.end>r.date)?r.end:r.date;
+    var d=new Date(r.date+'T00:00:00'), last=new Date(end+'T00:00:00');
+    var label=(r.reason==='ill'?'因病':'親屬照料')+(r.half?'（半日）':'');
+    var guard=0;
+    while(d<=last&&guard++<4000){
+      var k=ymd(d.getFullYear(),d.getMonth(),d.getDate());
+      (map[k]=map[k]||[]).push(label);
+      d.setDate(d.getDate()+1);
+    }
+  });
+  return map;
+}
 function setTotal(){var v=parseInt(document.getElementById('totalInput').value,10);if(isNaN(v)||v<0)v=0;S.total=v;save();renderSummary();}
 function renderSummary(){
-  var used=S.leaves.filter(function(x){return x.status==='used';}).length;
-  var left=Math.max(0,S.total-used);
+  var usedAll=S.leaves.filter(function(x){return x.status==='used';});
+  var planAll=S.leaves.filter(function(x){return x.status==='plan';});
+  var usedWd=workdays(usedAll), planWd=workdays(planAll);
+  var left=Math.max(0,S.total-usedWd);
   document.getElementById('sumTotal').textContent=S.total;
-  document.getElementById('sumUsed').textContent=used;
+  document.getElementById('sumUsed').textContent=usedAll.length;
+  document.getElementById('sumWd').textContent=usedWd;
   document.getElementById('sumLeft').textContent=left;
+  var nx=nextLeaveDays();
+  document.getElementById('sumNext').textContent=nx===null?'—':nx;
   document.getElementById('totalInput').value=S.total;
+  var ph=document.getElementById('planHint');
+  if(ph)ph.textContent=planAll.length?('已安排 '+planAll.length+' 日（工作日 '+planWd+' 日，未扣減額度）'):'';
 }
 function shiftMonth(d){viewM+=d;if(viewM<0){viewM=11;viewY--;}if(viewM>11){viewM=0;viewY++;}renderCalendar();}
 function renderCalendar(){
@@ -201,14 +252,16 @@ function renderCalendar(){
   var prevDays=new Date(viewY,viewM,0).getDate();
   var grid=document.getElementById('calGrid');grid.innerHTML='';
   for(var i=0;i<startWd;i++){var d=document.createElement('div');d.className='day other';d.textContent=prevDays-startWd+i+1;grid.appendChild(d);}
-  var tStr=todayStr();
+  var tStr=todayStr(), aMap=absenceMap();
   for(var dnum=1;dnum<=days;dnum++){
     var date=ymd(viewY,viewM,dnum);
-    var lv=leaveOf(date);
+    var lv=leaveOf(date), ab=aMap[date];
     var cell=document.createElement('div');
-    cell.className='day'+(date===tStr?' today':'')+(lv?(lv.status==='used'?' used':' plan'):'');
+    cell.className='day'+(date===tStr?' today':'')+(lv?(lv.status==='used'?' used':' plan'):'')+(ab?' abs':'');
+    if(!lv&&!ab&&!isWorkday(date))cell.className+=' we';
     cell.textContent=dnum;
     if(lv){var dot=document.createElement('span');dot.className='dot';cell.appendChild(dot);}
+    if(ab){var adot=document.createElement('span');adot.className='adot';cell.appendChild(adot);cell.title=ab.join('、');}
     (function(dt){cell.onclick=function(){openDay(dt);};})(date);
     grid.appendChild(cell);
   }
@@ -234,6 +287,8 @@ function saveDay(){
 }
 function delDay(){
   if(!editDate)return;
+  var lv=leaveOf(editDate);
+  snap('假期：'+editDate+(lv?'（'+(lv.status==='used'?'已使用':'已安排')+'）':''));
   S.leaves=S.leaves.filter(function(x){return x.date!==editDate;});
   save();renderSummary();renderCalendar();renderLeaveList();closeDay();toast('已刪除');
 }
@@ -256,24 +311,49 @@ function renderLeaveList(){
   }).join('');
 }
 function delLeave(date){
+  var lv=leaveOf(date);
+  snap('假期：'+date+(lv?'（'+(lv.status==='used'?'已使用':'已安排')+'）':''));
   S.leaves=S.leaves.filter(function(x){return x.date!==date;});
   save();renderSummary();renderCalendar();renderLeaveList();toast('已刪除');
 }
+/* 唯讀顯示「缺勤」頁紀錄；不提供编辑/刪除 */
+function renderAbsenceList(){
+  var box=document.getElementById('absenceList'), empty=document.getElementById('absenceEmpty');
+  var arr=loadAbsenceRecords().slice().sort(function(a,b){return a.date<b.date?1:(a.date>b.date?-1:0);});
+  empty.style.display=arr.length?'none':'block';
+  if(!arr.length){box.innerHTML='';return;}
+  box.innerHTML=arr.map(function(r){
+    var s=r.date,e=(r.end&&r.end>r.date)?r.end:r.date;
+    var dates=[];var d=new Date(r.date+'T00:00:00'),last=new Date(e+'T00:00:00'),guard=0;
+    while(d<=last&&guard++<4000){dates.push(ymd(d.getFullYear(),d.getMonth(),d.getDate()));d.setDate(d.getDate()+1);}
+    var wd=workdays(dates.map(function(x){return {date:x};}));
+    var reason=r.reason==='ill'?'因病缺勤':'親屬患病缺勤';
+    return '<div class="lv-row" style="cursor:default">'+
+      '<div class="lv-date">'+(s===e?s:(s+'<br>~ '+e))+'</div>'+
+      '<div class="lv-status" style="color:#2563eb">'+reason+(r.half?' · 半日':'')+
+        '<div style="font-size:calc(11px*var(--fs));color:var(--muted);font-weight:600;margin-top:3px">'+dates.length+' 日（工作日 '+wd+'）'+(r.note?' · '+esc(r.note):'')+'</div></div>'+
+    '</div>';
+  }).join('');
+}
 function shareLeave(){
-  var used=S.leaves.filter(function(x){return x.status==='used';}).length;
-  var plan=S.leaves.filter(function(x){return x.status==='plan';}).length;
-  var left=Math.max(0,S.total-used);
-  var body='年度年假總數：'+S.total+' 日\n已使用：'+used+' 日\n已安排（未扣）：'+plan+' 日\n未使用：'+left+' 日';
+  var usedAll=S.leaves.filter(function(x){return x.status==='used';});
+  var planAll=S.leaves.filter(function(x){return x.status==='plan';});
+  var used=usedAll.length, plan=planAll.length;
+  var usedWd=workdays(usedAll), left=Math.max(0,S.total-usedWd);
+  var nx=nextLeaveDays();
+  var body='年度年假總數：'+S.total+' 日\n已使用：'+used+' 日（工作日 '+usedWd+'）\n已安排（未扣）：'+plan+' 日（工作日 '+workdays(planAll)+'）\n剩餘年假：'+left+' 日（工作日）'+
+    (nx===null?'':'\n距離下個假期：'+nx+' 天')+'\n※ 天數已跳過週六、日';
   if(window.JLessShare){JLessShare.shareText('年假結餘',body,function(ok){toast(ok?'已開啟分享':'已複製文字');});}
   else{navigator.clipboard&&navigator.clipboard.writeText(body);toast('已複製');}
 }
 function resetLeave(){
   if(!confirm('清除所有年假記錄（額度保留）？'))return;
+  snap('假期：全部（清除）');
   S.leaves=[];save();renderSummary();renderCalendar();renderLeaveList();toast('已清除記錄');
 }
 var toastTimer=null;
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},1800);}
-renderSummary();renderCalendar();renderLeaveList();
+renderSummary();renderCalendar();renderLeaveList();renderAbsenceList();
 </script>
   <script src="help.js"></script>
 </body>

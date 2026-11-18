@@ -119,6 +119,7 @@ table.tbl .tgcol,table.tbl .tgcell{background:rgba(0,0,0,.02)}
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">CSV工具</h1>
@@ -155,6 +156,19 @@ table.tbl .tgcol,table.tbl .tgcell{background:rgba(0,0,0,.02)}
         <div class="stats" id="statsBox"></div>
         <div class="numwrap" id="numBox"></div>
         <div class="tagswrap" id="tagBox"></div>
+      </div>
+
+      <!-- 公式與欄位統計 -->
+      <div class="card" id="formulaCard">
+        <h3>🧮 公式與欄位統計</h3>
+        <div class="field"><label>欄位</label><select id="calcCol"></select></div>
+        <div class="ibrow">
+          <button class="btn sm" onclick="calcStat('sum')">Σ SUM</button>
+          <button class="btn sm" onclick="calcStat('avg')">x̄ AVERAGE</button>
+          <button class="btn sm" onclick="calcStat('count')"># COUNT</button>
+        </div>
+        <div class="stats" id="calcResult" style="margin-top:8px"></div>
+        <div class="hint" style="margin-bottom:0">計算範圍：有勾選列時用勾選的列，否則用目前篩選結果。COUNT 計非空白格；SUM/AVERAGE 只計數值。</div>
       </div>
 
       <!-- 工具：搜尋＋篩選＋選取 -->
@@ -268,7 +282,7 @@ function loadInto(raw){
   sel.clear();filter=null;search='';
   document.getElementById('searchInput').value='';
   document.getElementById('fVal').value='';
-  buildFilterCols();
+  buildFilterCols();buildCalcCols();
   document.getElementById('dataArea').style.display='block';
   applyView();
   toast('已匯入 '+rows.length+' 列');
@@ -298,6 +312,31 @@ function importUrl(){
 /* ===== 篩選／搜尋 ===== */
 function buildFilterCols(){
   document.getElementById('fCol').innerHTML=headers.map(function(h,i){return '<option value="'+i+'">'+esc(h)+'</option>';}).join('');
+}
+function buildCalcCols(){
+  var sel=document.getElementById('calcCol');if(!sel)return;
+  sel.innerHTML=headers.map(function(h,i){return '<option value="'+i+'">'+esc(h)+'</option>';}).join('');
+  document.getElementById('calcResult').innerHTML='';
+}
+/* SUM / AVERAGE / COUNT：優先使用勾選列，否則使用目前篩選結果 */
+function calcStat(op){
+  if(!rows.length){toast('尚無資料');return;}
+  var c=+document.getElementById('calcCol').value||0;
+  var idxs=sel.size?Array.from(sel):lastView.slice();
+  var nums=[],nonEmpty=0;
+  idxs.forEach(function(i){
+    var v=rows[i]&&rows[i][c];
+    if(v==null||String(v).trim()==='')return;
+    nonEmpty++;
+    if(isNum(v))nums.push(parseFloat(String(v)));
+  });
+  var sum=nums.reduce(function(a,b){return a+b;},0);
+  var val=op==='sum'?sum:(op==='avg'?(nums.length?sum/nums.length:0):nonEmpty);
+  var label=op==='sum'?'SUM':(op==='avg'?'AVERAGE':'COUNT');
+  var note=op==='count'?('非空白 '+nonEmpty+' 格'):('數值 '+nums.length+' 筆');
+  document.getElementById('calcResult').innerHTML=
+    '<div class="stat"><span>'+label+'（'+esc(headers[c]||'')+'）</span><b>'+fmt(val)+'</b></div>'+
+    '<div class="stat sub"><span>'+note+' · 來源 '+(sel.size?'勾選列':'篩選結果')+'</span><b>'+idxs.length+' 列</b></div>';
 }
 function opChange(){
   var op=document.getElementById('fOp').value;
@@ -445,6 +484,7 @@ function clearData(){
   document.getElementById('csvText').value='';
   document.getElementById('dataArea').style.display='none';
   document.getElementById('tblWrap').innerHTML='';
+  document.getElementById('calcResult').innerHTML='';
   toast('已清除');
 }
 

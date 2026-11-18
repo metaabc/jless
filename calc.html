@@ -62,6 +62,13 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .result .sub b{color:var(--ink)}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translateX(-50%) translateY(20px);background:rgba(40,20,30,.92);color:#fff;padding:11px 18px;border-radius:12px;font-size:calc(13.5px*var(--fs));font-weight:600;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:86%}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* 計算歷史 */
+.hrow{display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--line2)}
+.hrow:last-child{border-bottom:none}
+.hmain{flex:1;min-width:0}
+.hmain .e{font-size:calc(12.5px*var(--fs));color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hmain .r{font-size:calc(14px*var(--fs));font-weight:800;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hcopy{flex:0 0 auto;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 9px;font-size:calc(11.5px*var(--fs));cursor:pointer;color:var(--ink2);font-weight:700}
 </style>
 <script type="application/ld+json">
 {
@@ -91,6 +98,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">計算器</h1>
@@ -101,6 +109,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
       <button id="segRent" class="on" onclick="setMode('rent')">🏠 租金回報率</button>
       <button id="segDep" onclick="setMode('dep')">📈 定期計算</button>
       <button id="segUnit" onclick="setMode('unit')">📐 單位換算</button>
+      <button id="segCalc" onclick="setMode('calc')">🧮 一般計算</button>
     </div>
 
     <!-- 租金回報率 -->
@@ -165,7 +174,30 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
           <div class="lbl">結果</div>
           <div class="big" id="uOut">—</div>
         </div>
+        <button class="btn ghost" onclick="pushUnitHistory()">＋ 加入計算歷史</button>
       </div>
+    </div>
+
+    <!-- 一般計算 -->
+    <div id="paneCalc" style="display:none">
+      <div class="card">
+        <div class="field"><label>運算式（可用 + - * / ( ) .）</label>
+          <input type="text" id="cExpr" inputmode="text" placeholder="例如 (12+8)*3/2" onkeydown="if(event.key==='Enter')calcExpr()">
+        </div>
+        <button class="btn primary" onclick="calcExpr()">＝ 計算</button>
+        <div class="hint" style="margin-top:8px">只允許數字與 <b>+ - * / ( ) . %</b> 等字元，不會執行其它程式碼。</div>
+        <div class="result show" id="cResult">
+          <div class="lbl">結果</div>
+          <div class="big" id="cOut">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 計算歷史 -->
+    <div class="card">
+      <h3 style="margin:0 0 8px;font-size:calc(13.5px*var(--fs));color:var(--ink2)">🕘 計算歷史（最近 20 筆）</h3>
+      <div id="histList"></div>
+      <button class="btn ghost" onclick="clearHistory()">清空歷史</button>
     </div>
   </div>
 </div>
@@ -183,12 +215,58 @@ function setMode(m){
   document.getElementById('segRent').classList.toggle('on', m==='rent');
   document.getElementById('segDep').classList.toggle('on', m==='dep');
   document.getElementById('segUnit').classList.toggle('on', m==='unit');
+  document.getElementById('segCalc').classList.toggle('on', m==='calc');
   document.getElementById('paneRent').style.display = m==='rent'?'block':'none';
   document.getElementById('paneDep').style.display = m==='dep'?'block':'none';
   document.getElementById('paneUnit').style.display = m==='unit'?'block':'none';
+  document.getElementById('paneCalc').style.display = m==='calc'?'block':'none';
   curMode=m;
 }
 var curMode='rent';
+
+/* ===== 計算歷史（最近 20 筆，只存文字） ===== */
+var HIST_KEY='jless_calc_hist_v1';
+function loadHistory(){try{var a=JSON.parse(localStorage.getItem(HIST_KEY));if(Array.isArray(a))return a.slice(0,20);}catch(e){}return [];}
+var HIST=loadHistory();
+function saveHistory(){try{localStorage.setItem(HIST_KEY,JSON.stringify(HIST.slice(0,20)));}catch(e){}}
+function pushHistory(label,result){
+  HIST.unshift({ts:Date.now(),label:String(label||''),result:String(result||'')});
+  if(HIST.length>20)HIST=HIST.slice(0,20);
+  saveHistory();renderHistory();
+}
+function renderHistory(){
+  var box=document.getElementById('histList');if(!box)return;
+  if(!HIST.length){box.innerHTML='<div class="hint" style="margin:0">尚無計算紀錄。完成計算後會自動記錄。</div>';return;}
+  var dstr=function(ts){var d=new Date(ts),p=function(n){return(n<10?'0':'')+n;};return p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());};
+  box.innerHTML=HIST.map(function(h,i){
+    return '<div class="hrow"><div class="hmain"><div class="e">'+esc(h.label)+' <span style="color:var(--muted);font-size:calc(10.5px*var(--fs))">'+dstr(h.ts)+'</span></div>'+
+      '<div class="r">'+esc(h.result)+'</div></div>'+
+      '<button class="hcopy" onclick="copyHistory('+i+')">複製</button></div>';
+  }).join('');
+}
+function esc(s){return (window.JLess&&JLess.util&&JLess.util.esc)?JLess.util.esc(s):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function copyHistory(i){
+  var h=HIST[i];if(!h)return;
+  var text=h.label+'\n'+h.result;
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('已複製結果');},function(){toast('複製失敗');});}
+  else{toast('瀏覽器不支援複製');}
+}
+function clearHistory(){if(!HIST.length){toast('歷史是空的');return;}if(!confirm('清空最近 20 筆計算歷史？'))return;HIST=[];saveHistory();renderHistory();toast('已清空歷史');}
+var lastCalc=null;
+function calcExpr(){
+  var e=(document.getElementById('cExpr').value||'').trim();
+  if(!e){toast('請輸入運算式');return;}
+  if(!/^[0-9+\-*/().\s%]+$/.test(e)){toast('只允許數字與 + - * / ( ) . %');return;}
+  try{
+    var v=Function('"use strict";return ('+e+');')();
+    if(typeof v!=='number'||!isFinite(v))throw new Error('結果無效');
+    var out=fmt(v);
+    document.getElementById('cOut').textContent=out;
+    lastCalc={expr:e,out:out};
+    pushHistory(e,out);
+  }catch(err){toast('運算式無效');}
+}
+function pushUnitHistory(){if(!lastUnit){toast('請先輸入數值');return;}pushHistory(lastUnit.cat+'：'+fmt(lastUnit.v)+' '+lastUnit.from+' → '+lastUnit.to,fmt(lastUnit.out)+' '+lastUnit.to);}
 
 /* ===== 單位換算 ===== */
 var UCAT = {
@@ -247,6 +325,7 @@ function calcRent(){
   document.getElementById('rRate').textContent=fmt(rate)+'%';
   document.getElementById('rResult').classList.add('show');
   lastRent={P:P,R:R,E:E,v:v,income:income,net:net,rate:rate};
+  pushHistory('租金回報率：樓價 $'+fmt(P)+'，月租 $'+fmt(R),fmt(rate)+'%');
 }
 function calcDep(){
   var P0=num('dPrincipal'), M=num('dMonthly'), r=num('dRate')/100, n=num('dYears');
@@ -261,11 +340,16 @@ function calcDep(){
   document.getElementById('dFv').textContent='$'+fmt(fv);
   document.getElementById('dResult').classList.add('show');
   lastDep={P0:P0,M:M,r:num('dRate'),n:n,fv:fv,invested:invested,interest:interest};
+  pushHistory('定期試算：本金 $'+fmt(P0)+'，每月 $'+fmt(M)+'，'+n+' 年','$'+fmt(fv));
 }
 var lastRent=null, lastDep=null;
 function shareCalc(){
   var title, body;
-  if(curMode==='unit'){
+  if(curMode==='calc'){
+    if(!lastCalc){toast('請先計算');return;}
+    title='一般計算';
+    body=lastCalc.expr+' = '+lastCalc.out;
+  } else if(curMode==='unit'){
     if(!lastUnit){toast('請先輸入數值');return;}
     title='單位換算';
     body=lastUnit.cat+'：\n'+fmt(lastUnit.v)+' '+lastUnit.from+' ＝ '+fmt(lastUnit.out)+' '+lastUnit.to;
@@ -290,11 +374,13 @@ function resetCalc(){
   document.getElementById('uVal').value='';
   document.getElementById('uOut').textContent='—';
   if(document.getElementById('uCat')) uCatChange();
-  lastRent=null;lastDep=null;lastUnit=null;toast('已重設');
+  document.getElementById('cExpr').value='';
+  document.getElementById('cOut').textContent='—';
+  lastRent=null;lastDep=null;lastUnit=null;lastCalc=null;toast('已重設');
 }
 var toastTimer=null;
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},1800);}
-uInit();
+uInit();renderHistory();
 </script>
   <script src="help.js"></script>
 </body>

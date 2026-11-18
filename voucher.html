@@ -154,6 +154,17 @@ h1{margin:0;font-size:clamp(17px,5vw,21px);font-weight:800;letter-spacing:.5px;c
 .b-open{background:var(--accent);color:#fff;flex:1.25 !important;box-shadow:0 3px 10px rgba(194,59,106,.24)}
 .b-use{background:var(--green-bg);color:var(--green);border:1px solid var(--green-line)}
 .b-share{background:var(--gold-bg);color:var(--gold-tx);border:1px solid var(--gold-line)}
+.b-remind{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line)}
+.soon-sec{margin-top:4px}
+.soon-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line2);font-size:calc(12.5px * var(--fs))}
+.soon-item:last-child{border-bottom-color:transparent}
+.soon-item .sn{flex:1;min-width:0;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.soon-item .sd{color:var(--muted);font-size:calc(11px * var(--fs));white-space:nowrap}
+.soon-item .st{font-size:calc(10px * var(--fs));font-weight:800;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.soon-item .st.unused{background:var(--accent-soft);color:var(--accent)}
+.soon-item .st.used{background:var(--gray-bg);color:var(--gray-tx)}
+.remind-opt{display:block;width:100%;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:13px;margin-bottom:9px;font-size:calc(14px * var(--fs));font-weight:800;color:var(--ink2);cursor:pointer;text-align:center}
+.remind-opt:active{background:var(--accent-soft);border-color:var(--accent-line)}
 .b-restore{background:var(--gold-bg);color:var(--gold-tx)}
 
 /* ---------- draft card ---------- */
@@ -397,6 +408,7 @@ h1{margin:0;font-size:clamp(17px,5vw,21px);font-weight:800;letter-spacing:.5px;c
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -438,6 +450,10 @@ h1{margin:0;font-size:clamp(17px,5vw,21px);font-weight:800;letter-spacing:.5px;c
     <div id="draftList"></div>
   </div>
 
+    <div class="soon-sec" id="soonSec" style="display:none">
+      <div class="sec"><h2>即將過期</h2><span class="cnt" id="soonCnt">0</span><span class="note">7 日內 · 未使用 vs 已使用</span></div>
+      <div class="card" id="soonList"></div>
+    </div>
     <div class="sec">
       <h2>待使用</h2><span class="cnt" id="aCnt">0</span>
       <div class="layout-sw" data-layout-sw></div>
@@ -536,6 +552,16 @@ h1{margin:0;font-size:clamp(17px,5vw,21px);font-weight:800;letter-spacing:.5px;c
   <button class="set-btn" id="helpBtn" type="button">使用說明</button>
 </div>
 
+<!-- 到期提醒 -->
+<div class="sheet" id="remindSheet">
+  <div class="sheet-head"><h3>提醒到期</h3><button class="x" data-close type="button">✕</button></div>
+  <div class="day-sum" id="remindFor"></div>
+  <button class="remind-opt" type="button" data-remind-days="7">📅 到期 7 日前提醒</button>
+  <button class="remind-opt" type="button" data-remind-days="3">📅 到期 3 日前提醒</button>
+  <button class="remind-opt" type="button" data-remind-days="0">📅 到期當日提醒</button>
+  <div class="set-hint" style="display:block;margin-top:4px">首次設定會要求通知權限；提醒在本機排程，需保持頁面開啟。</div>
+</div>
+
 <!-- 使用說明（由設定開啟） -->
 <div class="sheet" id="helpSheet">
   <div class="sheet-head"><h3>使用說明</h3><button class="x" data-close type="button">✕</button></div>
@@ -628,6 +654,31 @@ function isoOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'
 function todayPlus(n){var t=new Date();t.setHours(0,0,0,0);t.setDate(t.getDate()+n);return isoOf(t);}
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}
+function trashSnap(label){
+  /* 團購券本體在 IndexedDB，先序列化中繼到一個暫存 key，再交給共用回收桶快照 */
+  try{
+    var snap=vouchers.map(function(v){
+      var o={};Object.keys(v).forEach(function(k){if(k!=='img'&&k!=='decoded')o[k]=v[k];});
+      o.img=null;return o;
+    });
+    lsSet('tgq_trash_vouchers',JSON.stringify(snap));
+    if(window.JLess&&JLess.trash&&JLess.trash.snapshot)JLess.trash.snapshot('tgq_trash_vouchers',label||'團購券');
+  }catch(e){}
+}
+function applyTrashRestore(){
+  try{
+    var raw=lsGet('tgq_trash_vouchers');if(!raw)return;
+    var arr=JSON.parse(raw);if(!Array.isArray(arr)||!arr.length)return;
+    var changed=0;
+    arr.forEach(function(v){
+      if(!v||!v.id||vouchers.some(function(x){return x.id===v.id;}))return;
+      v.img=null;v.decoded=false;vouchers.push(v);persist(v);changed++;
+    });
+    localStorage.removeItem('tgq_trash_vouchers');
+    renderAll();refreshFilterNames();
+    if(changed)toast('已從回收桶還原 '+changed+' 張券（圖片需重新上載）');
+  }catch(e){}
+}
 function defaultDays(){var n=parseInt(lsGet(DAYS_KEY),10);if(!isFinite(n)||n<1||n>3650)n=30;return n;}
 
 /* ============ 券名名單 ============ */
@@ -1115,6 +1166,7 @@ function renderActive(){
         +'</div>'
         +'<div class="vact">'
           +'<button class="b-open" data-open="'+v.id+'">開圖</button>'
+          +'<button class="b-remind" data-remind="'+v.id+'">提醒</button>'
           +'<button class="b-share" data-share="'+v.id+'">分享</button>'
           +'<button class="b-use" data-redeem="'+v.id+'">銷券</button>'
         +'</div>'
@@ -1154,7 +1206,23 @@ function renderUsed(){
   });
   $('usedList').innerHTML=h;
 }
-function renderAll(){renderSummary();renderActive();renderUsed();}
+/* 即將過期（7 日內）：未使用 vs 已使用 */
+function renderSoon(){
+  var soon=vouchers.filter(function(v){
+    if(!v.expiry)return false;var d=daysLeft(v.expiry);return d!==null&&d>=0&&d<=7;
+  }).sort(sortActive);
+  var sec=$('soonSec'),list=$('soonList');
+  if(!sec||!list)return;
+  if(!soon.length){sec.style.display='none';list.innerHTML='';return;}
+  sec.style.display='';$('soonCnt').textContent=soon.length;
+  list.innerHTML=soon.map(function(v){
+    var d=daysLeft(v.expiry),used=v.status==='used';
+    return '<div class="soon-item"><span class="sn">'+esc(v.name||'未命名券')+'</span>'+
+      '<span class="sd">'+fmtDate(v.expiry)+(d===0?'（今日）':'（剩 '+d+' 日）')+'</span>'+
+      '<span class="st '+(used?'used':'unused')+'">'+(used?'已使用':'未使用')+'</span></div>';
+  }).join('');
+}
+function renderAll(){renderSummary();renderSoon();renderActive();renderUsed();}
 function persist(v){return idbPut(v).catch(function(){storageOK=false;$('banner').classList.add('on');});}
 
 /* ============ actions ============ */
@@ -1202,6 +1270,7 @@ function restore(id){var v=vouchers.find(function(x){return x.id===id;});if(!v)r
 function delVoucher(id){
   var v=vouchers.find(function(x){return x.id===id;});if(!v)return false;
   if(!confirm('刪除呢張券？無法復原。'))return false;
+  trashSnap('團購券：'+(v.name||'未命名券'));
   vouchers=vouchers.filter(function(x){return x.id!==id;});
   idbDel(id).catch(function(){});revoke(id);renderAll();refreshFilterNames();
   gaEvent('voucher_delete',{});toast('已刪除');
@@ -1255,7 +1324,7 @@ function lbStep(dir){
 function closeLB(){$('lightbox').classList.remove('on');lbId=null;lbList=[];lbIdx=0;}
 
 /* ============ 共用面板 ============ */
-var SHEETS=['settingsSheet','helpSheet'];
+var SHEETS=['settingsSheet','helpSheet','remindSheet'];
 function openSheetEl(elId){
   SHEETS.forEach(function(id){$(id).classList.toggle('on',id===elId);});
   $('mask').classList.add('on');
@@ -1407,6 +1476,7 @@ function armClear(){
 }
 function clearAllVouchers(){
   var n=vouchers.length;
+  trashSnap('團購券：全部資料');
   vouchers=[];
   drafts.forEach(function(d){d.cancelled=true;revoke(d.id);});
   drafts=[];ocrCb=null;
@@ -1493,9 +1563,40 @@ $('draftList').addEventListener('click',function(e){
   var pv=t.closest('[data-preview]');if(pv)openLB(pv.getAttribute('data-preview'));
 });
 
+/* 到期提醒 */
+var remindId=null;
+function openRemind(id){
+  var v=vouchers.find(function(x){return x.id===id;});if(!v)return;
+  if(!v.expiry){toast('這張券未有到期日');return;}
+  remindId=id;
+  $('remindFor').textContent='券：'+(v.name||'未命名券')+' · 到期 '+fmtDate(v.expiry);
+  openSheetEl('remindSheet');
+}
+function scheduleVoucherRemind(days){
+  var v=vouchers.find(function(x){return x.id===remindId;});if(!v||!v.expiry)return;
+  var go=function(){
+    if(!window.JLess||!JLess.notify||!JLess.notify.schedule){toast('此瀏覽器不支援本機提醒');return;}
+    var p=String(v.expiry).split('-'),d=new Date(+p[0],(+p[1])-1,+p[2],9,0,0,0);
+    d.setDate(d.getDate()-days);
+    var ts=d.getTime();
+    if(ts<=Date.now()){toast('該提醒時間已過，請選較早的提前日數');return;}
+    var when=days===0?'到期當日':('到期前 '+days+' 日');
+    JLess.notify.schedule('voucher-exp-'+v.id+'-'+days,ts,'團購券到期提醒：'+(v.name||'未命名券'),when+' · 到期日 '+fmtDate(v.expiry));
+    closeSheet();toast('已設定提醒：'+when+' 09:00');
+  };
+  if(window.JLess&&JLess.notify&&JLess.notify.enable){
+    var pr;try{pr=JLess.notify.enable();}catch(e){pr=null;}
+    if(pr&&typeof pr.then==='function')pr.then(go,go);else go();
+  }else go();
+}
+$('remindSheet').addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-remind-days]');if(!b)return;
+  scheduleVoucherRemind(+b.getAttribute('data-remind-days'));
+});
 $('activeList').addEventListener('click',function(e){
   var t=e.target,el;
   if((el=t.closest('[data-pickname]'))){openNamePop(el.getAttribute('data-pickname'));return;}
+  if((el=t.closest('[data-remind]'))){openRemind(el.getAttribute('data-remind'));return;}
   if((el=t.closest('[data-redeem]'))){redeem(el.getAttribute('data-redeem'),'card');return;}
   if((el=t.closest('[data-share]'))){openShare(el.getAttribute('data-share'));return;}
   if((el=t.closest('[data-open]'))){openLB(el.getAttribute('data-open'));return;}
@@ -1657,6 +1758,7 @@ $('clearUsed').addEventListener('click',function(){
   var used=vouchers.filter(function(v){return v.status==='used';});
   if(!used.length)return;
   if(!confirm('清空 '+used.length+' 張已使用紀錄？無法復原。'))return;
+  trashSnap('團購券：已使用 '+used.length+' 張');
   used.forEach(function(v){idbDel(v.id).catch(function(){});revoke(v.id);});
   vouchers=vouchers.filter(function(v){return v.status!=='used';});
   renderAll();toast('已清空已使用');
@@ -1777,6 +1879,7 @@ $('defaultDays').value=defaultDays();
 $('ocrAuto').checked=(lsGet(AUTO_KEY)==='1');
 idbGetAll().then(function(list){
   vouchers=list||[];
+  applyTrashRestore();
   renderAll();refreshFilterNames();
 }).catch(function(){
   storageOK=false;$('banner').classList.add('on');renderAll();

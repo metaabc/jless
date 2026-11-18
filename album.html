@@ -157,6 +157,18 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 .albtabs .at.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .albtabs .at.add{border-style:dashed;color:var(--accent)}
 .albtabs .at small{opacity:.7;font-weight:500;margin-left:3px}
+.albtabs .at img.at-cover{width:18px;height:18px;border-radius:5px;object-fit:cover;vertical-align:middle;margin-right:5px;border:1px solid rgba(0,0,0,.08)}
+.albtabs .at.on img.at-cover{border-color:#fff}
+/* 重複相片清理面板 */
+.dup-panel{margin:12px 16px 0}
+.dup-grp{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:var(--bg)}
+.dup-grp .dgt{font-size:calc(11.5px * var(--fs));color:var(--muted);margin-bottom:8px}
+.dup-items{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.dup-items::-webkit-scrollbar{display:none}
+.dup-item{flex:0 0 auto;border:2px solid transparent;border-radius:9px;padding:4px;cursor:pointer;background:var(--panel)}
+.dup-item.keep{border-color:var(--accent)}
+.dup-item img{width:60px;height:60px;object-fit:cover;border-radius:6px;display:block}
+.dup-item .dk{font-size:calc(10px * var(--fs));text-align:center;color:var(--accent);font-weight:700;margin-top:3px;min-height:14px}
 /* 工具列：搜尋／篩選／佈局切換 */
 .toolrow{display:flex;gap:8px;align-items:center;padding:10px 16px 0;flex-wrap:wrap}
 .srch{flex:1 1 160px;min-width:0;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:calc(13px * var(--fs));background:var(--panel);outline:none}
@@ -289,6 +301,7 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">相簿</h1>
@@ -322,9 +335,20 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
       <div class="toolrow">
         <input class="srch" id="albQ" placeholder="🔍 搜尋檔名・標籤・備註" oninput="renderAlbum()">
         <div class="seg"><span class="on" id="fAll" onclick="setFilter('all')">全部</span><span id="fFav" onclick="setFilter('fav')">❤️ 喜愛</span></div>
+        <button class="btn" style="flex:0 0 auto" onclick="toggleDupPanel()">🔁 查看重複</button>
         <button class="iconbtn danger" id="clearAlbBtn" title="清空此相簿（需確認）" onclick="clearCurrentAlbum()" style="display:none">🗑</button>
       </div>
       <div class="qtags" id="quickTags"></div>
+      <div class="qtags" id="smartTagBar" style="display:none"></div>
+      <div class="card-box dup-panel" id="dupPanel" style="display:none">
+        <h3>🔁 疑似重複相片</h3>
+        <div class="hint">以相片內容指紋比對「完全重複」的檔案。每組點選一張保留，其餘可一次刪除；刪除前會再次確認。系統不會自動刪除任何相片。</div>
+        <div id="dupList"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary" style="flex:1" onclick="deleteDuplicateExtras()">🗑 刪除各組未保留的相片</button>
+          <button class="btn" onclick="toggleDupPanel()">收起</button>
+        </div>
+      </div>
       <div id="albGal"></div>
     </section>
 
@@ -466,6 +490,11 @@ var readOnlyMode=false;              /* 降級且讀不到本體時唯讀，避�
 var S=null, albumFilter='all', viewIds=[], viewPos=0;
 var selectMode=false, selected={};   /* 多選模式：selected[photoId]=true */
 var curAlbum='all';                  /* 目前瀏覽的相簿 id；'all'=全部相簿 */
+/* 智能相簿（虛擬 id，不寫入實體相簿資料） */
+var SMART={YEAR:'__smart_year',LASTMONTH:'__smart_lastmonth',TAG:'__smart_tag',FAV:'__smart_fav'};
+var SMART_IDS=[SMART.YEAR,SMART.LASTMONTH,SMART.TAG,SMART.FAV];
+var smartTag='';
+var dupKeep={};                      /* 重複清理：groupKey -> 保留的 photoId */
 var LAYOUTS=[{k:'g2',n:'网格 2',i:'▦'},{k:'g3',n:'网格 3',i:'▦'},{k:'g4',n:'网格 4',i:'▦'},
   {k:'masonry',n:'瀑布流',i:'▤'},{k:'list',n:'列表',i:'☰'},{k:'compact',n:'緊湊',i:'▪'},
   {k:'timeline',n:'時間軸',i:'🕰'}];
@@ -612,6 +641,56 @@ var memIndex=null;
 function dataSig(d){if(!d||typeof d!=='string')return '';return d.length+'_'+d.slice(0,64)+'_'+d.slice(-64);}
 function buildMemIndex(){memIndex={};S.photos.forEach(function(p){var s=dataSig(p.data);if(s)memIndex[s]=true;});}
 function isDuplicate(d){var s=dataSig(d);return !!(s&&memIndex&&memIndex[s]);}
+/* 完全重複相片分組：以既有 dataSig 指紋比對內容完全相同的檔案 */
+function findDupGroups(){
+  var map={};
+  S.photos.forEach(function(p){
+    var s=dataSig(p.data);if(!s)return;
+    if(!map[s])map[s]=[];
+    map[s].push(p);
+  });
+  return Object.keys(map).map(function(sig){
+    var items=map[sig].slice().sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+    return {sig:sig,items:items};
+  }).filter(function(g){return g.items.length>1;}).sort(function(a,b){return b.items.length-a.items.length;});
+}
+function toggleDupPanel(){
+  var p=document.getElementById('dupPanel');if(!p)return;
+  var show=p.style.display==='none';
+  p.style.display=show?'block':'none';
+  if(show){dupKeep={};renderDupPanel();}
+}
+function renderDupPanel(){
+  var box=document.getElementById('dupList');if(!box)return;
+  var groups=findDupGroups();
+  if(!groups.length){box.innerHTML='<div class="hint">目前沒有發現完全重複的相片 👍</div>';return;}
+  box.innerHTML=groups.map(function(g,i){
+    var key=g.sig+'|'+i;
+    var keep=dupKeep[key]&&g.items.some(function(p){return p.id===dupKeep[key];})?dupKeep[key]:g.items[0].id;
+    dupKeep[key]=keep;
+    var waste=(g.items.length-1)*(g.items[0].size||0);
+    return '<div class="dup-grp"><div class="dgt">第 '+(i+1)+' 組 · '+g.items.length+' 張相同相片 · 刪除其餘約可省 '+fmtBytes(waste)+'</div>'+
+      '<div class="dup-items">'+g.items.map(function(p){
+        return '<div class="dup-item'+(p.id===keep?' keep':'')+'" onclick="pickDupKeep(\''+key+'\',\''+p.id+'\')">'+
+          '<img src="'+p.data+'" alt="'+esc(p.name||'相片')+'" loading="lazy"><div class="dk">'+(p.id===keep?'✓ 保留':'選此保留')+'</div></div>';
+      }).join('')+'</div></div>';
+  }).join('')+'<div class="hint">共 '+groups.length+' 組重複。點一下照片可切換要保留的那一張。</div>';
+}
+function pickDupKeep(key,id){dupKeep[key]=id;renderDupPanel();}
+function deleteDuplicateExtras(){
+  var groups=findDupGroups();
+  var kill=[];
+  groups.forEach(function(g,i){
+    var key=g.sig+'|'+i;
+    var keep=dupKeep[key]&&g.items.some(function(p){return p.id===dupKeep[key];})?dupKeep[key]:g.items[0].id;
+    g.items.forEach(function(p){if(p.id!==keep)kill.push(p.id);});
+  });
+  if(!kill.length){toast('沒有可刪除的重複相片');return;}
+  if(!confirm('確定刪除 '+kill.length+' 張重複相片？\n每組只會保留你選取的那一張，此動作無法復原。'))return;
+  removePhotos(kill);
+  dupKeep={};renderDupPanel();
+  toast('已刪除 '+kill.length+' 張重複相片');
+}
 
 /* ============ toast ============ */
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2200);}
@@ -879,8 +958,45 @@ async function commitBatch(batch,dup){
 /* ============ 相簿：切換與管理 ============ */
 function setAlbum(id){
   if(selectMode&&selectedIds().length){selected={};updateSelBar();}
-  curAlbum=(id==='all'||albumById(id))?id:'all';
+  curAlbum=(id==='all'||albumById(id)||SMART_IDS.indexOf(id)>=0)?id:'all';
   renderAlbTabs();renderAlbum();
+}
+/* 智慧視角判斷 */
+function inSmart(p,id){
+  var t=new Date(p.ts||0),now=new Date();
+  if(id===SMART.YEAR)return t.getFullYear()===now.getFullYear();
+  if(id===SMART.LASTMONTH){
+    var y=now.getFullYear(),m=now.getMonth()-1;if(m<0){m=11;y--;}
+    return t.getFullYear()===y&&t.getMonth()===m;
+  }
+  if(id===SMART.FAV)return !!p.fav;
+  if(id===SMART.TAG){
+    var tags=Array.isArray(p.tags)?p.tags:[];
+    return smartTag?tags.indexOf(smartTag)>=0:tags.length>0;
+  }
+  return true;
+}
+/* 相簿封面：取該相簿最新一張相片（沒有則第一張） */
+function albumCover(albumId){
+  var ps=S.photos.filter(function(p){return p.albumId===albumId&&p.data;});
+  if(!ps.length)return '';
+  ps.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+  return ps[0].data;
+}
+function renderSmartTagBar(){
+  var bar=document.getElementById('smartTagBar');if(!bar)return;
+  var on=curAlbum===SMART.TAG;
+  bar.style.display=on?'flex':'none';
+  if(!on){bar.innerHTML='';return;}
+  var cnt={};S.photos.forEach(function(p){(Array.isArray(p.tags)?p.tags:[]).forEach(function(t){t=String(t).trim();if(t)cnt[t]=(cnt[t]||0)+1;});});
+  var tags=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a]||a.localeCompare(b);});
+  bar.innerHTML='<span class="qt'+(smartTag?'':' on')+'" data-st="">全部標籤</span>'+
+    tags.map(function(t){return '<span class="qt'+(smartTag===t?' on':'')+'" data-st="'+esc(t)+'">#'+esc(t)+' <small>'+cnt[t]+'</small></span>';}).join('');
+  bar.onclick=function(e){
+    var el=e.target&&e.target.closest?e.target.closest('.qt'):null;if(!el)return;
+    smartTag=el.getAttribute('data-st')||'';
+    renderSmartTagBar();renderAlbum();
+  };
 }
 function addAlbum(){
   var name=(prompt('新相簿名稱：','相簿 '+(S.albums.length+1))||'').trim().slice(0,24);
@@ -910,9 +1026,21 @@ function delAlbum(id){
 function renderAlbTabs(){
   var el=document.getElementById('albTabs');if(!el)return;
   var h='<span class="at'+(curAlbum==='all'?' on':'')+'" onclick="setAlbum(\'all\')">📚 全部 <small>'+S.photos.length+'</small></span>';
+  /* 智能視角（自動計數，不改动實體相簿） */
+  var yearNow=new Date().getFullYear(),lm=new Date(),ly=lm.getFullYear(),lmon=lm.getMonth()-1;if(lmon<0){lmon=11;ly--;}
+  var smartDefs=[
+    {id:SMART.YEAR,ic:'📅',lb:'今年',n:S.photos.filter(function(p){return new Date(p.ts||0).getFullYear()===yearNow;}).length},
+    {id:SMART.LASTMONTH,ic:'🗓',lb:'上月',n:S.photos.filter(function(p){var t=new Date(p.ts||0);return t.getFullYear()===ly&&t.getMonth()===lmon;}).length},
+    {id:SMART.TAG,ic:'🏷',lb:'標籤',n:S.photos.filter(function(p){return (Array.isArray(p.tags)?p.tags:[]).length>0;}).length},
+    {id:SMART.FAV,ic:'❤️',lb:'喜愛',n:S.photos.filter(function(p){return !!p.fav;}).length}
+  ];
+  smartDefs.forEach(function(s){
+    h+='<span class="at'+(curAlbum===s.id?' on':'')+'" onclick="setAlbum(\''+s.id+'\')">'+s.ic+' '+s.lb+' <small>'+s.n+'</small></span>';
+  });
   S.albums.forEach(function(a){
     var n=S.photos.filter(function(p){return p.albumId===a.id;}).length;
-    h+='<span class="at'+(curAlbum===a.id?' on':'')+'" onclick="setAlbum(\''+a.id+'\')">📁 '+esc(a.name)+' <small>'+n+'</small></span>';
+    var cov=albumCover(a.id);
+    h+='<span class="at'+(curAlbum===a.id?' on':'')+'" onclick="setAlbum(\''+a.id+'\')">'+(cov?'<img class="at-cover" src="'+cov+'" alt="">':'📁 ')+esc(a.name)+' <small>'+n+'</small></span>';
   });
   h+='<span class="at add" onclick="addAlbum()">＋ 新增</span>';
   el.innerHTML=h;
@@ -921,7 +1049,8 @@ function renderAlbManage(){
   var el=document.getElementById('albManage');if(!el)return;
   el.innerHTML=S.albums.map(function(a){
     var n=S.photos.filter(function(p){return p.albumId===a.id;}).length;
-    return '<div class="mrow"><span class="mn">📁 '+esc(a.name)+' <span class="kl">（'+n+' 張）</span></span>'+
+    var cov=albumCover(a.id);
+    return '<div class="mrow"><span class="mn">'+(cov?'<img class="at-cover" src="'+cov+'" alt="">':'📁 ')+esc(a.name)+' <span class="kl">（'+n+' 張）</span></span>'+
       '<button class="mx" title="清空相片（需確認）" onclick="clearAlbumById(\''+a.id+'\')">🧹</button>'+
       '<button class="mx" title="重新命名" onclick="renameAlbum(\''+a.id+'\')">✎</button>'+
       '<button class="mx" title="刪除" onclick="delAlbum(\''+a.id+'\')">🗑</button></div>';
@@ -987,7 +1116,9 @@ function setFilter(f){
 function filteredPhotos(){
   var q=(document.getElementById('albQ').value||'').trim().toLowerCase();
   return S.photos.filter(function(p){
-    if(curAlbum!=='all'&&p.albumId!==curAlbum)return false;
+    if(curAlbum==='all'){/* 全部 */}
+    else if(SMART_IDS.indexOf(curAlbum)>=0){if(!inSmart(p,curAlbum))return false;}
+    else if(p.albumId!==curAlbum)return false;
     if(albumFilter==='fav'&&!p.fav)return false;
     if(q){
       var hay=((p.name||'')+' '+(p.note||'')+' '+(Array.isArray(p.tags)?p.tags.join(' '):'')).toLowerCase();
@@ -1051,7 +1182,7 @@ function renderHome(){
 function renderAlbum(){
   var cb=document.getElementById('clearAlbBtn');
   if(cb)cb.style.display=(curAlbum!=='all'&&albumById(curAlbum)&&S.photos.some(function(p){return p.albumId===curAlbum;}))?'flex':'none';
-  renderGallery('albGal',filteredPhotos());renderSwitches();renderAlbTabs();
+  renderGallery('albGal',filteredPhotos());renderSwitches();renderAlbTabs();renderSmartTagBar();
 }
 /* 回憶：找出「去年的今天 / 往年到今天」的舊相片，製造回訪理由 */
 function renderMemory(){

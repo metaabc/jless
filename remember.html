@@ -428,6 +428,10 @@ td.c-op .ops{display:flex;align-items:center;gap:2px;justify-content:flex-end}
 .pcard.both .pside.pback{flex:1 1 auto}
 .pctl{display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap}
 .pctl .btn{min-width:40px;justify-content:center}
+.pctl .srs-ok{color:#0f766e;border-color:#8fd6c7}
+.pctl .srs-no{color:#c0392b;border-color:#f2b8b0}
+.srs-badge{position:absolute;top:7px;left:8px;z-index:5;font-size:calc(10px * var(--fs,1));font-weight:800;color:var(--ink2);background:rgba(255,255,255,.92);border:1px solid var(--line2);border-radius:99px;padding:2px 7px;box-shadow:0 1px 3px rgba(0,0,0,.12);pointer-events:none}
+.srs-badge.due{color:var(--acc);border-color:var(--acc-line)}
 .pset{width:100%;max-width:640px;display:flex;gap:9px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:calc(11px * var(--fs,1));color:var(--sub);font-weight:700}
 .pset select{border:1px solid var(--line2);border-radius:7px;padding:5px 7px;font-size:calc(11px * var(--fs,1));background:#fff;outline:none}
 .pset .sp{flex:1;min-width:0}
@@ -807,6 +811,7 @@ body.lock{overflow:hidden}
   }
 }
 </script>
+<script src="jless-common.js"></script>
 </head>
 <body>
 
@@ -916,6 +921,7 @@ body.lock{overflow:hidden}
         <option value="noback">缺底面內容</option>
         <option value="weak">錯題</option>
       </select>
+      <label class="chk" title="只顯示今天到期需要溫習的卡片"><input type="checkbox" id="dueOnly"> 只溫習到期</label>
       <label class="chk"><input type="checkbox" id="hideBack"> 遮蔽反面</label>
       <button class="btn sm" id="btnReorder" title="整理／批量調整卡片順序">⇅ 整理順序</button>
       <span class="count" id="viewCount"></span>
@@ -1053,6 +1059,8 @@ body.lock{overflow:hidden}
     <button class="btn pri" id="plPause" title="暫停 / 繼續 (空白鍵)">⏸ 暫停</button>
     <button class="btn" id="plFlip" title="翻面">🔄 翻面</button>
     <button class="btn" id="plReplay" title="重讀">🔊 重讀</button>
+    <button class="btn srs-ok" id="plGot" title="記得：升到下一盒">✓ 記得</button>
+    <button class="btn srs-no" id="plForgot" title="忘記：回到第 1 盒">✗ 忘記</button>
     <button class="btn" id="plNext" title="下一張 (→)">⏭</button>
     <button class="btn" id="plContinue" style="display:none">▶ 續播整份</button>
   </div>
@@ -1073,7 +1081,7 @@ body.lock{overflow:hidden}
     <span class="si"><span>反面</span><select id="plLangB"><option value="auto">自動（跟清單）</option><option value="list">中文・跟清單</option><option value="zh-CN">普通話（強制）</option><option value="zh-TW">國語・台（強制）</option><option value="zh-HK">粵語（強制）</option><option value="en-US">English (US)</option></select></span>
     <span class="si"><span>顯示</span><select id="plMode"><option value="split">分面（先看正面）</option><option value="both">正反同時顯示</option></select></span>
     <span class="si"><span>順序</span><select id="plDir"><option value="fb">正 → 反</option><option value="bf">反 → 正</option></select></span>
-    <span class="si"><span>語速</span><select id="plRate"><option value="0.7">0.7×</option><option value="0.85">0.85×</option><option value="1" selected>1×</option><option value="1.2">1.2×</option><option value="1.5">1.5×</option></select></span>
+    <span class="si"><span>語速</span><select id="plRate"><option value="0.7">0.7×</option><option value="0.8">0.8×</option><option value="0.85">0.85×</option><option value="1" selected>1×</option><option value="1.2">1.2×</option><option value="1.5">1.5×</option></select></span>
     <span class="si"><span>間隔</span><select id="plGap"><option value="0.3">0.3s</option><option value="0.8" selected>0.8s</option><option value="1.5">1.5s</option><option value="2.5">2.5s</option></select></span>
     <div class="ttsrow"><button class="btn sm" id="plTest" type="button">🔊 測試朗讀</button><span id="ttsState">偵測中…</span></div>
     <div class="tip"><span id="voiceHint">中文語音：偵測中…</span><br>中英混合內容會自動分段，中文用上方語音、英文用英語語音。<b>「顯示」</b>可選分面（先正面，點一下看反面）或正反同時顯示（不用翻面，一次讀完兩面）。<b>手機：左右滑動切換卡片、點一下下一張</b>；電腦：← →＝上一張／下一張，↑ ↓ 或 F＝翻面，空白鍵＝暫停／繼續，Esc＝結束。所有設定會自動記住，下次打開沿用。</div>
@@ -1214,6 +1222,7 @@ body.lock{overflow:hidden}
       <hr class="as-sep">
       <button class="as-opt" data-s="s_lang_pk"><span class="ic">🔊</span><span class="lb">普通話朗讀</span></button>
       <button class="as-opt" data-s="s_lang_yue"><span class="ic">🗣</span><span class="lb">粵語朗讀</span></button>
+      <button class="as-opt" data-s="s_rate"><span class="ic">🐢</span><span class="lb">朗讀語速：<span id="sRateLbl">1×</span>（點按切換 0.8／1／1.2）</span></button>
       <button class="as-opt" data-s="s_pin"><span class="ic">📌</span><span class="lb">置頂／取消置頂</span></button>
       <button class="as-opt" data-s="s_archive"><span class="ic">📦</span><span class="lb">歸檔此清單</span></button>
       <button class="as-opt" data-s="s_rename"><span class="ic">✎</span><span class="lb">重新命名</span></button>
@@ -1285,6 +1294,7 @@ body.lock{overflow:hidden}
           <button data-v="lg" type="button">大</button>
         </div>
       </div>
+      <button class="as-opt" id="vsDueOnly" data-v="due" type="button"><span class="ic">⏰</span><span class="lb">只溫習到期</span><span class="sum" id="vsDueSum"></span></button>
       <label class="as-opt" style="gap:11px">
         <span class="ic">🙈</span><span class="lb">遮蔽反面（自測）</span>
         <span class="chk"><input type="checkbox" id="vsHideBack" style="width:20px;height:20px;accent-color:var(--acc)"></span>
@@ -1436,7 +1446,7 @@ function defaults(){
   return {
     lists:[l], active:l.id,
     quizHistory:[],
-    ui:{layout:'grid',density:'md',sort:'seq',filter:'all',q:'',hideBack:false,listQ:''},
+    ui:{layout:'grid',density:'md',sort:'seq',filter:'all',q:'',hideBack:false,listQ:'',dueOnly:false},
     tts:{on:true,auto:true,loop:false,shuffle:false,dir:'fb',mode:'split',langF:'auto',langB:'auto',rate:1,gap:.8},
     pdf:{mode:'double',paper:'a4p',cols:3,rows:4,margin:8,gutter:2,duplex:'yes',flip:'long',offX:0,offY:0,
          calib:false,font:0,scope:'all',cut:true,border:true,no:true,side:true}
@@ -1455,7 +1465,15 @@ function load(){
   if(!S.lists.some(l=>l.id===S.active)) S.active=S.lists[0].id;
   S.lists.forEach(l=>{
     if(!Array.isArray(l.cards))l.cards=[];
-    l.cards.forEach(c=>{ c.star=!!c.star; c.done=!!c.done; if(typeof c.weak!=='number'||c.weak<0)c.weak=0; });
+    l.cards.forEach(c=>{
+      c.star=!!c.star; c.done=!!c.done;
+      if(typeof c.weak!=='number'||c.weak<0)c.weak=0;
+      /* 間隔重複欄位：向後相容舊卡片 */
+      if(typeof c.wrongCount!=='number'||c.wrongCount<0)c.wrongCount=c.weak;
+      if(c.weak<c.wrongCount)c.weak=c.wrongCount;
+      if(typeof c.box!=='number'||c.box<1||c.box>5||Math.floor(c.box)!==c.box)c.box=1;
+      if(typeof c.nextDue!=='number'||c.nextDue<0)c.nextDue=0;
+    });
     if(l.ttsLang!=='putonghua'&&l.ttsLang!=='cantonese')l.ttsLang='putonghua';
     if(typeof l.pinned!=='boolean')l.pinned=false;
     if(typeof l.archived!=='boolean')l.archived=false;
@@ -1470,6 +1488,23 @@ function save(){
 function cur(){ return S.lists.find(l=>l.id===S.active) || S.lists[0]; }
 function cardById(id){ return cur().cards.find(c=>c.id===id); }
 function touch(){ cur().updated=Date.now(); save(); }
+/* ---------------- 間隔重複（Leitner 1–5 盒） ---------------- */
+const SRS_DAYS=[1,3,7,14,30], DAY_MS=86400000;
+function isDue(c){ return !c.nextDue || c.nextDue<=Date.now(); }
+function dueCount(l){ return (l&&Array.isArray(l.cards))?l.cards.filter(isDue).length:0; }
+function srsReview(card,correct){
+  if(!card)return;
+  if(correct){
+    card.box=Math.min(5,(card.box||1)+1);
+    card.nextDue=Date.now()+SRS_DAYS[card.box-1]*DAY_MS;
+  }else{
+    card.box=1;
+    card.nextDue=Date.now()+DAY_MS;
+    card.wrongCount=(card.wrongCount||0)+1;
+    card.weak=(card.weak||0)+1;
+  }
+}
+function trashSnap(label){ try{ if(window.JLess&&JLess.trash&&JLess.trash.snapshot)JLess.trash.snapshot(KEY,label); }catch(e){} }
 // 卡片文字超過兩行時改為向左對齊，避免長內容置中難讀
 function autoAlign(el){
   if(!el)return;
@@ -1488,7 +1523,8 @@ function viewCards(){
   if(f==='star') a=a.filter(c=>c.star);
   if(f==='hasback') a=a.filter(c=>String(c.back||'').trim());
   if(f==='noback') a=a.filter(c=>!String(c.back||'').trim());
-  if(f==='weak') a=a.filter(c=>c.weak>0);
+  if(f==='weak') a=a.filter(c=>(c.wrongCount||c.weak||0)>0);
+  if(S.ui.dueOnly) a=a.filter(isDue);
   const s=S.ui.sort;
   if(s==='az') a.sort((x,y)=>String(x.front).localeCompare(String(y.front),'zh-Hant'));
   if(s==='new') a.sort((x,y)=>(y.ts||0)-(x.ts||0));
@@ -1706,10 +1742,12 @@ function renderHead(){
   $('#listName').value=l.name||'';
   const backs=l.cards.filter(c=>String(c.back||'').trim()).length;
   const done=l.cards.filter(c=>c.done).length;
-  const weak=l.cards.filter(c=>c.weak>0).length;
-  $('#listMeta').textContent=l.cards.length+' 張卡 · '+backs+' 張有底面 · '+done+' 張已熟練'+(weak?' · '+weak+' 張錯題':'')+(storageOK?'':' · ⚠ 本機儲存不可用');
+  const weak=l.cards.filter(c=>wrongN(c)>0).length;
+  const due=dueCount(l);
+  $('#listMeta').textContent=l.cards.length+' 張卡 · '+backs+' 張有底面 · '+done+' 張已熟練'+(due?' · '+due+' 張今日待溫習':'')+(weak?' · '+weak+' 張錯題':'')+(storageOK?'':' · ⚠ 本機儲存不可用');
   $$('#layoutSeg button').forEach(b=>b.classList.toggle('on',b.dataset.l===S.ui.layout));
   $('#sortSel').value=S.ui.sort; $('#filterSel').value=S.ui.filter; $('#hideBack').checked=S.ui.hideBack;
+  $('#dueOnly').checked=!!S.ui.dueOnly;
   renderLangSeg(); renderViewSheet();
 }
 /* 每份清單獨立的中文朗讀語音（普通話／粵語） */
@@ -1735,13 +1773,18 @@ function opsHTML(c,compact){
 /* 正反面「複製內容」小鈕：點擊複製該面純文字（去圖標記）到剪貼簿 */
 function cpHTML(side,id){ const lab=side==='back'?'反面':'正面'; return '<button type="button" class="cp" data-copy="'+side+'" data-id="'+id+'" title="複製'+lab+'內容">📋</button>'; }
 /* 錯題標記：測驗答錯（含未作答）累計次數 c.weak */
+function wrongN(c){ return (c&&((c.wrongCount||0)||(c.weak||0)))||0; }
 function weakBadge(c){
-  if(!c.weak)return '';
-  return '<span class="weak-badge" title="測驗曾答錯 '+(c.weak>1?c.weak+' 次':'')+'">🔴 錯題'+(c.weak>1?(' '+c.weak):'')+'</span>';
+  const n=wrongN(c); if(!n)return '';
+  return '<span class="weak-badge" title="測驗曾答錯 '+n+' 次">🔴 錯題'+(n>1?(' '+n):'')+'</span>';
 }
 function weakInline(c){
-  if(!c.weak)return '';
-  return '<span class="weak-inline">🔴 錯題'+(c.weak>1?(' '+c.weak):'')+'</span>';
+  const n=wrongN(c); if(!n)return '';
+  return '<span class="weak-inline">🔴 錯題'+(n>1?(' '+n):'')+'</span>';
+}
+function srsBadgeHTML(c){
+  const due=isDue(c), box=c.box||1;
+  return '<span class="srs-badge'+(due?' due':'')+'" title="第 '+box+' 盒（'+SRS_DAYS[box-1]+' 天間隔）· '+(due?'今日到期':'下次 '+new Date(c.nextDue).toLocaleDateString('zh-Hant'))+'">B'+box+(due?' · 到期':'')+'</span>';
 }
 function renderCards(){
   const a=viewCards(), area=$('#cardsArea');
@@ -1761,7 +1804,7 @@ function renderCards(){
         ? '<div class="fc-back">'+(masked?'<span class="peek"><button data-act="peek" data-id="'+c.id+'">👁 顯示答案</button></span>':'')+'<div class="lb-row"><span class="lb">反面 BACK</span>'+cpHTML('back',c.id)+'</div><span class="txt">'+cardHTML(c.back, c.imgs)+'</span></div>'
         : '';
       return '<div class="fc'+(c.star?' starred':'')+(c.done?' done':'')+(masked&&back?' masked':'')+(c.weak?' weak':'')+'" data-card="'+c.id+'">'+
-        '<span class="cdrag" title="按住拖動調整順序（「原順序」且無篩選時）">⠿</span>'+weakBadge(c)+
+        '<span class="cdrag" title="按住拖動調整順序（「原順序」且無篩選時）">⠿</span>'+srsBadgeHTML(c)+weakBadge(c)+
         '<div class="fc-hit" data-act="play" data-id="'+c.id+'" title="點一下播放這張"></div>'+
         '<div class="fc-top"><span class="fc-no">'+(i+1)+'</span><div class="fc-front">'+cpHTML('front',c.id)+cardHTML(c.front||'（空白）', c.imgs)+'</div></div>'+
         backHTML+
@@ -1781,7 +1824,7 @@ function renderCards(){
   } else {
     if(focusIdx>=a.length)focusIdx=0;
     const c=a[focusIdx];
-    area.innerHTML='<div class="focus-v"><div class="big"><span class="pill">第 '+(focusIdx+1)+' / '+a.length+' 張 · '+(c.star?'⭐ 重點':'')+(c.weak?' · 🔴錯題':'')+'</span>'+
+    area.innerHTML='<div class="focus-v"><div class="big"><span class="pill">第 '+(focusIdx+1)+' / '+a.length+' 張 · 第 '+(c.box||1)+' 盒'+(isDue(c)?' · 到期':'')+(c.star?' · ⭐ 重點':'')+(c.weak?' · 🔴錯題':'')+'</span>'+
       '<div class="q">'+cpHTML('front',c.id)+cardHTML(c.front||'（空白）', c.imgs)+'</div>'+
       '<div class="a'+(focusShow?'':' hide')+'">'+cpHTML('back',c.id)+cardHTML(c.back||'', c.imgs)+'</div>'+
       '<div class="hint">按「顯示答案」自我檢檢測，或直接播放朗讀</div></div>'+
@@ -1820,7 +1863,7 @@ function saveCard(next){
   if(editId){
     const c=cardById(editId); Object.assign(c,v); c.ts=Date.now();
   }else{
-    l.cards.push(Object.assign({id:uid(),ts:Date.now(),weak:0},v));
+    l.cards.push(Object.assign({id:uid(),ts:Date.now(),weak:0,wrongCount:0,box:1,nextDue:0},v));
   }
   touch(); render();
   if(next){ editId=null; edImgs={}; $('#edFront').value=''; $('#edBack').value=''; $('#edStar').checked=false; $('#edDone').checked=false;
@@ -1912,7 +1955,21 @@ function clearWeak(){
   const l=cur(); const n=l.cards.filter(c=>c.weak>0).length;
   if(!n){ toast('這份清單沒有錯題標記'); return; }
   if(!confirm('清除這份清單 '+n+' 張卡片的「錯題」標記？'))return;
-  l.cards.forEach(c=>c.weak=0); touch(); render(); toast('已清除錯題標記');
+  l.cards.forEach(c=>{c.weak=0;c.wrongCount=0;}); touch(); render(); toast('已清除錯題標記');
+}
+/* 全域朗讀語速：0.8 / 1 / 1.2，直接套用到 speechSynthesis 的 utterance.rate */
+const SPEECH_RATES=[0.8,1,1.2];
+function renderRateLbl(){
+  const el=$('#sRateLbl'); if(el)el.textContent=(S.tts.rate||1)+'×';
+}
+function setSpeechRate(){
+  let i=SPEECH_RATES.indexOf(+S.tts.rate);
+  if(i<0)i=SPEECH_RATES.reduce((best,v,k)=>Math.abs(v-(+S.tts.rate||1))<Math.abs(SPEECH_RATES[best]-(+S.tts.rate||1))?k:best,1);
+  const v=SPEECH_RATES[(i+1)%SPEECH_RATES.length];
+  S.tts.rate=v;
+  const sel=$('#plRate'); if(sel)sel.value=String(v);
+  save(); renderRateLbl(); updatePsetSummary();
+  toast('朗讀語速：'+v+'×');
 }
 function closeMenus(){ $('#moreMenu').classList.remove('on'); $('#menuScrim').classList.remove('on'); }
 /* 有對話框開啟時鎖住背景滾動（手機防誤滑） */
@@ -1968,6 +2025,7 @@ $('#listMenu').addEventListener('click',e=>{
   else if(am==='del'){
     if(S.lists.length===1){ toast('至少要保留一份清單'); return; }
     if(confirm('確定刪除清單「'+l.name+'」及其 '+l.cards.length+' 張卡片？')){
+      trashSnap('記憶卡清單：'+l.name);
       S.lists=S.lists.filter(x=>x.id!==id); if(S.active===id)S.active=S.lists[0].id; save(); render(); toast('已刪除清單'); gaTrack('list_delete');
     }
   }
@@ -1995,10 +2053,11 @@ $('#moreMenu').addEventListener('click',e=>{
   if(m==='dup'){ dupList(l.id); }
   if(m==='paste'){ openImport('paste'); }
   if(m==='clearweak'){ clearWeak(); return; }
-  if(m==='clear'){ if(l.cards.length&&confirm('確定清空「'+l.name+'」的 '+l.cards.length+' 張卡片？此動作無法復原。')){ l.cards=[]; touch(); render(); toast('已清空'); } }
+  if(m==='clear'){ if(l.cards.length&&confirm('確定清空「'+l.name+'」的 '+l.cards.length+' 張卡片？此動作無法復原。')){ trashSnap('記憶卡清單：'+l.name+'（清空）'); l.cards=[]; touch(); render(); toast('已清空'); } }
   if(m==='del'){
     if(S.lists.length===1){ toast('至少要保留一份清單'); return; }
     if(confirm('確定刪除清單「'+l.name+'」及其 '+l.cards.length+' 張卡片？')){
+      trashSnap('記憶卡清單：'+l.name);
       S.lists=S.lists.filter(x=>x.id!==l.id); S.active=S.lists[0].id; save(); render(); toast('已刪除清單'); gaTrack('list_delete');
     }
   }
@@ -2008,6 +2067,13 @@ document.addEventListener('click',e=>{ if(!e.target.closest('.menu-wrap'))closeM
 $('#search').oninput=e=>{ S.ui.q=e.target.value; focusIdx=0; renderCards(); renderViewSheet(); };
 $('#sortSel').onchange=e=>{ S.ui.sort=e.target.value; save(); renderCards(); };
 $('#filterSel').onchange=e=>{ S.ui.filter=e.target.value; focusIdx=0; save(); renderCards(); };
+function setDueOnly(v){
+  S.ui.dueOnly=!!v; focusIdx=0; save();
+  const cb=$('#dueOnly'); if(cb)cb.checked=S.ui.dueOnly;
+  const vc=$('#vsDueOnly'); if(vc)vc.classList.toggle('on',S.ui.dueOnly);
+  renderCards(); renderHead();
+}
+$('#dueOnly').onchange=e=>setDueOnly(e.target.checked);
 $('#hideBack').onchange=e=>{ S.ui.hideBack=e.target.checked; revealed.clear(); save(); renderCards(); };
 $('#layoutSeg').addEventListener('click',e=>{
   const b=e.target.closest('[data-l]'); if(!b)return;
@@ -2040,7 +2106,7 @@ $('#cardsArea').addEventListener('click',e=>{
 });
 $('#edSave').onclick=()=>saveCard(false);
 $('#edSaveAdd').onclick=()=>saveCard(true);
-$('#edDel').onclick=()=>{ if(editId&&confirm('刪除這張卡片？')){ const l=cur(); l.cards=l.cards.filter(c=>c.id!==editId); touch(); render(); maskClose('#cardMask'); toast('已刪除'); } };
+$('#edDel').onclick=()=>{ if(editId&&confirm('刪除這張卡片？')){ const l=cur(); const target=cardById(editId); trashSnap('記憶卡：'+plainText((target&&target.front)||(target&&target.back)||'')); l.cards=l.cards.filter(c=>c.id!==editId); touch(); render(); maskClose('#cardMask'); toast('已刪除'); } };
 $('#edUp').onclick=()=>moveCard(-1);
 $('#edDown').onclick=()=>moveCard(1);
 $$('.imgbtn').forEach(b=>b.onclick=()=>{ const w=b.dataset.img; const inp=$('[data-imgin="'+w+'"]'); if(inp)inp.click(); });
@@ -3263,6 +3329,21 @@ $('#plNext').onclick=()=>plNextSmart();
 $('#plPause').onclick=plPauseToggle;
 $('#plFlip').onclick=plFlip;
 $('#plReplay').onclick=()=>{ clearTimeout(P.timer); stopSpeech(); runStep(); };
+/* 誦讀模式自我評量：直接套用間隔重複，並前進下一張 */
+function playSrsRate(correct){
+  if(!P.active)return;
+  const c=cardById(P.ids[P.idx]); if(!c)return;
+  srsReview(c,correct); touch();
+  clearTimeout(P.timer); stopSpeech();
+  const last=P.idx+1>=P.ids.length;
+  if(!last){
+    P.idx++; setFirstSide(cardById(P.ids[P.idx])); renderPlay();
+    if(!P.paused)runStep();
+  }else{ P.paused=true; renderPlay(); }
+  toast((correct?('✓ 已升到第 '+c.box+' 盒 · '+SRS_DAYS[c.box-1]+' 天後再溫習'):'✗ 已回到第 1 盒 · 已記為錯題')+(last?'　·　本輪完成':''));
+}
+$('#plGot').onclick=()=>playSrsRate(true);
+$('#plForgot').onclick=()=>playSrsRate(false);
 /* 測試朗讀：即時在用戶手勢中發聲，直接告訴用家這部機是否能讀 */
 $('#plTest').onclick=()=>{
   if(!hasTTS){ toast('此瀏覽器不支援朗讀（Web Speech），請改用 Chrome／Edge／Safari',5000); return; }
@@ -3349,6 +3430,7 @@ function quizPool(explicitIds){
     else if(Q.scope==='star')pool=pool.filter(c=>c.star);
     else if(Q.scope==='hasback')pool=pool.filter(c=>c.front&&c.back);
   }
+  if(S.ui.dueOnly)pool=pool.filter(isDue);
   pool=pool.filter(c=>(c[ps]||'').trim()&&(c[as]||'').trim())
            .map(c=>({cardId:c.id,prompt:c[ps],answer:plainText(c[as]),imgs:c.imgs||{}}));
   if(Q.order==='shuffle')pool=shuffle(pool);
@@ -3445,8 +3527,9 @@ function finishQuiz(){
   Q.active=false;
   let correct=0; Q.items.forEach((it,i)=>{ if(Q.answered[i]&&Q.answered[i].correct)correct++; });
   updateQuizWrong();
-  /* 答錯（含未作答）的卡片累計 weak，作為錯題標記 */
-  Q.items.forEach((it,i)=>{ const r=Q.answered[i]||{}; if(!r.correct){ const c=cardById(it.cardId); if(c){ c.weak=(c.weak||0)+1; } } });
+  /* 間隔重複：答對升盒、答錯（含未作答）回第 1 盒並累加錯題次數 */
+  Q.items.forEach((it,i)=>{ const r=Q.answered[i]||{}; const c=cardById(it.cardId); if(c)srsReview(c,!!r.correct); });
+  save();
   const total=Q.items.length, pct=total?Math.round(correct/total*100):0;
   $('#qScoreBig').textContent=correct+' / '+total;
   $('#qScoreBig').className='big '+(pct>=60?'ok':'no');
@@ -3554,6 +3637,8 @@ function renderViewSheet(){
   $$('#vsFilter button').forEach(b=>b.classList.toggle('on',b.dataset.v===u.filter));
   $$('#vsDensity button').forEach(b=>b.classList.toggle('on',b.dataset.v===u.density));
   const hb=$('#vsHideBack'); if(hb)hb.checked=!!u.hideBack;
+  const vo=$('#vsDueOnly'); if(vo)vo.classList.toggle('on',!!u.dueOnly);
+  const vs=$('#vsDueSum'); if(vs)vs.textContent=dueCount(cur())+' 張到期';
   const t=$('#mViewTxt'); if(t)t.textContent=LAYOUT_TXT[u.layout]||'檢視';
   const mv=$('#mView');
   if(mv)mv.classList.toggle('pri', u.filter!=='all' || !!(u.q||'').trim());
@@ -3564,6 +3649,7 @@ $('#viewSheet').addEventListener('click',e=>{
   if(ro){ maskClose('#viewSheet'); openReorder(); return; }
   const b=e.target.closest('[data-v]'); if(!b)return;
   const grp=b.parentElement.id;
+  if(b.id==='vsDueOnly'||b.dataset.v==='due'){ setDueOnly(!S.ui.dueOnly); renderViewSheet(); return; }
   if(grp==='vsLayout'){ S.ui.layout=b.dataset.v; focusIdx=0; focusShow=false; save(); render(); }
   else if(grp==='vsSort'){ S.ui.sort=b.dataset.v; save(); render(); }
   else if(grp==='vsFilter'){ S.ui.filter=b.dataset.v; focusIdx=0; save(); render(); }
@@ -3594,7 +3680,7 @@ function renderListPick(){
   const arch=S.lists.filter(l=>l.archived && match(l));
   const item=l=>{
     const on=l.id===S.active;
-    const weak=l.cards.filter(c=>c.weak>0).length;
+    const weak=l.cards.filter(c=>wrongN(c)>0).length;
     const meta=l.cards.length+' 張卡'+(l.pinned?' · 置頂':'')+(weak?' · '+weak+' 張錯題':'');
     return '<button class="as-opt'+(on?' active':'')+'" data-pick="'+l.id+'">'+
       '<span class="ic">'+(on?'📂':(l.archived?'📦':'📚'))+'</span>'+
@@ -3630,6 +3716,7 @@ $('#settingsSheet').addEventListener('click',e=>{
   if(act==='s_import'){ openImport(); return; }
   if(act==='s_lang_pk') setListLang('putonghua');
   else if(act==='s_lang_yue') setListLang('cantonese');
+  else if(act==='s_rate') setSpeechRate();
   else if(act==='s_pin') togglePin(l.id);
   else if(act==='s_archive') toggleArchive(l.id);
   else if(act==='s_rename'){ const v=prompt('清單名稱：',l.name); if(v!==null){ l.name=v.trim()||l.name; touch(); render(); } }
@@ -3651,7 +3738,7 @@ document.addEventListener('visibilitychange',()=>{
 window.addEventListener('pagehide',()=>{ if(P.active)stopPlay(); });
 
 /* ---------------- boot ---------------- */
-load(); render();
+load(); render(); renderRateLbl(); setDueOnly(!!S.ui.dueOnly);
 if(!localStorage.getItem(KEY))save();
 (function(){
   const cb=$('#gaOptOut'); if(!cb)return;
