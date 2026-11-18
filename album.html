@@ -140,6 +140,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
   font-size:calc(12px * var(--fs));font-weight:700;cursor:pointer;white-space:nowrap;color:var(--ink2)}
 .selbar button.pri{background:var(--accent);color:#fff;border-color:var(--accent)}
 .selbar button:disabled{opacity:.5}
+.selbar button.del{color:#d8392b;border-color:#f3c9c4}
 body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 
 /* 相簿管理列 */
@@ -163,6 +164,10 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 .seg{display:flex;gap:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--panel)}
 .seg span{padding:9px 11px;font-size:calc(12px * var(--fs));font-weight:700;color:var(--muted);cursor:pointer;user-select:none;-webkit-user-select:none}
 .seg span.on{background:var(--accent);color:#fff}
+.iconbtn{width:38px;height:38px;flex:0 0 auto;border-radius:11px;border:1px solid var(--line);background:var(--panel);
+  font-size:15px;cursor:pointer;color:var(--ink2);user-select:none;-webkit-user-select:none;padding:0}
+.iconbtn.danger{color:#d8392b;border-color:#f3c9c4}
+.iconbtn:active{transform:scale(.94)}
 /* 上載／區段標題／常用標籤 */
 .upbar{display:flex;align-items:center;gap:10px;margin:12px 16px 0}
 .upbar .btn{margin:0;flex:1}
@@ -317,6 +322,7 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
       <div class="toolrow">
         <input class="srch" id="albQ" placeholder="🔍 搜尋檔名・標籤・備註" oninput="renderAlbum()">
         <div class="seg"><span class="on" id="fAll" onclick="setFilter('all')">全部</span><span id="fFav" onclick="setFilter('fav')">❤️ 喜愛</span></div>
+        <button class="iconbtn danger" id="clearAlbBtn" title="清空此相簿（需確認）" onclick="clearCurrentAlbum()" style="display:none">🗑</button>
       </div>
       <div class="qtags" id="quickTags"></div>
       <div id="albGal"></div>
@@ -409,8 +415,8 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
   <div class="selbar" id="selBar">
     <span class="cnt" id="selCnt">已選 0 張</span>
     <button onclick="selectAllVisible()">全選</button>
-    <button onclick="clearSelection()">清除</button>
-    <button class="pri" id="shareSelBtn" onclick="shareSelected()">📤 分享</button>
+    <button class="del" id="delSelBtn" disabled onclick="deleteSelected()">🗑️ 刪除</button>
+    <button class="pri" id="shareSelBtn" disabled onclick="shareSelected()">📤 分享</button>
     <button onclick="toggleSelectMode(false)" title="完成選取">✕</button>
   </div>
 
@@ -696,6 +702,7 @@ function updateSelBar(){
   var n=selectedIds().length;
   var cnt=document.getElementById('selCnt');if(cnt)cnt.textContent='已選 '+n+' 張';
   var sb=document.getElementById('shareSelBtn');if(sb)sb.disabled=!n;
+  var db=document.getElementById('delSelBtn');if(db)db.disabled=!n;
   var b=document.getElementById('selToggle');if(b){
     b.textContent=selectMode?'✕':'☑️';b.classList.toggle('on',selectMode);
     b.title=selectMode?'完成選取':'選取相片（可拖拉連續選取）';
@@ -711,7 +718,13 @@ function togglePick(id){
   if(selected[id])delete selected[id];else selected[id]=true;
   renderHome();renderAlbum();updateSelBar();
 }
-function selectAllVisible(){currentVisible().forEach(function(p){selected[p.id]=true;});renderHome();renderAlbum();updateSelBar();}
+function selectAllVisible(){
+  var vis=currentVisible();if(!vis.length){toast('沒有可選取的相片');return;}
+  var all=vis.every(function(p){return !!selected[p.id];});
+  vis.forEach(function(p){if(all)delete selected[p.id];else selected[p.id]=true;});
+  renderHome();renderAlbum();updateSelBar();
+  toast(all?'已取消全選':'已全選 '+vis.length+' 張');
+}
 function clearSelection(){selected={};renderHome();renderAlbum();updateSelBar();}
 function shareSelected(){var ids=selectedIds();if(!ids.length){toast('請先選取相片');return;}sharePhotos(ids);}
 
@@ -865,6 +878,7 @@ async function commitBatch(batch,dup){
 
 /* ============ 相簿：切換與管理 ============ */
 function setAlbum(id){
+  if(selectMode&&selectedIds().length){selected={};updateSelBar();}
   curAlbum=(id==='all'||albumById(id))?id:'all';
   renderAlbTabs();renderAlbum();
 }
@@ -908,6 +922,7 @@ function renderAlbManage(){
   el.innerHTML=S.albums.map(function(a){
     var n=S.photos.filter(function(p){return p.albumId===a.id;}).length;
     return '<div class="mrow"><span class="mn">📁 '+esc(a.name)+' <span class="kl">（'+n+' 張）</span></span>'+
+      '<button class="mx" title="清空相片（需確認）" onclick="clearAlbumById(\''+a.id+'\')">🧹</button>'+
       '<button class="mx" title="重新命名" onclick="renameAlbum(\''+a.id+'\')">✎</button>'+
       '<button class="mx" title="刪除" onclick="delAlbum(\''+a.id+'\')">🗑</button></div>';
   }).join('');
@@ -920,19 +935,50 @@ function toggleFav(id){
   if(document.getElementById('viewer').classList.contains('show'))drawViewer();
   toast(p.fav?'❤️ 已加入喜愛':'已取消喜愛');
 }
+/* 共用刪除：同步中繼、IndexedDB、重複索引、相簿計數與查看器 */
+function removePhotos(ids){
+  ids=ids||[];if(!ids.length)return;
+  var kill={};ids.forEach(function(id){kill[id]=true;});
+  S.photos=S.photos.filter(function(p){return !kill[p.id];});
+  save();
+  if(db)ids.forEach(function(id){idbDel(id);});
+  buildMemIndex();
+  renderAllA();
+  if(document.getElementById('viewer').classList.contains('show')){
+    viewIds=viewIds.filter(function(id){return !kill[id];});
+    if(!viewIds.length)closeViewer();
+    else{if(viewPos>=viewIds.length)viewPos=viewIds.length-1;drawViewer();}
+  }
+}
 function delPhoto(id){
   var p=photoById(id);if(!p)return;
   if(!confirm('刪除相片「'+(p.name||'未命名')+'」？此動作無法復原。'))return;
-  S.photos=S.photos.filter(function(x){return x.id!==id;});
-  save();if(db)idbDel(id);buildMemIndex();renderAllA();
-  if(document.getElementById('viewer').classList.contains('show')){
-    viewIds=viewIds.filter(function(x){return x!==id;});
-    if(viewPos>=viewIds.length)viewPos=viewIds.length-1;
-    if(viewPos<0)closeViewer();else drawViewer();
-  }
-  toast('已刪除');
+  removePhotos([id]);toast('已刪除');
+}
+/* 批量刪除已選取相片 */
+function deleteSelected(){
+  var ids=selectedIds();if(!ids.length){toast('請先選取相片');return;}
+  if(!confirm('確定刪除已選取的 '+ids.length+' 張相片？\n此動作無法復原。'))return;
+  selectMode=false;selected={};
+  removePhotos(ids);
+  updateSelBar();toast('已刪除 '+ids.length+' 張');
+}
+/* 清空指定／目前相簿（只刪相片，保留相簿本身） */
+function clearAlbumById(id){
+  var a=albumById(id);if(!a)return;
+  var ids=S.photos.filter(function(p){return p.albumId===id;}).map(function(p){return p.id;});
+  if(!ids.length){toast('「'+a.name+'」沒有相片');return;}
+  if(!confirm('確定清空相簿「'+a.name+'」的 '+ids.length+' 張相片？\n相簿會保留，但相片會永久刪除，無法復原。'))return;
+  selectMode=false;selected={};
+  removePhotos(ids);
+  updateSelBar();toast('已清空「'+a.name+'」（'+ids.length+' 張）');
+}
+function clearCurrentAlbum(){
+  if(curAlbum==='all'||!albumById(curAlbum)){toast('請先選擇一個相簿');return;}
+  clearAlbumById(curAlbum);
 }
 function setFilter(f){
+  if(selectMode&&selectedIds().length){selected={};updateSelBar();}
   albumFilter=f;
   document.getElementById('fAll').classList.toggle('on',f==='all');
   document.getElementById('fFav').classList.toggle('on',f==='fav');
@@ -1002,7 +1048,11 @@ function renderHome(){
   var c=document.getElementById('homeCnt');if(c)c.textContent=favs.length?('· '+favs.length+' 張'):'';
   renderSwitches();
 }
-function renderAlbum(){renderGallery('albGal',filteredPhotos());renderSwitches();renderAlbTabs();}
+function renderAlbum(){
+  var cb=document.getElementById('clearAlbBtn');
+  if(cb)cb.style.display=(curAlbum!=='all'&&albumById(curAlbum)&&S.photos.some(function(p){return p.albumId===curAlbum;}))?'flex':'none';
+  renderGallery('albGal',filteredPhotos());renderSwitches();renderAlbTabs();
+}
 /* 回憶：找出「去年的今天 / 往年到今天」的舊相片，製造回訪理由 */
 function renderMemory(){
   var box=document.getElementById('memoryBox');if(!box)return;
@@ -1261,7 +1311,10 @@ function importBak(e){
 function clearAll(){
   if(!S.photos.length){toast('沒有相片可清除');return;}
   if(!confirm('確定清除全部 '+S.photos.length+' 張相片？此動作無法復原。'))return;
-  S.photos=[];selected={};save();if(db)idbClear();buildMemIndex();renderAlbTabs();renderAllA();toast('已清除所有相片（相簿保留）');
+  var ids=S.photos.map(function(p){return p.id;});
+  selectMode=false;selected={};
+  removePhotos(ids);
+  updateSelBar();toast('已清除所有相片（相簿保留）');
 }
 
 /* ============ 初始化 ============ */
