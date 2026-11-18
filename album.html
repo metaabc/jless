@@ -47,6 +47,12 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .title .logo{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
 .title .sub{font-size:11px;color:var(--muted);margin-top:1px}
+@media (max-width:400px){.title .sub{display:none}}
+.topacts{margin-left:auto;display:flex;gap:7px;flex:0 0 auto}
+.hact{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);
+  font-size:17px;cursor:pointer;user-select:none;-webkit-user-select:none;display:flex;align-items:center;justify-content:center;padding:0}
+.hact:active{transform:scale(.94)}
+.hact.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 
 .view{display:none;padding:6px 0 0}
 .view.show{display:block}
@@ -78,8 +84,8 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .ly-masonry .ph img{aspect-ratio:auto;height:auto}
 .ly-list .ph{display:flex;align-items:center;gap:10px;padding:8px;border-radius:13px}
 .ly-list .ph img{width:82px;height:82px;flex:0 0 82px;aspect-ratio:auto;object-fit:cover;border-radius:9px}
-.ph .fav{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.4);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-size:15px;border:none;cursor:pointer;user-select:none;-webkit-user-select:none;line-height:1}
+.ph .fav{position:absolute;top:7px;right:7px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.46);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:17px;border:none;cursor:pointer;user-select:none;-webkit-user-select:none;line-height:1}
 .ph .fav.on{color:#ff5a7a}
 .ph .cap{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.62));color:#fff;
   font-size:calc(10.5px * var(--fs));padding:14px 7px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -100,32 +106,31 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .ly-timeline .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .ly-timeline .ph img{aspect-ratio:1;object-fit:cover}
 /* 回憶卡 */
-.memory{background:linear-gradient(135deg,var(--accent-soft),#fff6e8);border:1px solid var(--accent-line);border-radius:16px;margin:14px 16px 0;padding:12px 14px}
+.memory{background:linear-gradient(135deg,var(--accent-soft),#fff6e8);border:1px solid var(--accent-line);border-radius:16px;margin:12px 16px 0;padding:10px 12px}
 .memory h3{margin:0 0 4px;font-size:calc(13.5px * var(--fs));display:flex;align-items:center;gap:6px}
 .memory .msub{font-size:calc(11px * var(--fs));color:var(--ink2);margin:0 0 9px}
 .memory .mrow2{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .memory .mrow2::-webkit-scrollbar{display:none}
-.memory .mthumb{flex:0 0 74px;height:74px;border-radius:10px;overflow:hidden;border:2px solid #fff;cursor:pointer;background:var(--line2)}
+.memory .mthumb{flex:0 0 64px;height:64px;border-radius:10px;overflow:hidden;border:2px solid #fff;cursor:pointer;background:var(--line2)}
 .memory .mthumb img{width:100%;height:100%;object-fit:cover;display:block}
 .memory .mthumb div{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:calc(9.5px * var(--fs));color:var(--muted);padding:4px}
 /* 選取／分享小鈕 */
-.ph .sbtn{position:absolute;top:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;
-  border:none;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;user-select:none;-webkit-user-select:none;z-index:2;line-height:1}
+.ph .sbtn{position:absolute;top:7px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.46);color:#fff;
+  border:none;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;user-select:none;-webkit-user-select:none;z-index:2;line-height:1}
 .ph .sbtn:active{transform:scale(.9)}
-.ph .sbtn.share{left:6px}
-.ph .sbtn.pick{left:6px;border:2px solid rgba(255,255,255,.9);background:rgba(0,0,0,.28);font-size:11px}
+.ph .sbtn.share{left:7px}
+.ph .sbtn.pick{left:7px;border:2px solid rgba(255,255,255,.9);background:rgba(0,0,0,.32);font-size:13px}
 .ph .sbtn.pick.on{background:var(--accent);border-color:#fff;font-weight:800;font-size:15px}
 .ph.picked{outline:3px solid var(--accent);outline-offset:-3px}
 .ly-compact .sbtn.share,.ly-compact .fav{display:none}
+.ly-g4 .ph .sbtn,.ly-g4 .ph .fav{width:28px;height:28px;top:5px}
+.ly-g4 .ph .sbtn{left:5px}
+.ly-g4 .ph .fav{right:5px}
 /* 拖拉選取：防止誤觸原生圖片拖曳與文字選取 */
 .dragging .gal .ph{user-select:none;-webkit-user-select:none}
 .dragging .gal img{-webkit-user-drag:none;user-select:none;-webkit-user-select:none}
 .dragging .gal{cursor:crosshair}
 /* 選取模式工具列 */
-.selbtn{border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:9px 14px;font-size:calc(12.5px * var(--fs));
-  font-weight:700;color:var(--ink2);cursor:pointer;user-select:none;-webkit-user-select:none;white-space:nowrap}
-.selbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.toolrow .thint{flex:1 1 auto;font-size:calc(11px * var(--fs));color:var(--muted)}
 .selbar{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 62px);z-index:39;max-width:560px;margin:0 auto;
   display:none;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,.98);border:1px solid var(--line);
   border-radius:14px;box-shadow:0 -3px 16px rgba(0,0,0,.12)}
@@ -158,10 +163,33 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 .seg{display:flex;gap:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--panel)}
 .seg span{padding:9px 11px;font-size:calc(12px * var(--fs));font-weight:700;color:var(--muted);cursor:pointer;user-select:none;-webkit-user-select:none}
 .seg span.on{background:var(--accent);color:#fff}
-.lysw{display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap}
-.lysw span{min-width:42px;text-align:center;padding:6px 9px;border:1px solid var(--line);border-radius:10px;background:var(--panel);
-  font-size:calc(12px * var(--fs));color:var(--muted);cursor:pointer;user-select:none;-webkit-user-select:none}
-.lysw span.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:700}
+/* 上載／區段標題／常用標籤 */
+.upbar{display:flex;align-items:center;gap:10px;margin:12px 16px 0}
+.upbar .btn{margin:0;flex:1}
+.upbar span{font-size:calc(11px * var(--fs));color:var(--muted);white-space:nowrap}
+.sechead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 16px 0;font-size:calc(13px * var(--fs));font-weight:700}
+.sechead small{font-weight:400;color:var(--muted);font-size:calc(11px * var(--fs))}
+.sechead .lnk{color:var(--accent);font-size:calc(11.5px * var(--fs));font-weight:700;cursor:pointer;white-space:nowrap}
+.qtags{display:flex;gap:6px;overflow-x:auto;padding:9px 16px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.qtags::-webkit-scrollbar{display:none}
+.qtags .qt{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:999px;
+  padding:6px 11px;font-size:calc(11.5px * var(--fs));font-weight:600;cursor:pointer;white-space:nowrap;user-select:none;-webkit-user-select:none}
+.qtags .qt.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.qtags:empty{display:none}
+/* 排版選擇面板 */
+.sheetmask{position:fixed;inset:0;z-index:55;background:rgba(40,20,30,.45);display:none}
+.sheetmask.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:56;max-width:560px;margin:0 auto;background:var(--panel);
+  border-radius:20px 20px 0 0;padding:14px 16px calc(env(safe-area-inset-bottom) + 18px);box-shadow:0 -8px 30px rgba(0,0,0,.18);display:none}
+.sheet.show{display:block}
+.sheet .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sheet .sh b{font-size:calc(14px * var(--fs))}
+.sheet .sh button{width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:15px;cursor:pointer}
+.sheet .optgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sheet .optgrid .opt{border:1px solid var(--line);border-radius:12px;padding:12px 4px;text-align:center;background:var(--bg);cursor:pointer;user-select:none;-webkit-user-select:none}
+.sheet .optgrid .opt.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+.sheet .optgrid .i{font-size:20px;display:block;line-height:1.2}
+.sheet .optgrid .n{font-size:calc(11px * var(--fs));margin-top:4px;display:block}
 
 /* 設定 */
 .setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line2)}
@@ -200,9 +228,24 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 .vnote-in{width:calc(100% - 32px);margin:0 16px 8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:9px;padding:9px 10px;font-size:calc(12.5px * var(--fs));outline:none;display:none}
 .vnote-in:focus{border-color:rgba(255,255,255,.5)}
 .vnote-in.show{display:block}
-.vbot{display:flex;align-items:center;justify-content:space-around;gap:4px;padding:10px 12px calc(12px + env(safe-area-inset-bottom))}
-.vbot button{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:12px;min-width:46px;height:42px;font-size:17px;cursor:pointer}
+.vbot{display:flex;align-items:center;justify-content:space-around;gap:4px;padding:8px 10px calc(10px + env(safe-area-inset-bottom))}
+.vbot button{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:14px;min-width:58px;height:56px;padding:0 4px;
+  font-size:18px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.vbot button small{font-size:calc(9.5px * var(--fs));opacity:.82;line-height:1}
 .vbot button:active{background:rgba(255,255,255,.28)}
+/* 查看器「更多」面板 */
+.vmask{position:absolute;inset:0;z-index:101;background:rgba(0,0,0,.5);display:none}
+.vmask.show{display:block}
+.vmore{position:absolute;left:0;right:0;bottom:0;z-index:102;background:#2b1d24;border-radius:18px 18px 0 0;
+  padding:12px 14px calc(env(safe-area-inset-bottom) + 14px);display:none}
+.vmore.show{display:block}
+.vmore .vh{display:flex;align-items:center;justify-content:space-between;color:#fff;font-weight:700;font-size:calc(13px * var(--fs));margin-bottom:10px}
+.vmore .vh button{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:9px;padding:5px 10px;font-size:12px;cursor:pointer}
+.vmore .vg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.vmore .vg button{background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:12px;min-height:58px;font-size:calc(11px * var(--fs));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer}
+.vmore .vg button span{font-size:18px}
+.vmore .vg button.danger{color:#ff9a9a}
 
 /* 底部選單 */
 .bottombar .bb.on{color:var(--accent);background:var(--accent-soft)}
@@ -248,6 +291,10 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
   <header>
     <div class="topbar">
       <div class="title"><span class="logo">🖼️</span><div><div>相簿</div><div class="sub">美好瞬間永遠不上雲 · 只有你看得到</div></div></div>
+      <div class="topacts">
+        <button class="hact" id="selToggle" title="選取相片（可拖拉連續選取）" onclick="toggleSelectMode()">☑️</button>
+        <button class="hact" id="lyBtn" title="切換排版" onclick="openLySheet()">▦</button>
+      </div>
     </div>
   </header>
 
@@ -255,27 +302,23 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
     <!-- 主頁：回憶 + 喜愛相片 -->
     <section class="view show" id="vHome">
       <div id="memoryBox"></div>
-      <div class="toolrow"><button class="selbtn" id="homeSelBtn" onclick="toggleSelectMode()">☑️ 選取</button><span class="thint">選取後可按住拖拉連續選取、來回滑動可取消 · 點 📤 單張分享</span></div>
-      <div class="lysw" id="homeLySw"></div>
+      <div class="sechead"><span>❤️ 喜愛相片 <small id="homeCnt"></small></span><span class="lnk" onclick="goView('vAlbum')">全部相簿 ›</span></div>
       <div id="homeGal"></div>
-      <div class="note">❤️ 在「相簿」長按或點相片右上角愛心即可加入喜愛。</div>
     </section>
 
     <!-- 相簿：所有相片 -->
     <section class="view" id="vAlbum">
       <div class="albtabs" id="albTabs"></div>
-      <div class="card-box">
-        <h3>📷 上載相片</h3>
-        <button class="btn primary" onclick="document.getElementById('fileIn').click()">＋ 選擇相片（可多張）</button>
-        <input type="file" id="fileIn" accept="image/*" multiple style="display:none" onchange="onPickFiles(event)">
-        <div class="hint" id="pickHint">相片只會儲存在此瀏覽器，不會上傳到任何伺服器。</div>
+      <div class="upbar">
+        <button class="btn primary" onclick="document.getElementById('fileIn').click()">＋ 上載相片（可多張）</button>
+        <span>🔒 只存本機</span>
       </div>
+      <input type="file" id="fileIn" accept="image/*" multiple style="display:none" onchange="onPickFiles(event)">
       <div class="toolrow">
         <input class="srch" id="albQ" placeholder="🔍 搜尋檔名・標籤・備註" oninput="renderAlbum()">
         <div class="seg"><span class="on" id="fAll" onclick="setFilter('all')">全部</span><span id="fFav" onclick="setFilter('fav')">❤️ 喜愛</span></div>
-        <button class="selbtn" id="albSelBtn" onclick="toggleSelectMode()">☑️ 選取</button>
       </div>
-      <div class="lysw" id="albLySw"></div>
+      <div class="qtags" id="quickTags"></div>
       <div id="albGal"></div>
     </section>
 
@@ -311,13 +354,13 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
             <option value="0.7">省空間（0.7）</option>
           </select>
         </div>
-        <div class="hint">開啟縮小後，相片會轉為 JPEG（透明背景會補白）。原始檔不會被保留，建議先確認效果再大量上載。</div>
+        <div class="hint" id="pickHint">上載時自動縮至 1280px、JPEG 品質 0.82。相片只存此瀏覽器，不會上傳。</div>
       </div>
 
       <div class="card-box">
         <h3>▦ 瀏覽佈局</h3>
         <div class="lypick" id="lyPick"></div>
-        <div class="hint">此設定同時套用「主頁」與「相簿」，也可在該頁上方快速切換。時間軸會按月分組，適合回顧大量相片。</div>
+        <div class="hint">此設定同時套用「主頁」與「相簿」，也可點右上角 ▦ 快速切換。時間軸會按月分組，適合回顧大量相片。</div>
       </div>
       <div class="card-box">
         <h3>📤 分享設定</h3>
@@ -355,6 +398,13 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
     </section>
   </main>
 
+  <!-- 排版選擇面板 -->
+  <div class="sheetmask" id="lyMask" onclick="closeLySheet()"></div>
+  <div class="sheet" id="lySheet">
+    <div class="sh"><b>▦ 選擇排版</b><button onclick="closeLySheet()">✕</button></div>
+    <div class="optgrid" id="lySheetOpts"></div>
+  </div>
+
   <!-- 選取模式工具列（顯示於底部菜單上方） -->
   <div class="selbar" id="selBar">
     <span class="cnt" id="selCnt">已選 0 張</span>
@@ -380,15 +430,22 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
   <div class="vtagline" id="vTagLine"></div>
   <input class="vnote-in" id="vNoteIn" placeholder="備註（按 Enter 儲存）" onkeydown="if(event.key==='Enter')saveViewNote()">
   <div class="vbot">
-    <button onclick="viewNav(-1)" title="上一張">‹</button>
-    <button onclick="viewPlay()" id="vPlay" title="幻燈片">▶</button>
-    <button id="vFav" onclick="viewFav()" title="喜愛">♡</button>
-    <button onclick="viewEditInfo()" title="標籤與備註">🏷</button>
-    <button onclick="viewMove()" title="移至相簿">📁</button>
-    <button onclick="viewShare()" title="分享">📤</button>
-    <button onclick="viewDownload()" title="下載">⬇️</button>
-    <button onclick="viewDel()" title="刪除">🗑️</button>
-    <button onclick="viewNav(1)" title="下一張">›</button>
+    <button onclick="viewNav(-1)" title="上一張"><span>‹</span><small>上一張</small></button>
+    <button id="vFav" onclick="viewFav()" title="喜愛"><span>♡</span><small>喜愛</small></button>
+    <button onclick="viewShare()" title="分享"><span>📤</span><small>分享</small></button>
+    <button onclick="viewNav(1)" title="下一張"><span>›</span><small>下一張</small></button>
+    <button onclick="openVMore()" title="更多操作"><span>⋯</span><small>更多</small></button>
+  </div>
+  <div class="vmask" id="vMoreMask" onclick="closeVMore()"></div>
+  <div class="vmore" id="vMore">
+    <div class="vh"><span>更多操作</span><button onclick="closeVMore()">✕ 關閉</button></div>
+    <div class="vg">
+      <button id="vPlay" onclick="closeVMore();viewPlay()"><span>▶</span>幻燈片</button>
+      <button onclick="closeVMore();viewEditInfo()"><span>🏷</span>標籤備註</button>
+      <button onclick="closeVMore();viewMove()"><span>📁</span>移至相簿</button>
+      <button onclick="closeVMore();viewDownload()"><span>⬇️</span>下載</button>
+      <button class="danger" onclick="closeVMore();viewDel()"><span>🗑️</span>刪除</button>
+    </div>
   </div>
 </div>
 
@@ -639,10 +696,10 @@ function updateSelBar(){
   var n=selectedIds().length;
   var cnt=document.getElementById('selCnt');if(cnt)cnt.textContent='已選 '+n+' 張';
   var sb=document.getElementById('shareSelBtn');if(sb)sb.disabled=!n;
-  ['homeSelBtn','albSelBtn'].forEach(function(id){
-    var b=document.getElementById(id);if(!b)return;
-    b.textContent=selectMode?'✕ 完成':'☑️ 選取';b.classList.toggle('on',selectMode);
-  });
+  var b=document.getElementById('selToggle');if(b){
+    b.textContent=selectMode?'✕':'☑️';b.classList.toggle('on',selectMode);
+    b.title=selectMode?'完成選取':'選取相片（可拖拉連續選取）';
+  }
 }
 function toggleSelectMode(on){
   selectMode=(on===undefined)?!selectMode:!!on;
@@ -938,7 +995,13 @@ function renderGallery(boxId,list){
   box.className='gal ly-'+layout;
   box.innerHTML=list.map(function(p,i){return photoHTML(p,i);}).join('');
 }
-function renderHome(){renderMemory();renderGallery('homeGal',S.photos.filter(function(p){return p.fav;}));renderSwitches();}
+function renderHome(){
+  renderMemory();
+  var favs=S.photos.filter(function(p){return p.fav;});
+  renderGallery('homeGal',favs);
+  var c=document.getElementById('homeCnt');if(c)c.textContent=favs.length?('· '+favs.length+' 張'):'';
+  renderSwitches();
+}
 function renderAlbum(){renderGallery('albGal',filteredPhotos());renderSwitches();renderAlbTabs();}
 /* 回憶：找出「去年的今天 / 往年到今天」的舊相片，製造回訪理由 */
 function renderMemory(){
@@ -966,12 +1029,41 @@ function renderMemory(){
 }
 function fmtMemDate(ts){var d=new Date(ts||0);return d.getFullYear()+'/'+pad(d.getMonth()+1)+'/'+pad(d.getDate());}
 function renderSwitches(){
-  ['homeLySw','albLySw'].forEach(function(id){
-    var el=document.getElementById(id);if(!el)return;
-    el.innerHTML=LAYOUTS.map(function(l){return '<span class="'+(l.k===S.cfg.layout?'on':'')+'" onclick="setLayout(\''+l.k+'\')">'+l.i+' '+l.n+'</span>';}).join('');
-  });
+  var btn=document.getElementById('lyBtn');
+  if(btn){var cur=LAYOUTS.filter(function(l){return l.k===S.cfg.layout;})[0];btn.title='目前：'+(cur?cur.n:'网格 3')+'（點按切換）';}
+  renderQuickTags();
 }
-function setLayout(k){S.cfg.layout=k;save();renderAllA();}
+/* 常用標籤快篩：點一下即搜尋，再點「清除搜尋」回到全部 */
+function renderQuickTags(){
+  var box=document.getElementById('quickTags');if(!box)return;
+  var cnt={};
+  S.photos.forEach(function(p){(Array.isArray(p.tags)?p.tags:[]).forEach(function(t){
+    t=String(t).trim();if(t)cnt[t]=(cnt[t]||0)+1;
+  });});
+  var tags=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a]||a.localeCompare(b);}).slice(0,8);
+  var q=(document.getElementById('albQ')||{}).value||'';q=String(q).trim();
+  var h=(q?'<span class="qt on" data-clear="1">✕ 清除搜尋</span>':'')+
+    tags.map(function(t){return '<span class="qt'+(q===t?' on':'')+'" data-tag="'+esc(t)+'">#'+esc(t)+'</span>';}).join('');
+  box.innerHTML=h;
+  box.onclick=function(e){
+    var el=e.target&&e.target.closest?e.target.closest('.qt'):null;if(!el)return;
+    if(el.getAttribute('data-clear'))clearSearch();else pickTag(el.getAttribute('data-tag')||'');
+  };
+}
+function pickTag(t){var q=document.getElementById('albQ');if(q){q.value=t;renderAlbum();var g=document.getElementById('albGal');if(g&&g.scrollIntoView)g.scrollIntoView({behavior:'smooth',block:'start'});}}
+function clearSearch(){var q=document.getElementById('albQ');if(q)q.value='';renderAlbum();}
+/* 排版面板 */
+function openLySheet(){
+  var el=document.getElementById('lySheetOpts');if(!el)return;
+  el.innerHTML=LAYOUTS.map(function(l){return '<div class="opt'+(l.k===S.cfg.layout?' on':'')+'" onclick="setLayout(\''+l.k+'\')"><span class="i">'+l.i+'</span><span class="n">'+l.n+'</span></div>';}).join('');
+  document.getElementById('lyMask').classList.add('show');
+  document.getElementById('lySheet').classList.add('show');
+}
+function closeLySheet(){
+  var m=document.getElementById('lyMask'),s=document.getElementById('lySheet');
+  if(m)m.classList.remove('show');if(s)s.classList.remove('show');
+}
+function setLayout(k){S.cfg.layout=k;save();closeLySheet();renderAllA();}
 
 /* ============ 全屏查看器 ============ */
 function currentList(){
@@ -983,18 +1075,20 @@ function openViewer(id){
   viewPos=Math.max(0,viewIds.indexOf(id));
   drawViewer();document.getElementById('viewer').classList.add('show');
 }
-function closeViewer(){stopSlides();document.getElementById('vNoteIn').classList.remove('show');document.getElementById('viewer').classList.remove('show');}
+function closeViewer(){stopSlides();closeVMore();document.getElementById('vNoteIn').classList.remove('show');document.getElementById('viewer').classList.remove('show');}
+function openVMore(){var m=document.getElementById('vMore'),k=document.getElementById('vMoreMask');if(m)m.classList.add('show');if(k)k.classList.add('show');}
+function closeVMore(){var m=document.getElementById('vMore'),k=document.getElementById('vMoreMask');if(m)m.classList.remove('show');if(k)k.classList.remove('show');}
 function drawViewer(){
   var p=photoById(viewIds[viewPos]);if(!p){closeViewer();return;}
   var img=document.getElementById('vImg');img.src=p.data;
   if(viewerZoom.reset)viewerZoom.reset();
   document.getElementById('vTitle').textContent=(viewIds.length?(viewPos+1)+' / '+viewIds.length:'')+' · '+(p.name||'未命名');
-  var f=document.getElementById('vFav');f.textContent=p.fav?'♥':'♡';f.style.color=p.fav?'#ff5a7a':'';
+  var f=document.getElementById('vFav');if(f){var fi=f.querySelector('span');if(fi)fi.textContent=p.fav?'♥':'♡';f.style.color=p.fav?'#ff5a7a':'';}
   document.getElementById('vMeta').textContent=p.w+'×'+p.h+' · '+dayStr(p.ts)+' · '+fmtBytes(p.size)+(p.orig?('（原 '+fmtBytes(p.orig)+'）'):'');
   var tl=document.getElementById('vTagLine');
   tl.innerHTML=(Array.isArray(p.tags)&&p.tags.length)?p.tags.map(function(t,i){return '<span class="tg" onclick="filterByTag('+viewPos+','+i+')">#'+esc(t)+'</span>';}).join('')+(p.note?('<div style="margin-top:3px">'+esc(p.note)+'</div>'):''):(p.note?esc(p.note):'');
   var ni=document.getElementById('vNoteIn');ni.value=p.note||'';ni.classList.remove('show');
-  var pb=document.getElementById('vPlay');pb.textContent=slideTimer?'⏸':'▶';
+  var pb=document.getElementById('vPlay');if(pb){var pi=pb.querySelector('span');if(pi)pi.textContent=slideTimer?'⏸':'▶';}
 }
 function filterByTag(pos,tagIdx){
   var p=photoById(viewIds[pos]);if(!p||!p.tags||!p.tags[tagIdx])return;
@@ -1040,9 +1134,13 @@ function viewPlay(){
     if(!document.getElementById('viewer').classList.contains('show')){stopSlides();return;}
     viewPos=(viewPos+1)%viewIds.length;drawViewer();
   },3000);
-  document.getElementById('vPlay').textContent='⏸';toast('幻燈片播放中（3 秒 / 張）');
+  var pb=document.getElementById('vPlay');if(pb){var pi=pb.querySelector('span');if(pi)pi.textContent='⏸';}
+  toast('幻燈片播放中（3 秒 / 張）');
 }
-function stopSlides(){if(slideTimer){clearInterval(slideTimer);slideTimer=null;}var pb=document.getElementById('vPlay');if(pb)pb.textContent='▶';}
+function stopSlides(){
+  if(slideTimer){clearInterval(slideTimer);slideTimer=null;}
+  var pb=document.getElementById('vPlay');if(pb){var pi=pb.querySelector('span');if(pi)pi.textContent='▶';}
+}
 function viewDownload(){
   var p=photoById(viewIds[viewPos]);if(!p)return;
   var a=document.createElement('a');a.href=p.data;a.download=(p.name||'photo').replace(/\.[^.]+$/,'')+'.jpg';
