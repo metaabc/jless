@@ -96,9 +96,14 @@
       Object.keys(o).forEach(function(k){if(k!=='data'&&k!=='img'&&k!=='thumb')walk(o[k],out,depth+1);});
     }
   }
+  /* 進階應用：未解鎖時不納入全域搜尋，避免泄漏資料 */
+  var ADV_FILES={'wealth.html':true};
   function entries(){
     var out=[];
+    var advUnlocked=false;
+    try{advUnlocked=localStorage.getItem('jless_adv_v1')==='1';}catch(e){}
     Object.keys(MAP).forEach(function(k){
+      if(ADV_FILES[MAP[k][1]]&&!advUnlocked)return;
       var raw=lsGet(k);if(!raw)return;
       var obj=null;try{obj=JSON.parse(raw);}catch(e){obj=null;}
       var words=[];walk(obj,words,0);

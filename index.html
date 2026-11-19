@@ -369,7 +369,7 @@ const APPS = [
   {file:'absence.html',   name:'缺勤',       icon:'🤒', desc:'病假與親屬照料缺勤',       cat:'工具', home:true,  fav:false},
   {file:'excel.html',     name:'Excel',      icon:'📊', desc:'CSV匯入·篩選統計打標籤',     cat:'工具', home:false, fav:false},
   {file:'timer.html',     name:'計時',       icon:'⏱️', desc:'計時·倒數·番茄鐘',           cat:'工具', home:false, fav:false},
-  {file:'wealth.html',    name:'財富',   icon:'💎', desc:'美股港股倉位損益',     cat:'工具', home:false, fav:false},
+  {file:'wealth.html',    name:'財富',   icon:'💎', desc:'美股港股倉位損益',     cat:'工具', home:false, fav:false, adv:true},
   {file:'ocr.html',       name:'圖文翻譯',   icon:'🌐', desc:'拍照辨識文字並覆蓋譯文',   cat:'生活', home:true,  fav:true,  adv:true },
   {file:'album.html',     name:'相簿',       icon:'🖼️', desc:'收藏喜愛相片·自動縮圖省空間', cat:'生活', home:true,  fav:false},
 ];
@@ -667,6 +667,9 @@ function renderFocus(){
   var box=document.getElementById('focusBox');if(!box)return;
   var items=[];
   ['todo.html','metric.html','consume.html','wealth.html','album.html'].forEach(function(f){
+    /* 進階應用未解鎖時不顯示其資料摘要，避免泄漏 */
+    var app=APPS.find(function(a){return a.file===f;});
+    if(app&&!isVisible(app))return;
     var x=appExtra(f);if(x)items.push({f:f,h:x});
   });
   try{
