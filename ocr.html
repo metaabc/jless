@@ -13,14 +13,17 @@
 <link rel="apple-touch-icon" href="jless-logo-180.png">
 <link rel="manifest" href="manifest.json">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://metaabc.github.io/jless/ocr.html">
 <meta property="og:site_name" content="JLess小助手">
+<meta property="og:locale" content="zh_TW">
 <meta property="og:title" content="圖文翻譯 — 拍照辨識文字並覆蓋譯文｜JLess小助手">
 <meta property="og:description" content="上載或拍攝圖片自動辨識圖中文字，選擇目標語言後把譯文疊回原圖位置，適合出遊看菜單、文件截圖溝通，可儲存或分享結果。">
-<meta property="og:image" content="https://metaabc.github.io/jless/jless-logo-512.png">
+<meta property="og:image" content="https://metaabc.github.io/jless/jless-og.png">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:url" content="https://metaabc.github.io/jless/ocr.html">
 <meta name="twitter:title" content="圖文翻譯 — 拍照辨識文字並覆蓋譯文｜JLess小助手">
 <meta name="twitter:description" content="上載或拍攝圖片自動辨識圖中文字，選擇目標語言後把譯文疊回原圖位置，適合出遊看菜單、文件截圖溝通，可儲存或分享結果。">
-<meta name="twitter:image" content="https://metaabc.github.io/jless/jless-logo-512.png">
+<meta name="twitter:image" content="https://metaabc.github.io/jless/jless-og.png">
 <meta name="theme-color" content="#fffaf3">
 
 <link rel="stylesheet" href="theme.css">
@@ -410,6 +413,46 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
   }
 }
 </script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "拍照辨識",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "上載或拍攝圖片 → 自動辨識圖中文字。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "覆蓋譯文",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "選擇目標語言，辨識後把譯文疊回原圖位置，方便截圖溝通。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "儲存 / 分享",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "可存目前結果或分享圖片，出遊看菜單、文件都好用。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "小提醒",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "需網路連線使用辨識／翻譯功能。"
+      }
+    }
+  ]
+}
+</script>
 <script src="jless-common.js"></script>
 </head>
 <body>
@@ -661,10 +704,25 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
 
 <div id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script>
 (function () {
   "use strict";
+
+  /* Tesseract 按需載入：只有按「辨識」時才下載引擎，加快首頁開啟。
+     首次使用需網路，之後瀏覽器會快取；失敗時顯示清楚錯誤而非空白。 */
+  var _tessPromise = null;
+  function ensureTesseract() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (_tessPromise) return _tessPromise;
+    _tessPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+      s.onload = function () { resolve(window.Tesseract); };
+      s.onerror = function () { _tessPromise = null; reject(new Error("OCR 引擎載入失敗，請檢查網路連線")); };
+      document.head.appendChild(s);
+    });
+    return _tessPromise;
+  }
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -1495,9 +1553,7 @@ canvas#canvas{display:block;max-width:100%;max-height:min(68vh,760px);width:auto
       try { await S.worker.terminate(); } catch (e) {}
       S.worker = null; S.workerLang = "";
     }
-    if (typeof window.Tesseract === "undefined") {
-      throw new Error("OCR 引擎未載入（此環境可能封鎖了外部連線）");
-    }
+    await ensureTesseract();
     // 語言包下載若有 45 秒沒有任何進度就視為失敗，避免一直轉圈
     var startedAt = Date.now(), timer = null, rejectFn = null;
     var timeoutMs = (NET_OK === false) ? 16000 : 45000;

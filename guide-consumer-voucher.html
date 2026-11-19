@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fffaf3">
+<title>消費券與團購券怎麼管理才不浪費｜JLess 實用指南</title>
+<meta name="jless-seo" content="guide-v1">
+<meta name="description" content="澳門消費券與團購券常有多個週次、不同有效期。教你用本機工具記錄面額、標記已用、設定到期提醒，一屏看清還剩多少、何時到期。">
+<meta name="keywords" content="澳門消費券,消費券紀錄,團購券管理,消費券到期提醒,券餘額追蹤">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+<link rel="canonical" href="https://metaabc.github.io/jless/guide-consumer-voucher.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="jless-logo-180.png">
+<link rel="manifest" href="manifest.json">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="JLess小助手">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:url" content="https://metaabc.github.io/jless/guide-consumer-voucher.html">
+<meta property="og:title" content="消費券與團購券怎麼管理才不浪費｜JLess 實用指南">
+<meta property="og:description" content="澳門消費券與團購券常有多個週次、不同有效期。教你用本機工具記錄面額、標記已用、設定到期提醒，一屏看清還剩多少、何時到期。">
+<meta property="og:image" content="https://metaabc.github.io/jless/jless-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://metaabc.github.io/jless/guide-consumer-voucher.html">
+<meta name="twitter:title" content="消費券與團購券怎麼管理才不浪費｜JLess 實用指南">
+<meta name="twitter:description" content="澳門消費券與團購券常有多個週次、不同有效期。教你用本機工具記錄面額、標記已用、設定到期提醒，一屏看清還剩多少、何時到期。">
+<meta name="twitter:image" content="https://metaabc.github.io/jless/jless-og.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "消費券與團購券怎麼管理才不浪費",
+  "description": "澳門消費券與團購券常有多個週次、不同有效期。教你用本機工具記錄面額、標記已用、設定到期提醒，一屏看清還剩多少、何時到期。",
+  "url": "https://metaabc.github.io/jless/guide-consumer-voucher.html",
+  "inLanguage": "zh-Hant",
+  "isAccessibleForFree": true,
+  "author": { "@type": "Organization", "name": "JLess小助手" },
+  "publisher": { "@type": "Organization", "name": "JLess小助手" },
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://metaabc.github.io/jless/guide-consumer-voucher.html" }
+}
+</script>
+<script defer src="ga.js"></script>
+<link rel="stylesheet" href="theme.css">
+<style>
+  body{margin:0;padding:0}
+  .gwrap{max-width:760px;margin:0 auto;padding:22px 18px 44px;font-size:calc(15px * var(--fs));line-height:1.85}
+  .gback{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;margin-bottom:18px}
+  h1{font-size:calc(25px * var(--fs));line-height:1.35;margin:0 0 12px;color:var(--ink)}
+  .glead{color:var(--muted);font-size:14px;margin:0 0 26px}
+  h2{font-size:calc(19px * var(--fs));margin:30px 0 12px;padding-left:11px;border-left:4px solid var(--accent);color:var(--ink)}
+  h3{font-size:calc(16px * var(--fs));margin:20px 0 8px;color:var(--ink2)}
+  p{margin:10px 0;color:var(--ink2)}
+  ol,ul{padding-left:24px;color:var(--ink2)}
+  li{margin:7px 0}
+  .gtip{background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:12px;padding:13px 15px;margin:18px 0;color:var(--ink2)}
+  .gcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:16px 0}
+  .gcard a{color:var(--accent);font-weight:600;text-decoration:none}
+  .gcard a:hover{text-decoration:underline}
+  .gmeta{color:var(--muted);font-size:12px;margin-top:30px;border-top:1px solid var(--line);padding-top:14px}
+  code{background:var(--line2);padding:2px 6px;border-radius:5px;font-size:0.92em}
+</style>
+</head>
+<body>
+<main class="gwrap">
+  <a class="gback" href="index.html">‹ 返回 JLess 首頁</a>
+  <h1>消費券與團購券怎麼管理才不浪費</h1>
+  <p class="glead">最後更新：2026-11-19 · 約 4 分鐘閱讀 · 適用於 JLess 本機工具箱</p>
+  <p>消費券最常見的浪費原因不是忘記用，而是<strong>不知道自己還剩多少、哪張快到期</strong>。紙本券散在抽屜、電子券藏在幾個不同平台，到有效期才發現浪費了。以下是一套可以馬上開始的做法。</p>
+  <h2>一、先把所有券集中記錄</h2>
+  <p>不要依賴記憶。開一個專門工具，把每張券的<strong>名稱、面額、有效期、使用條件</strong>四項記下來。集中之後你會即時看到總面額，這本身就是一種提醒。</p>
+  <ul>
+    <li>面額：記錄實際可用金額，例如「$100」或「85 折」。</li>
+    <li>有效期：填寫最後可用日期，這是日後提醒的依據。</li>
+    <li>使用條件：例如「只限星期日」「滿 $200 可用」。一律寫清楚，避免到用時才發現不合資格。</li>
+  </ul>
+  <div class="gcard">👉 用 <a href="voucher.html">JLess 團購券</a> 建立券紀錄；若你是記「消費連環賞」各週次格位，用 <a href="consume.html">消費連環賞</a> 更合適。</div>
+
+  <h2>二、設定到期提醒</h2>
+  <p>把所有到期日排過一次，你會發現有些券其實只剩幾天。建議在<strong>到期前 7 日、3 日、當日</strong>各提醒一次。工具可以幫你排程本機通知，頁內亦會列出「即將過期」的券。</p>
+  <div class="gtip">小貼士：通知需要你在瀏覽器授權，而且頁面要開啟著才會觸發。所以頁內的「即將過期」列表比通知更可靠——養成每週看一次的習慣就夠。</div>
+
+  <h2>三、用掉就即時標記</h2>
+  <p>很多人用了券卻忘了標記，結果以為還有。正確做法是<strong>付款後立刻標記「已用」</strong>，讓「未用餘額」保持準確。首頁卡片會直接顯示未用金額，一眼就知道還有多少。</p>
+
+  <h2>四、定期回顧，調整使用次序</h2>
+  <p>每週花一分鐘看一次到期列表：<strong>先用在最快的券，再用有效期長的</strong>。如果同一時間有多張券快到期，優先用在原本就要消費的項目，不要為了用券而額外花錢。</p>
+
+  <h2>常見問題</h2>
+  <h3>券的資料會上傳嗎？</h3>
+  <p>不會。JLess 是純本機工具，所有資料只存放在你瀏覽器的 localStorage，不會傳到任何伺服器。</p>
+  <h3>換手機或清理瀏覽器資料怎麼辦？</h3>
+  <p>清理瀏覽器資料前，先到「設定 → 匯出全部資料」備份成 JSON 檔；到新裝置再匯入即可還原。</p>
+  <div class="gmeta">本指南由 JLess小助手 編寫，所有資料只存放在你的瀏覽器，不會上傳到任何伺服器。</div>
+</main>
+<script src="jless-common.js"></script>
+</body>
+</html>

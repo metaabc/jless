@@ -16,14 +16,17 @@
 <link rel="apple-touch-icon" href="jless-logo-180.png">
 <link rel="manifest" href="manifest.json">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://metaabc.github.io/jless/consume.html">
 <meta property="og:site_name" content="JLess小助手">
+<meta property="og:locale" content="zh_TW">
 <meta property="og:title" content="消費連環賞 — 消費券面額與未用餘額追蹤｜JLess小助手">
 <meta property="og:description" content="記錄消費連環賞各週次與格位的券面額，標記已用與自訂待抽，自動統計總額與未用金額，首頁一眼看清還剩多少消費券。資料只存本機。">
-<meta property="og:image" content="https://metaabc.github.io/jless/jless-logo-512.png">
+<meta property="og:image" content="https://metaabc.github.io/jless/jless-og.png">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:url" content="https://metaabc.github.io/jless/consume.html">
 <meta name="twitter:title" content="消費連環賞 — 消費券面額與未用餘額追蹤｜JLess小助手">
 <meta name="twitter:description" content="記錄消費連環賞各週次與格位的券面額，標記已用與自訂待抽，自動統計總額與未用金額，首頁一眼看清還剩多少消費券。資料只存本機。">
-<meta name="twitter:image" content="https://metaabc.github.io/jless/jless-logo-512.png">
+<meta name="twitter:image" content="https://metaabc.github.io/jless/jless-og.png">
 
 <link rel="stylesheet" href="theme.css">
 <style>
@@ -1234,6 +1237,46 @@ h1{
 @keyframes gInL{from{opacity:.3;transform:translateX(-16px)}to{opacity:1;transform:none}}
 </style>
 <!-- Google Analytics（統計；不傳個人／敏感資料，離線時靜默） -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "記錄一張券",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "在對應週次／格位填入面額（a）， bounty 用完時標示「已用」，即可統計總額與未用金額。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "快速標記",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "點格位直接輸入金額；「p」代表自訂／待抽，不計入統計。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "首頁看餘額",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "首頁卡片會顯示「未用」金額，一眼知道還剩多少消費券。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "到期提醒",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "可設到期提醒（7 日／3 日／當日），頁內會列出即將過期的券。"
+      }
+    }
+  ]
+}
+</script>
 <script defer src="ga.js"></script>
 <script type="application/ld+json">
 {

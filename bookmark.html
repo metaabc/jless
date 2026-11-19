@@ -13,19 +13,61 @@
 <link rel="apple-touch-icon" href="jless-logo-180.png">
 <link rel="manifest" href="manifest.json">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://metaabc.github.io/jless/bookmark.html">
 <meta property="og:site_name" content="JLess小助手">
+<meta property="og:locale" content="zh_TW">
 <meta property="og:title" content="書籤 — 網址收藏・自動抓標題・關鍵字分類｜JLess小助手">
 <meta property="og:description" content="收藏網址時自動抓取標題、說明與預覽圖，用標籤與配對關鍵字自動分類，支援名稱／網址／標籤搜尋與一鍵開啟。資料只存本機，不上传。">
-<meta property="og:image" content="https://metaabc.github.io/jless/jless-logo-512.png">
+<meta property="og:image" content="https://metaabc.github.io/jless/jless-og.png">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:url" content="https://metaabc.github.io/jless/bookmark.html">
 <meta name="twitter:title" content="書籤 — 網址收藏・自動抓標題・關鍵字分類｜JLess小助手">
 <meta name="twitter:description" content="收藏網址時自動抓取標題、說明與預覽圖，用標籤與配對關鍵字自動分類，支援名稱／網址／標籤搜尋與一鍵開啟。資料只存本機，不上传。">
-<meta name="twitter:image" content="https://metaabc.github.io/jless/jless-logo-512.png">
+<meta name="twitter:image" content="https://metaabc.github.io/jless/jless-og.png">
 <meta name="theme-color" content="#fffaf3">
 
 <!-- Google Analytics（統計；不傳個人／敏感資料，離線時靜默） -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "快速存一個網址",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "貼上網址 → 抓取標題／說明／預覽圖 → 選標籤 → 儲存。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "用關鍵字自動分類",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "設定 → 標籤管理，為標籤設「配對關鍵字」，抓取時命中即自動建議標籤。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "找回收藏",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "用搜尋框按名稱、網址或標籤篩選；點書籤即開新分頁。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "離線筆記",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "書籤可加離線筆記並納入搜尋；「🔎 檢查」只在使用者點擊時測試連結是否可達。"
+      }
+    }
+  ]
+}
+</script>
 <script defer src="ga.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="theme.css">
 <style>
 :root{
@@ -1621,8 +1663,24 @@ document.getElementById('btnClearAll').onclick = ()=>{
 };
 
 /* ================= Excel 匯入 / 匯出 ================= */
-document.getElementById('btnExport').onclick = ()=>{
+/* SheetJS 按需載入：只有真的要匯出／匯入 Excel 時才向 CDN 請求，
+   避免每次開啟書籤頁都載入約 900KB 腳本，亦讓離線瀏覽不受影響。 */
+let _xlsxPromise = null;
+function ensureXLSX(){
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (_xlsxPromise) return _xlsxPromise;
+  _xlsxPromise = new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
+    s.onload = ()=> resolve(window.XLSX);
+    s.onerror = ()=>{ _xlsxPromise = null; reject(new Error('無法載入 Excel 套件，請檢查網路連線')); };
+    document.head.appendChild(s);
+  });
+  return _xlsxPromise;
+}
+document.getElementById('btnExport').onclick = async ()=>{
   if(!db.bookmarks.length){ toast('目前沒有書籤可匯出'); return; }
+  try{ await ensureXLSX(); }catch(err){ toast(err.message, 3500); return; }
   const rows = db.bookmarks.map(b=>({
     '置頂': b.pinned ? '是' : '',
     '標題': b.title,
@@ -1654,8 +1712,9 @@ function importFile(file){
     toast('請選擇 .xlsx / .xls / .csv 或 .html / .htm（瀏覽器書籤）檔案', 3500); return;
   }
   const reader = new FileReader();
-  reader.onload = ev=>{
+  reader.onload = async ev=>{
     try{
+      await ensureXLSX();
       const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws);

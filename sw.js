@@ -1,11 +1,12 @@
 /* JLess 離線外殼：只快取程式碼，不快取任何個人資料或相片 */
-var CACHE='jless-shell-v1';
+var CACHE='jless-shell-v3';
 var SHELL=[
   './','./index.html','./theme.css','./theme.js','./share.js','./backup.js','./ga.js','./help.js','./jless-common.js',
-  './favicon.svg','./manifest.json','./album-manifest.json','./jless-logo.svg',
+  './favicon.svg','./manifest.json','./album-manifest.json','./jless-logo.svg','./jless-og.png',
   './todo.html','./quickbook.html','./note.html','./habit.html','./metric.html','./leave.html','./absence.html',
   './wealth.html','./bookmark.html','./remember.html','./voucher.html','./consume.html','./album.html',
-  './ocr.html','./excel.html','./calc.html','./timer.html'
+  './ocr.html','./excel.html','./calc.html','./timer.html',
+  './guide-consumer-voucher.html','./guide-rental-yield.html','./guide-spaced-repetition.html'
 ];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(SHELL).catch(function(){});}).then(function(){return self.skipWaiting();}));
