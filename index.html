@@ -358,6 +358,7 @@ const APPS = [
   {file:'metric.html',    name:'指標',       icon:'📈', desc:'清單·目標值·趨勢',         cat:'工作', home:true,  fav:false},
   {file:'quickbook.html', name:'記帳',   icon:'🧾', desc:'極簡操作·快速記帳',         cat:'生活', home:true,  fav:true},
   {file:'consume.html',   name:'消費連環賞', icon:'💰', desc:'簡易記錄消費券使用',       cat:'生活', home:true,  fav:false},
+  {file:'member.html',    name:'會員',     icon:'💳', desc:'商店充值消費·會員卡餘額',   cat:'生活', home:true,  fav:false},
   {file:'habit.html',     name:'小習慣', icon:'✅', desc:'每日習慣追蹤與統計',         cat:'生活', home:true,  fav:true },
   {file:'bookmark.html',  name:'書籤',   icon:'🔖', desc:'收藏與整理網址書籤',       cat:'工作', home:true,  fav:false},
   {file:'todo.html',      name:'待辦',   icon:'✅', desc:'多清單·任務與附件',       cat:'工作', home:true,  fav:true},
@@ -589,6 +590,23 @@ function appExtra(file){
       }
     }catch(e){}
   }
+  if(file==='member.html'){
+    try{
+      var mb=JSON.parse(localStorage.getItem('jless_member_v1'));
+      if(mb&&Array.isArray(mb.members)&&mb.members.length){
+        /* 只計仍然存在的會員，餘額＝充值本金＋贈送−消費 */
+        var alive={};mb.members.forEach(function(m){alive[m.id]=1;});
+        var tot=0;
+        (mb.txns||[]).forEach(function(t){
+          if(!t||!alive[t.mid])return;
+          if(t.type==='topup')tot+=(+t.amt||0)+(+t.bonus||0);
+          else tot-=(+t.amt||0);
+        });
+        var mfmt=function(n){return (Math.round(n*100)/100).toLocaleString('zh-Hant',{maximumFractionDigits:2});};
+        return '<span class="tag">💳 '+mb.members.length+' 張 · 餘額 '+mfmt(tot)+'</span>';
+      }
+    }catch(e){}
+  }
   return '';
 }
 function cardHTML(a){
@@ -666,7 +684,7 @@ function renderChips(){
 function renderFocus(){
   var box=document.getElementById('focusBox');if(!box)return;
   var items=[];
-  ['todo.html','metric.html','consume.html','wealth.html','album.html'].forEach(function(f){
+  ['todo.html','metric.html','consume.html','member.html','wealth.html','album.html'].forEach(function(f){
     /* 進階應用未解鎖時不顯示其資料摘要，避免泄漏 */
     var app=APPS.find(function(a){return a.file===f;});
     if(app&&!isVisible(app))return;

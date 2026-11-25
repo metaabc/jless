@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#fffaf3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>會員 — 商店充值消費與餘額追蹤｜JLess小助手</title>
+<meta name="jless-seo" content="v1">
+<meta name="description" content="記錄各商店會員卡的充值與消費：支援 100／300／500／1000 快捷充值、贈送金額、消費日期預設當天，自動計算會員餘額，可上載會員證卡圖，地區分頁與多種卡片佈局。資料只存本機。">
+<meta name="keywords" content="會員卡管理,商店會員,充值記錄,會員餘額,消費記錄,儲值卡,繁體中文">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+<link rel="canonical" href="https://metaabc.github.io/jless/member.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="jless-logo-180.png">
+<link rel="manifest" href="manifest.json">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://metaabc.github.io/jless/member.html">
+<meta property="og:site_name" content="JLess小助手">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="會員 — 商店充值消費與餘額追蹤｜JLess小助手">
+<meta property="og:description" content="記錄各商店會員卡的充值與消費，自動計算餘額，可上載會員證卡圖，地區分頁與多種卡片佈局。資料只存本機。">
+<meta property="og:image" content="https://metaabc.github.io/jless/jless-og.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:url" content="https://metaabc.github.io/jless/member.html">
+<meta name="twitter:title" content="會員 — 商店充值消費與餘額追蹤｜JLess小助手">
+<meta name="twitter:description" content="記錄各商店會員卡的充值與消費，自動計算餘額，可上載會員證卡圖。資料只存本機。">
+<meta name="twitter:image" content="https://metaabc.github.io/jless/jless-og.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "JLess 會員",
+  "description": "記錄商店會員卡的充值與消費，自動計算餘額，支援地區分頁、快捷充值與會員證卡圖。",
+  "url": "https://metaabc.github.io/jless/member.html",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "需支援 HTML5 與 JavaScript 的現代瀏覽器",
+  "inLanguage": "zh-Hant",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "HKD" },
+  "publisher": { "@type": "Organization", "name": "JLess小助手" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "如何新增商店會員？", "acceptedAnswer": { "@type": "Answer", "text": "按底部「＋ 新增會員」，輸入商店名稱、選擇地區，可即時上載會員證卡圖，儲存後即出現在對應地區分頁。" } },
+    { "@type": "Question", "name": "充值時贈送金額怎樣計算？", "acceptedAnswer": { "@type": "Answer", "text": "充值金額與贈送金額都會計入可用餘額。例如充值 500 送 50，餘額會增加 550，詳情頁同時分開顯示本金與贈送。" } },
+    { "@type": "Question", "name": "消費記錄的日期可以改嗎？", "acceptedAnswer": { "@type": "Answer", "text": "可以。消費表單的日期預設為當天，點日期欄即可改為之前任何一天，方便補記。" } },
+    { "@type": "Question", "name": "資料會不會上傳？", "acceptedAnswer": { "@type": "Answer", "text": "不會。所有會員、交易與卡圖只存放在你瀏覽器的 localStorage，不會傳到任何伺服器。" } }
+  ]
+}
+</script>
+<link rel="stylesheet" href="theme.css">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{--fs:1}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:
+    radial-gradient(120% 55% at 50% -8%, #fdeef4 0%, rgba(253,238,244,0) 62%),
+    linear-gradient(180deg,#fffaf3 0%,#fdf3ea 100%);
+  background-attachment:fixed;
+  color:var(--ink);min-height:100vh;
+  padding-bottom:96px;
+}
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  background:rgba(255,250,243,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line)}
+.topbar .logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--accent),#e0729a);
+  display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(120,60,80,.18);flex:0 0 auto}
+.topbar h1{font-size:calc(17px * var(--fs));margin:0;font-weight:700;line-height:1.2}
+.topbar .sub{font-size:11px;color:var(--muted);margin-top:1px}
+.topacts{margin-left:auto;display:flex;gap:7px;flex:0 0 auto}
+.iconbtn{width:36px;height:36px;border-radius:11px;border:1px solid var(--line);background:var(--panel);
+  color:var(--ink2);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.iconbtn:active{transform:scale(.94)}
+.iconbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* 地區 tab */
+.rtabs{display:flex;gap:7px;padding:12px 16px 2px;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.rtabs::-webkit-scrollbar{display:none}
+.rtab{flex:0 0 auto;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);
+  font-size:calc(12.5px * var(--fs));font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;
+  user-select:none;-webkit-user-select:none;display:flex;align-items:center;gap:5px}
+.rtab small{font-size:10.5px;opacity:.7;font-weight:600}
+.rtab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rtab.add{border-style:dashed;color:var(--accent);font-weight:700}
+
+.sumline{display:flex;align-items:center;gap:8px;padding:8px 16px 0;font-size:11.5px;color:var(--muted)}
+.sumline b{color:var(--ink2);font-size:13px}
+.sumline .sumtxt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sortbtn{margin-left:auto;flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  border-radius:9px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:3px}
+.sortbtn:active{transform:scale(.95)}
+.sortbtn.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+
+/* 會員卡片區 */
+.mgrid{display:grid;gap:11px;padding:11px 16px 8px}
+.mgrid.ly-card{grid-template-columns:repeat(2,1fr)}
+.mgrid.ly-list{grid-template-columns:1fr;gap:9px}
+.mgrid.ly-compact{grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:340px){.mgrid.ly-compact{grid-template-columns:repeat(2,1fr)}}
+
+.mcard{position:relative;border:1px solid var(--line);border-radius:16px;background:var(--panel);
+  padding:13px 13px 12px;cursor:pointer;overflow:hidden;box-shadow:0 2px 10px rgba(120,60,80,.06);
+  transition:transform .12s ease}
+.mcard:active{transform:scale(.98)}
+.mcard .bgimg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.13;pointer-events:none}
+.mcard::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--accent),#e0729a)}
+.mcard .inner{position:relative;z-index:1}
+.mcard .nm{font-size:calc(14px * var(--fs));font-weight:700;line-height:1.35;display:flex;align-items:center;gap:5px}
+.mcard .nm span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mcard .rg{font-size:10.5px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:4px}
+.mcard .bal{font-size:calc(21px * var(--fs));font-weight:800;color:var(--accent);margin-top:9px;line-height:1.1;
+  letter-spacing:-.4px}
+.mcard .bal.zero{color:var(--muted)}
+.mcard .bal.neg{color:#c0392b}
+.mcard .meta{font-size:10.5px;color:var(--muted);margin-top:3px}
+.mcard .pin{position:absolute;top:9px;right:9px;font-size:11px;opacity:.75;z-index:1}
+
+/* 列表佈局 */
+.ly-list .mcard{display:flex;align-items:center;gap:11px;padding:10px 12px}
+.ly-list .mcard::before{display:none}
+.ly-list .mthumb{width:52px;height:52px;border-radius:12px;flex:0 0 52px;background:var(--accent-soft);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
+.ly-list .mthumb img{width:100%;height:100%;object-fit:cover}
+.ly-list .mtxt{flex:1;min-width:0}
+.ly-list .bal{margin-top:2px;font-size:calc(17px * var(--fs))}
+.ly-list .rg{margin-top:1px}
+
+/* 緊湊佈局 */
+.ly-compact .mcard{padding:9px 9px 8px;border-radius:13px}
+.ly-compact .mcard::before{height:2px}
+.ly-compact .nm{font-size:calc(11.5px * var(--fs))}
+.ly-compact .rg{display:none}
+.ly-compact .bal{font-size:calc(15px * var(--fs));margin-top:5px}
+.ly-compact .meta{display:none}
+.ly-compact .pin{display:none}
+
+.empty{text-align:center;padding:46px 28px;color:var(--muted);font-size:13px;line-height:1.9}
+.empty .big{font-size:40px;display:block;margin-bottom:10px;opacity:.75}
+.empty button{margin-top:14px}
+
+/* 通用按鈕 */
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:12px;
+  padding:11px 16px;font-size:calc(13px * var(--fs));font-weight:700;cursor:pointer}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.wide{width:100%}
+.btn.ghost{background:transparent}
+.btn.danger{color:#c0392b;border-color:#f0c9c4}
+
+/* 底部選單 */
+nav.bottombar{max-width:600px}
+nav.bottombar .bb.primary{color:var(--accent)}
+
+/* 彈出層 */
+.mask{position:fixed;inset:0;z-index:200;background:rgba(45,22,32,.42);display:none;
+  align-items:flex-end;justify-content:center;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.mask.show{display:flex}
+.sheet{width:100%;max-width:600px;max-height:92vh;overflow-y:auto;background:var(--bg);
+  border-radius:22px 22px 0 0;padding:18px 18px calc(20px + env(safe-area-inset-bottom));
+  box-shadow:0 -8px 34px rgba(60,20,35,.20);animation:up .2s ease}
+@keyframes up{from{transform:translateY(22px);opacity:.6}to{transform:none;opacity:1}}
+.sheet .sh{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sheet .sh h3{margin:0;font-size:calc(17px * var(--fs));font-weight:700;flex:1}
+.sheet .x{width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:var(--panel);
+  color:var(--muted);font-size:16px;cursor:pointer;flex:0 0 auto}
+.hint{font-size:11.5px;color:var(--muted);line-height:1.7}
+
+.field{margin:12px 0}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+.inp{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:15px;
+  background:var(--panel);color:var(--ink);outline:none}
+.inp:focus{border-color:var(--accent)}
+select.inp{appearance:none;background-image:none}
+textarea.inp{resize:vertical;min-height:64px}
+
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{padding:9px 15px;border-radius:11px;border:1px solid var(--line);background:var(--panel);
+  font-size:calc(13.5px * var(--fs));font-weight:700;color:var(--ink2);cursor:pointer;user-select:none;
+  -webkit-user-select:none}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* 詳情頁 */
+.dhead{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.dcard{width:78px;height:78px;border-radius:14px;flex:0 0 78px;background:var(--accent-soft);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:30px;
+  overflow:hidden;cursor:pointer;position:relative}
+.dcard img{width:100%;height:100%;object-fit:cover}
+.dcard .plus{position:absolute;right:-3px;bottom:-3px;width:24px;height:24px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--bg)}
+.dinfo{flex:1;min-width:0}
+.dinfo h4{margin:0;font-size:calc(17px * var(--fs));font-weight:700;line-height:1.3}
+.dinfo .dr{font-size:12px;color:var(--muted);margin-top:3px}
+
+.balbox{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:18px;
+  padding:17px 18px;color:#fff;margin-bottom:14px;box-shadow:0 6px 20px rgba(160,40,80,.22)}
+.balbox .lab{font-size:11.5px;opacity:.85;font-weight:600}
+.balbox .amt{font-size:calc(33px * var(--fs));font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-top:3px}
+.balbox .split{display:flex;gap:16px;margin-top:11px;font-size:11.5px;opacity:.92;flex-wrap:wrap}
+.balbox .split b{font-size:13px;font-weight:700}
+
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.quick button{padding:14px;border-radius:14px;font-size:calc(14px * var(--fs));font-weight:700;
+  border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;display:flex;
+  align-items:center;justify-content:center;gap:6px}
+.quick button:active{transform:scale(.97)}
+.quick button.t1{background:var(--accent);border-color:var(--accent);color:#fff}
+.quick button.t2{background:#0f766e;border-color:#0f766e;color:#fff}
+
+.txlist{margin-top:6px}
+.txhead{display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px}
+.txhead h5{margin:0;font-size:13px;font-weight:700;color:var(--ink2)}
+.txrow{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid var(--line);
+  border-radius:13px;background:var(--panel);margin-bottom:8px}
+.txrow .ti{width:34px;height:34px;border-radius:10px;flex:0 0 34px;display:flex;align-items:center;
+  justify-content:center;font-size:16px}
+.txrow .ti.in{background:#e3f3f1;color:#0f766e}
+.txrow .ti.out{background:var(--accent-soft);color:var(--accent)}
+.txrow .tbody{flex:1;min-width:0}
+.txrow .t1{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.txrow .t2{font-size:11px;color:var(--muted);margin-top:2px}
+.txrow .tamt{font-size:14px;font-weight:800;white-space:nowrap}
+.txrow .tamt.in{color:#0f766e}
+.txrow .tamt.out{color:var(--accent)}
+.txrow .del{width:30px;height:30px;border-radius:9px;border:none;background:transparent;color:var(--muted);
+  font-size:14px;cursor:pointer;flex:0 0 auto}
+.txrow .del:active{background:var(--line2)}
+
+/* 地區管理列 */
+.rrow{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid var(--line);
+  border-radius:13px;background:var(--panel);margin-bottom:8px}
+.rrow .rn{flex:1;font-size:13.5px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rrow .rc{font-size:11px;color:var(--muted);white-space:nowrap}
+.rrow button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--panel);
+  color:var(--ink2);font-size:13px;cursor:pointer;flex:0 0 auto}
+
+/* 圖片放大 */
+.imgview{position:fixed;inset:0;z-index:300;background:rgba(20,10,14,.94);display:none;
+  align-items:center;justify-content:center;padding:18px}
+.imgview.show{display:flex}
+.imgview img{max-width:100%;max-height:88vh;object-fit:contain;border-radius:10px}
+.imgview .cl,.imgview .sh{position:absolute;top:calc(env(safe-area-inset-top) + 14px);width:40px;height:40px;
+  border-radius:50%;background:rgba(255,255,255,.16);color:#fff;border:none;font-size:20px;cursor:pointer}
+.imgview .cl{right:16px}
+.imgview .sh{right:64px;font-size:17px}
+
+/* 排序清單 */
+#sortList{margin-top:4px;-webkit-user-select:none;user-select:none}
+.srow{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--line);
+  border-radius:12px;background:var(--panel);margin-bottom:7px}
+.srow.dragging{background:var(--accent-soft);border-color:var(--accent);box-shadow:0 6px 18px rgba(120,60,80,.18);
+  position:relative;z-index:2}
+.shandle{width:28px;flex:0 0 28px;text-align:center;color:var(--muted);font-size:15px;font-weight:700;
+  cursor:grab;touch-action:none;padding:6px 0;letter-spacing:-2px}
+.shandle:active{cursor:grabbing}
+.srow .snm{flex:1;min-width:0}
+.srow .snm .t{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .snm .s{font-size:10.5px;color:var(--muted);margin-top:1px}
+.sbtn{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--panel);
+  color:var(--ink2);font-size:13px;cursor:pointer;flex:0 0 auto}
+.sbtn:active{background:var(--line2)}
+.sbtn[disabled]{opacity:.35;pointer-events:none}
+
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translateX(-50%) translateY(12px);
+  background:rgba(59,37,48,.94);color:#fff;padding:10px 18px;border-radius:12px;font-size:13px;z-index:600;
+  opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;max-width:86vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--panel)}
+.seg span{padding:8px 13px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;user-select:none}
+.seg span.on{background:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">💳</div>
+  <div>
+    <h1>會員</h1>
+    <div class="sub">充值 · 消費 · 餘額一覽</div>
+  </div>
+  <div class="topacts">
+    <button class="iconbtn" id="lyBtn" title="切換佈局" onclick="openLayoutSheet()">▦</button>
+    <button class="iconbtn" id="setBtn" title="設定" onclick="openSettings()">⚙️</button>
+  </div>
+</header>
+
+<div class="rtabs" id="rTabs"></div>
+<div class="sumline" id="sumLine"></div>
+
+<div class="mgrid" id="mGrid"></div>
+<div id="emptyBox"></div>
+
+<nav class="bottombar">
+  <button class="bb primary" onclick="openMemberEdit()"><span class="ic">➕</span>新增會員</button>
+  <button class="bb" onclick="openRegionSheet()"><span class="ic">📍</span>地區</button>
+  <button class="bb" onclick="openSettings()"><span class="ic">⚙️</span>設定</button>
+</nav>
+
+<!-- 會員詳情 -->
+<div class="mask" id="detailMask" onclick="if(event.target===this)closeDetail()">
+  <div class="sheet">
+    <div class="sh">
+      <h3>會員詳情</h3>
+      <button class="x" onclick="closeDetail()">✕</button>
+    </div>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<!-- 新增／編輯會員 -->
+<div class="mask" id="editMask" onclick="if(event.target===this)closeMemberEdit()">
+  <div class="sheet">
+    <div class="sh">
+      <h3 id="editTitle">新增會員</h3>
+      <button class="x" onclick="closeMemberEdit()">✕</button>
+    </div>
+    <div class="field">
+      <label>商店／會員名稱</label>
+      <input class="inp" id="mName" placeholder="例如：XX 超市、YY 髮型屋" maxlength="40">
+    </div>
+    <div class="field">
+      <label>所屬地區</label>
+      <select class="inp" id="mRegion"></select>
+    </div>
+    <div class="field">
+      <label>會員證卡圖（可選）</label>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="dcard" id="editCardPrev" onclick="document.getElementById('mCardIn').click()">💳<span class="plus">＋</span></div>
+        <div style="flex:1">
+          <button class="btn" onclick="document.getElementById('mCardIn').click()">上載／更換</button>
+          <button class="btn ghost" id="mCardClear" onclick="clearEditCard()" style="display:none">移除</button>
+          <div class="hint" style="margin-top:6px">相片會自動縮至 900px 並只存此瀏覽器。</div>
+        </div>
+      </div>
+      <input type="file" id="mCardIn" accept="image/*" style="display:none" onchange="onPickCard(event)">
+    </div>
+    <div class="field">
+      <label>備註（可選）</label>
+      <input class="inp" id="mNote" placeholder="例如：會員號、到期日" maxlength="60">
+    </div>
+    <button class="btn primary wide" onclick="saveMember()">儲存</button>
+    <div id="editDelWrap" style="margin-top:9px;display:none">
+      <button class="btn danger wide" onclick="delMember()">刪除此會員</button>
+    </div>
+  </div>
+</div>
+
+<!-- 充值／消費 -->
+<div class="mask" id="txMask" onclick="if(event.target===this)closeTx()">
+  <div class="sheet">
+    <div class="sh">
+      <h3 id="txTitle">充值</h3>
+      <button class="x" onclick="closeTx()">✕</button>
+    </div>
+    <div id="txBody"></div>
+  </div>
+</div>
+
+<!-- 地區管理 -->
+<div class="mask" id="regMask" onclick="if(event.target===this)closeRegionSheet()">
+  <div class="sheet">
+    <div class="sh">
+      <h3>地區管理</h3>
+      <button class="x" onclick="closeRegionSheet()">✕</button>
+    </div>
+    <div class="field" style="margin-top:0">
+      <label>新增地區</label>
+      <div style="display:flex;gap:8px">
+        <input class="inp" id="newRegion" placeholder="例如：澳門半島、氹仔" maxlength="20" style="flex:1">
+        <button class="btn primary" onclick="addRegion()">新增</button>
+      </div>
+    </div>
+    <div id="regList"></div>
+  </div>
+</div>
+
+<!-- 設定 -->
+<div class="mask" id="setMask" onclick="if(event.target===this)closeSettings()">
+  <div class="sheet">
+    <div class="sh">
+      <h3>設定</h3>
+      <button class="x" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="field">
+      <label>顯示佈局</label>
+      <div class="chips" id="layoutChips"></div>
+    </div>
+    <div class="field">
+      <label>排序</label>
+      <button class="btn wide" onclick="closeSettings();openSortSheet()">⇅ 手動排序會員</button>
+    </div>
+    <div class="field">
+      <label>資料</label>
+      <button class="btn wide" onclick="exportData()" style="margin-bottom:8px">⬇️ 匯出備份（JSON）</button>
+      <button class="btn wide" onclick="document.getElementById('impFile').click()" style="margin-bottom:8px">⬆️ 匯入備份</button>
+      <input type="file" id="impFile" accept="application/json,.json" style="display:none" onchange="importData(event)">
+      <button class="btn danger wide" onclick="clearAll()">清除全部會員資料</button>
+    </div>
+    <div class="hint">所有資料只存放在此瀏覽器，不會上傳。清理瀏覽器資料前請先匯出備份。</div>
+  </div>
+</div>
+
+<!-- 排序 -->
+<div class="mask" id="sortMask" onclick="if(event.target===this)closeSort()">
+  <div class="sheet">
+    <div class="sh">
+      <h3>排序會員</h3>
+      <button class="x" onclick="closeSort()">✕</button>
+    </div>
+    <div class="hint" style="margin-bottom:10px">按住左邊 ⋮⋮ 拖動，或用 ↑ ↓ 微調。排序適用於全部地區，只影響顯示次序。</div>
+    <div id="sortList"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" onclick="resetSort()">回復自動排序</button>
+      <button class="btn primary" style="flex:1" onclick="closeSort()">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- 圖片放大 -->
+<div class="imgview" id="imgView" onclick="closeImg()">
+  <button class="cl" onclick="closeImg()">✕</button>
+  <button class="sh" onclick="event.stopPropagation();shareCurrentImg()" title="分享卡圖">↗</button>
+  <img id="imgBig" src="" alt="會員證卡">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="theme.js"></script>
+<script src="jless-common.js"></script>
+<script src="share.js"></script>
+<script defer src="ga.js"></script>
+<script src="help.js"></script>
+<script>
+var KEY='jless_member_v1';
+var S={v:1,regions:[],members:[],txns:[],cfg:{layout:'card',sort:'recent'}};
+var curRegion='all';
+var editId=null;       /* 正在編輯的會員 id；null=新增 */
+var editCard='';       /* 編輯中的卡圖 dataURL */
+var detailId=null;     /* 詳情中的會員 id */
+var txMid=null;        /* 交易中的會員 id */
+var txType='topup';
+var txAmt=null;        /* 已選快捷金額 */
+var sortDrag=null;     /* 拖動排序狀態 */
+
+/* ---------- 工具 ---------- */
+function uid(){return 'm'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function todayStr(){
+  var d=new Date(),m=d.getMonth()+1,dd=d.getDate();
+  return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(dd<10?'0':'')+dd;
+}
+function fmtDate(s){
+  if(!s)return '';
+  var p=String(s).split('-');
+  if(p.length!==3)return s;
+  return p[0]+'/'+p[1]+'/'+p[2];
+}
+function money(n){
+  n=Math.round((+n||0)*100)/100;
+  var neg=n<0;n=Math.abs(n);
+  var s=n.toLocaleString('zh-Hant',{minimumFractionDigits:0,maximumFractionDigits:2});
+  return (neg?'-':'')+'$'+s;
+}
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);
+  t._tm=setTimeout(function(){t.classList.remove('show');},1900);
+}
+
+/* ---------- 資料 ---------- */
+function normalize(d){
+  var o={v:1,regions:[],members:[],txns:[],cfg:{layout:'card',sort:'recent'}};
+  if(!d||typeof d!=='object')d={};
+  if(Array.isArray(d.regions))o.regions=d.regions.filter(function(r){return r&&r.id;}).map(function(r){
+    return {id:String(r.id),name:String(r.name||'未命名地區').slice(0,20),ts:+r.ts||Date.now()};
+  });
+  if(Array.isArray(d.members))o.members=d.members.filter(function(m){return m&&m.id;}).map(function(m){
+    return {
+      id:String(m.id),
+      regionId:String(m.regionId||''),
+      name:String(m.name||'未命名會員').slice(0,40),
+      note:String(m.note||'').slice(0,60),
+      card:typeof m.card==='string'&&m.card.indexOf('data:')===0?m.card:'',
+      ord:(typeof m.ord==='number'&&isFinite(m.ord))?m.ord:null,
+      ts:+m.ts||Date.now()
+    };
+  });
+  if(Array.isArray(d.txns))o.txns=d.txns.filter(function(t){return t&&t.id;}).map(function(t){
+    return {
+      id:String(t.id),
+      mid:String(t.mid||''),
+      type:(t.type==='spend'?'spend':'topup'),
+      amt:Math.max(0,+t.amt||0),
+      bonus:Math.max(0,+t.bonus||0),
+      date:String(t.date||todayStr()).slice(0,10),
+      note:String(t.note||'').slice(0,60),
+      ts:+t.ts||Date.now()
+    };
+  });
+  if(d.cfg&&typeof d.cfg==='object'){
+    if(/^(card|list|compact)$/.test(d.cfg.layout||''))o.cfg.layout=d.cfg.layout;
+    o.cfg.sort=(d.cfg.sort==='manual'?'manual':'recent');
+  }
+  /* 若完全沒有資料，給一個預設地區，方便第一次使用 */
+  if(!o.regions.length&&!o.members.length){
+    o.regions=[{id:uid(),name:'默認',ts:Date.now()}];
+  }
+  return o;
+}
+function load(){
+  try{
+    var raw=localStorage.getItem(KEY);
+    S=normalize(raw?JSON.parse(raw):null);
+  }catch(e){S=normalize(null);}
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(S));}
+  catch(e){toast('儲存失敗：瀏覽器空間可能已滿');}
+}
+function regionById(id){return S.regions.find(function(r){return r.id===id;})||null;}
+function regionName(id){var r=regionById(id);return r?r.name:'未分區';}
+function memberById(id){return S.members.find(function(m){return m.id===id;})||null;}
+function txnsOf(mid){
+  return S.txns.filter(function(t){return t.mid===mid;})
+    .sort(function(a,b){return (b.date||'').localeCompare(a.date||'')||(b.ts||0)-(a.ts||0);});
+}
+/* 餘額：充值本金 + 贈送 − 消費 */
+function calcBalance(mid){
+  var top=0,bonus=0,spent=0,last=0,lastDate='';
+  S.txns.forEach(function(t){
+    if(t.mid!==mid)return;
+    if(t.type==='topup'){top+=t.amt;bonus+=t.bonus;}
+    else{spent+=t.amt;}
+    if((t.ts||0)>last)last=t.ts||0;
+    /* 用交易本身的日期字串（本地日期），避免 UTC 轉換令凌晨交易顯示前一日 */
+    if(t.date&&t.date>lastDate)lastDate=t.date;
+  });
+  return {top:top,bonus:bonus,spent:spent,total:top+bonus-spent,last:last,lastDate:lastDate};
+}
+
+/* ---------- 地區 ---------- */
+function renderRegions(){
+  var box=document.getElementById('rTabs');
+  var h='';
+  var all=S.members.length;
+  h+='<div class="rtab'+(curRegion==='all'?' on':'')+'" onclick="setRegion(\'all\')">全部 <small>'+all+'</small></div>';
+  S.regions.forEach(function(r){
+    var n=S.members.filter(function(m){return m.regionId===r.id;}).length;
+    h+='<div class="rtab'+(curRegion===r.id?' on':'')+'" onclick="setRegion(\''+r.id+'\')">'+esc(r.name)+' <small>'+n+'</small></div>';
+  });
+  h+='<div class="rtab add" onclick="openRegionSheet()">＋ 地區</div>';
+  box.innerHTML=h;
+  /* 讓選中的 tab 自動可見 */
+  var on=box.querySelector('.rtab.on');
+  if(on&&on.scrollIntoView){try{on.scrollIntoView({block:'nearest',inline:'center'});}catch(e){}}
+}
+function setRegion(id){
+  curRegion=(id==='all'||regionById(id))?id:'all';
+  renderRegions();renderMembers();
+}
+
+/* ---------- 會員列表 ---------- */
+/* 最近有交易者優先，其次新加入 */
+function recentCmp(a,b){
+  var ba=calcBalance(a.id),bb=calcBalance(b.id);
+  var ta=Math.max(ba.last,a.ts||0),tb=Math.max(bb.last,b.ts||0);
+  return tb-ta;
+}
+/* 手動排序：ord 細者在前；未設定 ord 者排在最後 */
+function ordCmp(a,b){
+  var oa=(a.ord==null?1e15:a.ord),ob=(b.ord==null?1e15:b.ord);
+  if(oa!==ob)return oa-ob;
+  return recentCmp(a,b);
+}
+function orderedMembers(){return S.members.slice().sort(ordCmp);}
+function visibleMembers(){
+  var list=S.members.slice();
+  if(curRegion!=='all')list=list.filter(function(m){return m.regionId===curRegion;});
+  list.sort(S.cfg.sort==='manual'?ordCmp:recentCmp);
+  return list;
+}
+function renderMembers(){
+  var grid=document.getElementById('mGrid');
+  var empty=document.getElementById('emptyBox');
+  var list=visibleMembers();
+  grid.className='mgrid ly-'+(S.cfg.layout||'card');
+  if(!list.length){
+    grid.innerHTML='';
+    empty.innerHTML='<div class="empty"><span class="big">💳</span>'+
+      (S.members.length?'此地區未有會員。':'還沒有會員卡。加入第一張，充值與消費就一目了然。')+
+      '<br><button class="btn primary" onclick="openMemberEdit()">＋ 新增會員</button></div>';
+  }else{
+    empty.innerHTML='';
+    grid.innerHTML=list.map(memberCardHTML).join('');
+  }
+  renderSummary();
+}
+function memberCardHTML(m){
+  var b=calcBalance(m.id);
+  var cls=b.total>0?'':(b.total<0?'neg':'zero');
+  var lastTxt=b.lastDate?'最近 '+fmtDate(b.lastDate):'尚未有記錄';
+  var bg=m.card?'<div class="bgimg" style="background-image:url(\''+m.card+'\')"></div>':'';
+  if(S.cfg.layout==='list'){
+    return '<div class="mcard" onclick="openDetail(\''+m.id+'\')">'+bg+
+      '<div class="mthumb">'+(m.card?'<img src="'+m.card+'" alt="">':'🏪')+'</div>'+
+      '<div class="mtxt">'+
+        '<div class="nm"><span class="t">'+esc(m.name)+'</span></div>'+
+        '<div class="rg">📍 '+esc(regionName(m.regionId))+'</div>'+
+        '<div class="bal '+cls+'">'+money(b.total)+'</div>'+
+      '</div></div>';
+  }
+  return '<div class="mcard" onclick="openDetail(\''+m.id+'\')">'+bg+
+    '<div class="inner">'+
+      '<div class="nm"><span class="t">'+esc(m.name)+'</span></div>'+
+      '<div class="rg">📍 '+esc(regionName(m.regionId))+'</div>'+
+      '<div class="bal '+cls+'">'+money(b.total)+'</div>'+
+      '<div class="meta">'+lastTxt+'</div>'+
+    '</div></div>';
+}
+function renderSummary(){
+  var total=0,n=0;
+  var list=visibleMembers();
+  list.forEach(function(m){var b=calcBalance(m.id);total+=b.total;n++;});
+  var el=document.getElementById('sumLine');
+  if(!S.members.length){el.innerHTML='';return;}
+  var txt=n?('共 <b>'+n+'</b> 張會員卡 · 合計餘額 <b>'+money(total)+'</b>'):'此地區未有會員';
+  el.innerHTML='<span class="sumtxt">'+txt+'</span>'+
+    '<button class="sortbtn'+(S.cfg.sort==='manual'?' on':'')+'" onclick="openSortSheet()" title="排序會員">⇅ '+
+    (S.cfg.sort==='manual'?'手動':'排序')+'</button>';
+}
+
+/* ---------- 佈局 ---------- */
+var LAYOUTS=[{k:'card',n:'標準卡片',i:'▦'},{k:'list',n:'列表',i:'☰'},{k:'compact',n:'緊湊',i:'▪'}];
+function setLayout(k){
+  if(!/^(card|list|compact)$/.test(k))return;
+  S.cfg.layout=k;save();renderMembers();renderLayoutChips();
+  var btn=document.getElementById('lyBtn');
+  if(btn)btn.classList.toggle('on',k!=='card');
+}
+function renderLayoutChips(){
+  var box=document.getElementById('layoutChips');
+  if(!box)return;
+  box.innerHTML=LAYOUTS.map(function(l){
+    return '<div class="chip'+(S.cfg.layout===l.k?' on':'')+'" onclick="setLayout(\''+l.k+'\')">'+l.i+' '+l.n+'</div>';
+  }).join('');
+}
+function openLayoutSheet(){
+  /* 三種佈局直接循環，比開面板快 */
+  var order=['card','list','compact'];
+  var i=order.indexOf(S.cfg.layout);
+  var next=order[(i+1)%order.length];
+  setLayout(next);
+  var nm={card:'標準卡片',list:'列表',compact:'緊湊'}[next];
+  toast('已切換為「'+nm+'」佈局');
+}
+
+/* ---------- 手動排序 ---------- */
+function ensureManual(){
+  if(S.cfg.sort==='manual'){
+    var miss=orderedMembers().some(function(m){return m.ord==null;});
+    if(miss)orderedMembers().forEach(function(m,i){m.ord=i;});
+    return;
+  }
+  /* 以目前「最近使用」次序作為手動排序起點 */
+  S.members.slice().sort(recentCmp).forEach(function(m,i){m.ord=i;});
+  S.cfg.sort='manual';
+}
+function openSortSheet(){
+  if(!S.members.length){toast('還沒有會員可排序');return;}
+  ensureManual();
+  save();
+  renderSortList();
+  renderMembers();
+  document.getElementById('sortMask').classList.add('show');
+}
+function closeSort(){
+  if(sortDrag)sortEnd();
+  save();
+  document.getElementById('sortMask').classList.remove('show');
+  renderMembers();
+}
+function renderSortList(){
+  var box=document.getElementById('sortList');
+  if(!box)return;
+  var list=orderedMembers();
+  if(!list.length){box.innerHTML='<div class="hint">還沒有會員。</div>';return;}
+  box.innerHTML=list.map(function(m,i){
+    return '<div class="srow" data-id="'+m.id+'">'+
+      '<div class="shandle" onpointerdown="sortDown(event,\''+m.id+'\')" title="按住拖動">⋮⋮</div>'+
+      '<div class="snm"><div class="t">'+esc(m.name)+'</div>'+
+        '<div class="s">📍 '+esc(regionName(m.regionId))+'</div></div>'+
+      '<button class="sbtn" onclick="moveMember(\''+m.id+'\',-1)"'+(i===0?' disabled':'')+' title="上移">↑</button>'+
+      '<button class="sbtn" onclick="moveMember(\''+m.id+'\',1)"'+(i===list.length-1?' disabled':'')+' title="下移">↓</button>'+
+    '</div>';
+  }).join('');
+}
+function applyOrder(ids){
+  var map={};
+  ids.forEach(function(id,i){map[id]=i;});
+  S.members.forEach(function(m){if(map[m.id]!=null)m.ord=map[m.id];});
+}
+function moveMember(id,delta){
+  ensureManual();
+  var list=orderedMembers();
+  var i=-1;
+  for(var k=0;k<list.length;k++){if(list[k].id===id){i=k;break;}}
+  var j=i+delta;
+  if(i<0||j<0||j>=list.length)return;
+  var ids=list.map(function(m){return m.id;});
+  ids.splice(i,1);
+  ids.splice(j,0,id);
+  applyOrder(ids);
+  save();renderSortList();renderMembers();
+}
+function resetSort(){
+  S.cfg.sort='recent';
+  S.members.forEach(function(m){m.ord=null;});
+  save();renderSortList();renderMembers();
+  toast('已回復自動排序');
+}
+function sortDown(ev,id){
+  if(ev.pointerType==='mouse'&&ev.button!==0)return;
+  ev.preventDefault();
+  ensureManual();
+  renderMembers();
+  sortDrag={id:id};
+  var row=document.querySelector('#sortList .srow[data-id="'+id+'"]');
+  if(row)row.classList.add('dragging');
+  document.addEventListener('pointermove',sortMove);
+  document.addEventListener('pointerup',sortEnd);
+  document.addEventListener('pointercancel',sortEnd);
+}
+function sortMove(ev){
+  if(!sortDrag)return;
+  if(ev.cancelable)ev.preventDefault();
+  var box=document.getElementById('sortList');
+  if(!box)return;
+  var rows=[].slice.call(box.querySelectorAll('.srow'));
+  if(!rows.length)return;
+  var cur=-1;
+  for(var k=0;k<rows.length;k++){
+    if(rows[k].getAttribute('data-id')===sortDrag.id){cur=k;break;}
+  }
+  if(cur<0)return;
+  /* 用指標 Y 找出應該插入的位置 */
+  var idx=-1;
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i].getBoundingClientRect();
+    if(ev.clientY>=r.top&&ev.clientY<=r.bottom){idx=i;break;}
+  }
+  if(idx<0){
+    var f=rows[0].getBoundingClientRect(),l=rows[rows.length-1].getBoundingClientRect();
+    if(ev.clientY<f.top)idx=0;
+    else if(ev.clientY>l.bottom)idx=rows.length-1;
+  }
+  if(idx<0||idx===cur)return;
+  /* 直接搬動 DOM 節點，避免重建時中斷拖曳 */
+  var dragged=rows[cur],target=rows[idx];
+  if(idx>cur)box.insertBefore(dragged,target.nextSibling);
+  else box.insertBefore(dragged,target);
+  var ids=[].slice.call(box.querySelectorAll('.srow')).map(function(r){return r.getAttribute('data-id');});
+  applyOrder(ids);
+  /* 拖到上下邊緣時自動捲動 */
+  var sheet=document.querySelector('#sortMask .sheet');
+  if(sheet){
+    var sr=sheet.getBoundingClientRect();
+    if(ev.clientY<sr.top+76)sheet.scrollTop-=16;
+    else if(ev.clientY>sr.bottom-76)sheet.scrollTop+=16;
+  }
+}
+function sortEnd(){
+  if(!sortDrag)return;
+  sortDrag=null;
+  document.removeEventListener('pointermove',sortMove);
+  document.removeEventListener('pointerup',sortEnd);
+  document.removeEventListener('pointercancel',sortEnd);
+  save();
+  renderSortList();
+  renderMembers();
+}
+
+/* ---------- 會員編輯 ---------- */
+function openMemberEdit(id){
+  editId=id||null;
+  var m=id?memberById(id):null;
+  editCard=m?(m.card||''):'';
+  document.getElementById('editTitle').textContent=m?'編輯會員':'新增會員';
+  document.getElementById('mName').value=m?m.name:'';
+  document.getElementById('mNote').value=m?m.note:'';
+  var sel=document.getElementById('mRegion');
+  var opts=S.regions.map(function(r){
+    return '<option value="'+r.id+'">'+esc(r.name)+'</option>';
+  }).join('');
+  sel.innerHTML=opts||'<option value="">（先新增地區）</option>';
+  if(m&&m.regionId)sel.value=m.regionId;
+  else if(curRegion!=='all')sel.value=curRegion;
+  renderEditCard();
+  document.getElementById('editDelWrap').style.display=m?'block':'none';
+  document.getElementById('editMask').classList.add('show');
+  setTimeout(function(){document.getElementById('mName').focus();},80);
+}
+function closeMemberEdit(){
+  document.getElementById('editMask').classList.remove('show');
+  editId=null;editCard='';
+}
+function renderEditCard(){
+  var box=document.getElementById('editCardPrev');
+  box.innerHTML=editCard?'<img src="'+editCard+'" alt=""><span class="plus">✎</span>':'💳<span class="plus">＋</span>';
+  document.getElementById('mCardClear').style.display=editCard?'inline-block':'none';
+}
+function clearEditCard(){editCard='';renderEditCard();}
+function onPickCard(ev){
+  var f=ev.target.files&&ev.target.files[0];
+  ev.target.value='';
+  if(!f)return;
+  if(!/^image\//.test(f.type)){toast('請選擇圖片檔');return;}
+  shrinkImage(f,900,0.78,function(dataUrl){
+    editCard=dataUrl;renderEditCard();toast('已加入會員卡圖');
+  });
+}
+/* 壓縮圖片：長邊 900px、JPEG，控制 localStorage 用量 */
+function shrinkImage(file,maxEdge,quality,cb){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var w=img.width,h=img.height;
+      var scale=Math.min(1,maxEdge/Math.max(w,h));
+      var cw=Math.round(w*scale),ch=Math.round(h*scale);
+      var cv=document.createElement('canvas');
+      cv.width=cw;cv.height=ch;
+      var ctx=cv.getContext('2d');
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,cw,ch);
+      ctx.drawImage(img,0,0,cw,ch);
+      var out=cv.toDataURL('image/jpeg',quality);
+      cb(out);
+    };
+    img.onerror=function(){toast('無法讀取此圖片');};
+    img.src=e.target.result;
+  };
+  reader.onerror=function(){toast('無法讀取檔案');};
+  reader.readAsDataURL(file);
+}
+function saveMember(){
+  var name=document.getElementById('mName').value.trim();
+  var regionId=document.getElementById('mRegion').value;
+  var note=document.getElementById('mNote').value.trim();
+  if(!name){toast('請輸入商店／會員名稱');return;}
+  if(!regionId){
+    toast('請先新增一個地區');
+    openRegionSheet();
+    return;
+  }
+  if(editId){
+    var m=memberById(editId);
+    if(m){m.name=name;m.regionId=regionId;m.note=note;m.card=editCard;}
+  }else{
+    var ord=null;
+    if(S.cfg.sort==='manual'){
+      /* 手動排序時，新會員放在最前 */
+      var min=Infinity;
+      S.members.forEach(function(x){if(x.ord!=null&&x.ord<min)min=x.ord;});
+      ord=(min===Infinity?0:min-1);
+    }
+    S.members.unshift({id:uid(),regionId:regionId,name:name,note:note,card:editCard,ord:ord,ts:Date.now()});
+  }
+  save();
+  var wasEdit=!!editId;
+  closeMemberEdit();
+  renderRegions();renderMembers();
+  toast(wasEdit?'已更新會員':'已新增會員');
+  if(!wasEdit&&curRegion!=='all'&&curRegion!==regionId)setRegion('all');
+}
+function delMember() {
+  if(!editId)return;
+  var m=memberById(editId);if(!m)return;
+  var n=txnsOf(editId).length;
+  if(!confirm('刪除會員「'+m.name+'」'+(n?'及其 '+n+' 筆記錄':'')+'？此動作無法復原。'))return;
+  if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,'會員：'+m.name);}catch(e){}}
+  S.members=S.members.filter(function(x){return x.id!==editId;});
+  S.txns=S.txns.filter(function(t){return t.mid!==editId;});
+  save();
+  closeMemberEdit();
+  if(detailId===editId)closeDetail();
+  renderRegions();renderMembers();
+  toast('已刪除會員');
+}
+
+/* ---------- 詳情 ---------- */
+function openDetail(id){
+  var m=memberById(id);if(!m)return;
+  detailId=id;
+  /* 預先解碼卡圖，令「分享圖片」幾乎即時 */
+  if(m.card)loadImage(m.card,function(){});
+  renderDetail();
+  document.getElementById('detailMask').classList.add('show');
+}
+function closeDetail(){
+  document.getElementById('detailMask').classList.remove('show');
+  detailId=null;
+}
+function renderDetail(){
+  var m=memberById(detailId);if(!m)return;
+  var b=calcBalance(m.id);
+  var list=txnsOf(m.id);
+  var h='';
+  h+='<div class="dhead">'+
+      '<div class="dcard" onclick="'+(m.card?'openImg(\''+m.card+'\')':'openMemberEdit(\''+m.id+'\')')+'">'+
+        (m.card?'<img src="'+m.card+'" alt="會員卡">':'💳<span class="plus">＋</span>')+
+      '</div>'+
+      '<div class="dinfo"><h4>'+esc(m.name)+'</h4>'+
+        '<div class="dr">📍 '+esc(regionName(m.regionId))+(m.note?' · '+esc(m.note):'')+'</div></div>'+
+      '<button class="iconbtn" onclick="shareMember(\''+m.id+'\')" title="分享會員卡">↗</button>'+
+      '<button class="iconbtn" onclick="closeDetail();openMemberEdit(\''+m.id+'\')" title="編輯">✎</button>'+
+    '</div>';
+  h+='<div class="balbox">'+
+      '<div class="lab">目前餘額</div>'+
+      '<div class="amt">'+money(b.total)+'</div>'+
+      '<div class="split"><span>充值本金 <b>'+money(b.top)+'</b></span>'+
+        '<span>贈送 <b>'+money(b.bonus)+'</b></span>'+
+        '<span>已消費 <b>'+money(b.spent)+'</b></span></div>'+
+     '</div>';
+  h+='<div class="quick">'+
+      '<button class="t1" onclick="openTx(\''+m.id+'\',\'topup\')">＋ 充值</button>'+
+      '<button class="t2" onclick="openTx(\''+m.id+'\',\'spend\')">－ 消費</button>'+
+     '</div>';
+  h+='<div class="txhead"><h5>記錄（'+list.length+'）</h5>'+
+      '<button class="btn ghost" style="padding:6px 10px;font-size:12px" onclick="closeDetail();openMemberEdit(\''+m.id+'\')">編輯會員</button></div>';
+  if(!list.length){
+    h+='<div class="hint" style="padding:14px 0">還沒有充值或消費記錄。按上面「＋ 充值」開始。</div>';
+  }else{
+    h+='<div class="txlist">'+list.map(function(t){
+      var isIn=t.type==='topup';
+      var sub=[];
+      sub.push(fmtDate(t.date));
+      if(isIn&&t.bonus>0)sub.push('贈送 '+money(t.bonus));
+      if(t.note)sub.push(esc(t.note));
+      return '<div class="txrow">'+
+        '<div class="ti '+(isIn?'in':'out')+'">'+(isIn?'＋':'－')+'</div>'+
+        '<div class="tbody"><div class="t1">'+(isIn?'充值':'消費')+'</div>'+
+          '<div class="t2">'+sub.join(' · ')+'</div></div>'+
+        '<div class="tamt '+(isIn?'in':'out')+'">'+(isIn?'+':'−')+money(t.amt)+'</div>'+
+        '<button class="del" onclick="delTx(\''+t.id+'\')" title="刪除">🗑</button>'+
+      '</div>';
+    }).join('')+'</div>';
+  }
+  document.getElementById('detailBody').innerHTML=h;
+}
+function delTx(id){
+  var t=S.txns.find(function(x){return x.id===id;});if(!t)return;
+  var b=calcBalance(t.mid);
+  if(!confirm('刪除這筆'+(t.type==='topup'?'充值':'消費')+' '+money(t.amt)+'（'+fmtDate(t.date)+'）？'))return;
+  S.txns=S.txns.filter(function(x){return x.id!==id;});
+  save();renderDetail();renderMembers();
+  toast('已刪除記錄');
+}
+
+/* ---------- 充值／消費 ---------- */
+function openTx(mid,type){
+  var m=memberById(mid);if(!m)return;
+  txMid=mid;txType=type;txAmt=null;
+  document.getElementById('txTitle').textContent=type==='topup'?'充值 — '+m.name:'消費 — '+m.name;
+  var h='';
+  if(type==='topup'){
+    h+='<div class="field" style="margin-top:0"><label>充值金額</label><div class="chips" id="txChips">'+
+        [100,300,500,1000].map(function(v){
+          return '<div class="chip" data-v="'+v+'" onclick="pickAmt('+v+')">$'+v+'</div>';
+        }).join('')+
+        '<div class="chip" data-v="0" onclick="pickAmt(0)">自訂</div>'+
+      '</div></div>';
+    h+='<div class="field"><label>金額</label><input class="inp" id="txAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="輸入金額"></div>';
+    h+='<div class="field"><label>贈送金額（可選）</label><input class="inp" id="txBonus" type="number" inputmode="decimal" min="0" step="0.01" value="0" placeholder="0"></div>';
+  }else{
+    h+='<div class="field" style="margin-top:0"><label>消費金額</label><input class="inp" id="txAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="輸入消費金額"></div>';
+    var b=calcBalance(mid);
+    h+='<div class="hint">目前餘額 '+money(b.total)+'，消費後將顯示新餘額。</div>';
+  }
+  h+='<div class="field"><label>日期</label><input class="inp" id="txDate" type="date" value="'+todayStr()+'"></div>';
+  h+='<div class="field"><label>備註（可選）</label><input class="inp" id="txNote" placeholder="例如：買日用品" maxlength="60"></div>';
+  h+='<button class="btn primary wide" onclick="saveTx()">'+(type==='topup'?'確認充值':'確認消費')+'</button>';
+  document.getElementById('txBody').innerHTML=h;
+  document.getElementById('txMask').classList.add('show');
+  setTimeout(function(){var el=document.getElementById('txAmt');if(el)el.focus();},80);
+}
+function pickAmt(v){
+  var chips=document.querySelectorAll('#txChips .chip');
+  chips.forEach(function(c){c.classList.toggle('on',+c.getAttribute('data-v')===v);});
+  var inp=document.getElementById('txAmt');
+  if(v>0){inp.value=v;}
+  else{inp.value='';inp.focus();}
+}
+function closeTx(){
+  document.getElementById('txMask').classList.remove('show');
+  txMid=null;txAmt=null;
+}
+function saveTx(){
+  if(!txMid)return;
+  var amtEl=document.getElementById('txAmt');
+  var amt=parseFloat(amtEl.value);
+  if(!(amt>0)){toast('請輸入正確金額');amtEl.focus();return;}
+  var bonus=0;
+  if(txType==='topup'){
+    var bEl=document.getElementById('txBonus');
+    bonus=parseFloat(bEl.value)||0;
+    if(bonus<0)bonus=0;
+  }
+  var date=document.getElementById('txDate').value||todayStr();
+  var note=document.getElementById('txNote').value.trim();
+  /* 消費不可超過餘額太多？容許負數（可能記漏），但提示 */
+  if(txType==='spend'){
+    var b=calcBalance(txMid);
+    if(amt>b.total+0.001){
+      if(!confirm('消費 '+money(amt)+' 超過目前餘額 '+money(b.total)+'，仍要記錄嗎？'))return;
+    }
+  }
+  S.txns.push({id:uid(),mid:txMid,type:txType,amt:amt,bonus:bonus,date:date,note:note,ts:Date.now()});
+  save();
+  var mid=txMid;
+  closeTx();
+  renderMembers();renderRegions();
+  if(detailId===mid)renderDetail();
+  toast(txType==='topup'?'已記錄充值 '+money(amt+(bonus||0)):'已記錄消費 '+money(amt));
+}
+
+/* ---------- 地區管理 ---------- */
+function openRegionSheet(){
+  document.getElementById('newRegion').value='';
+  renderRegionList();
+  document.getElementById('regMask').classList.add('show');
+}
+function closeRegionSheet(){document.getElementById('regMask').classList.remove('show');}
+function renderRegionList(){
+  var box=document.getElementById('regList');
+  if(!S.regions.length){box.innerHTML='<div class="hint" style="padding:12px 0">還沒有地區，先新增一個。</div>';return;}
+  box.innerHTML=S.regions.map(function(r){
+    var n=S.members.filter(function(m){return m.regionId===r.id;}).length;
+    return '<div class="rrow"><span class="rn">'+esc(r.name)+'</span>'+
+      '<span class="rc">'+n+' 位</span>'+
+      '<button onclick="renameRegion(\''+r.id+'\')" title="改名">✎</button>'+
+      '<button onclick="delRegion(\''+r.id+'\')" title="刪除">🗑</button></div>';
+  }).join('');
+}
+function addRegion(){
+  var el=document.getElementById('newRegion');
+  var name=el.value.trim();
+  if(!name){toast('請輸入地區名稱');el.focus();return;}
+  if(S.regions.some(function(r){return r.name===name;})){toast('已有同名地區');return;}
+  var r={id:uid(),name:name.slice(0,20),ts:Date.now()};
+  S.regions.push(r);save();
+  el.value='';
+  renderRegionList();renderRegions();renderMembers();
+  toast('已新增地區「'+r.name+'」');
+}
+function renameRegion(id){
+  var r=regionById(id);if(!r)return;
+  var v=prompt('修改地區名稱',r.name);
+  if(v==null)return;
+  v=v.trim();
+  if(!v){toast('名稱不可空白');return;}
+  if(S.regions.some(function(x){return x.id!==id&&x.name===v;})){toast('已有同名地區');return;}
+  r.name=v.slice(0,20);save();
+  renderRegionList();renderRegions();renderMembers();
+  toast('已更新地區名稱');
+}
+function delRegion(id){
+  var r=regionById(id);if(!r)return;
+  var n=S.members.filter(function(m){return m.regionId===id;}).length;
+  if(n){
+    toast('此地區仍有 '+n+' 位會員，請先移動或刪除');
+    if(!confirm('地區「'+r.name+'」仍有 '+n+' 位會員。\n要先編輯這些會員改到其它地區，才能刪除此地區。\n\n要現在查看這些會員嗎？'))return;
+    setRegion(id);closeRegionSheet();
+    return;
+  }
+  if(!confirm('刪除地區「'+r.name+'」？'))return;
+  S.regions=S.regions.filter(function(x){return x.id!==id;});
+  if(curRegion===id)curRegion='all';
+  save();
+  renderRegionList();renderRegions();renderMembers();
+  toast('已刪除地區');
+}
+
+/* ---------- 設定／資料 ---------- */
+function openSettings(){
+  renderLayoutChips();
+  document.getElementById('setMask').classList.add('show');
+}
+function closeSettings(){document.getElementById('setMask').classList.remove('show');}
+function exportData(){
+  var payload={app:'jless-member',v:1,exportedAt:new Date().toISOString(),data:S};
+  var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='jless-member-'+todayStr()+'.json';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},400);
+  toast('已匯出備份');
+}
+function importData(ev){
+  var f=ev.target.files&&ev.target.files[0];
+  ev.target.value='';
+  if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(e){
+    try{
+      var obj=JSON.parse(String(e.target.result));
+      var d=obj&&obj.data?obj.data:obj;
+      if(!d||typeof d!=='object')throw new Error('格式不正確');
+      if(!confirm('匯入會「取代」目前所有會員資料，確定繼續？'))return;
+      if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,'匯入前備份');}catch(err){}}
+      S=normalize(d);save();
+      curRegion='all';
+      renderRegions();renderMembers();renderLayoutChips();
+      closeSettings();
+      toast('已匯入 '+S.members.length+' 位會員');
+    }catch(err){toast('匯入失敗：'+err.message);}
+  };
+  rd.onerror=function(){toast('無法讀取檔案');};
+  rd.readAsText(f);
+}
+function clearAll(){
+  if(!S.members.length&&!S.txns.length){toast('目前沒有資料');return;}
+  if(!confirm('清除全部 '+S.members.length+' 位會員及其記錄？此動作無法復原。'))return;
+  if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,'清除全部會員資料');}catch(e){}}
+  S={v:1,regions:S.regions.slice(),members:[],txns:[],cfg:{layout:S.cfg.layout}};
+  save();
+  curRegion='all';
+  renderRegions();renderMembers();
+  closeSettings();
+  toast('已清除全部會員資料（地區保留）');
+}
+
+/* ---------- 分享 ---------- */
+var SHARE_FONT='-apple-system,BlinkMacSystemFont,"PingFang TC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+function sFont(ctx,size,weight,color){
+  ctx.font=(weight||700)+' '+size+'px '+SHARE_FONT;
+  if(color)ctx.fillStyle=color;
+}
+function sFit(ctx,txt,maxW){
+  txt=String(txt==null?'':txt);
+  if(ctx.measureText(txt).width<=maxW)return txt;
+  var t=txt;
+  while(t.length>1&&ctx.measureText(t+'…').width>maxW)t=t.slice(0,-1);
+  return t+'…';
+}
+function sCover(ctx,img,x,y,w,h){
+  var ir=img.width/img.height,br=w/h,sw,sh,sx,sy;
+  if(ir>br){sh=img.height;sw=sh*br;sx=(img.width-sw)/2;sy=0;}
+  else{sw=img.width;sh=sw/br;sx=0;sy=(img.height-sh)/2;}
+  ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
+}
+function shareFileName(s){
+  return String(s||'').replace(/[\\/:*?"<>|\s]+/g,'_').slice(0,24)||'member';
+}
+function shareDateStr(){
+  var d=new Date();
+  return d.getFullYear()+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+('0'+d.getDate()).slice(-2);
+}
+var imgCache={};
+function loadImage(src,cb){
+  var hit=src?imgCache[src]:null;
+  if(hit&&hit.complete&&hit.naturalWidth){cb(hit);return;}
+  var im=new Image();
+  im.onload=function(){if(src)imgCache[src]=im;cb(im);};
+  im.onerror=function(){cb(null);};
+  im.src=src;
+}
+/* 合成分享圖：餘額卡 + 三項統計 + 會員證卡圖 + 最近記錄 */
+function buildShareCanvas(m,cb){
+  function run(img){
+    var b=calcBalance(m.id);
+    var recs=txnsOf(m.id).slice(0,3);
+    var accent=JLessShare.getVar('--accent','#c23b6a');
+    var accent2=JLessShare.getVar('--accent2','#a8305c');
+    var W=900,PAD=56;
+    var nrec=recs.length,hasImg=!!img;
+    var H=PAD+64+300+22+150+(hasImg?24+360:0)+(nrec?26+36+nrec*58:0)+64;
+    var cv=document.createElement('canvas');
+    cv.width=W;cv.height=H;
+    var x=cv.getContext('2d');
+    var bg=x.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,'#fffaf3');bg.addColorStop(1,'#fdf0e8');
+    x.fillStyle=bg;x.fillRect(0,0,W,H);
+    var glow=x.createRadialGradient(W/2,-80,0,W/2,-80,620);
+    glow.addColorStop(0,'rgba(194,59,106,.16)');glow.addColorStop(1,'rgba(194,59,106,0)');
+    x.fillStyle=glow;x.fillRect(0,0,W,640);
+
+    /* 品牌列 */
+    sFont(x,23,800,accent);
+    x.fillText('JLess 會員',PAD,PAD+22);
+    sFont(x,19,600,'#b3a1a9');
+    x.textAlign='right';x.fillText(shareDateStr(),W-PAD,PAD+22);x.textAlign='left';
+
+    /* 餘額卡 */
+    var cy=PAD+64;
+    JLessShare.roundRect(x,PAD,cy,W-PAD*2,300,34);
+    var cg=x.createLinearGradient(PAD,cy,PAD+W-2*PAD,cy+300);
+    cg.addColorStop(0,accent);cg.addColorStop(1,accent2);
+    x.fillStyle=cg;x.fill();
+    x.save();
+    JLessShare.roundRect(x,PAD,cy,W-PAD*2,300,34);x.clip();
+    var gl=x.createLinearGradient(0,cy,0,cy+300);
+    gl.addColorStop(0,'rgba(255,255,255,.18)');gl.addColorStop(.55,'rgba(255,255,255,0)');
+    x.fillStyle=gl;x.fillRect(PAD,cy,W-PAD*2,300);
+    x.restore();
+
+    sFont(x,21,700,'rgba(255,255,255,.82)');
+    x.fillText('會員卡 · '+sFit(x,regionName(m.regionId),W-PAD*2-68),PAD+34,cy+52);
+    sFont(x,45,800,'#fff');
+    x.fillText(sFit(x,m.name,W-PAD*2-68),PAD+34,cy+112);
+    sFont(x,21,600,'rgba(255,255,255,.82)');
+    x.fillText('目前餘額',PAD+34,cy+182);
+    if(b.lastDate){
+      sFont(x,19,600,'rgba(255,255,255,.72)');
+      x.textAlign='right';x.fillText('最近 '+fmtDate(b.lastDate),W-PAD-34,cy+182);x.textAlign='left';
+    }
+    var fs=78,at=money(b.total);
+    sFont(x,fs,800,'#fff');
+    while(x.measureText(at).width>W-PAD*2-68&&fs>38){fs-=4;sFont(x,fs,800,'#fff');}
+    x.fillText(at,PAD+34,cy+268);
+
+    /* 三項統計 */
+    var sy=cy+300+22;
+    JLessShare.roundRect(x,PAD,sy,W-PAD*2,150,26);
+    x.fillStyle='#fff';x.fill();
+    x.strokeStyle='rgba(59,37,48,.09)';x.lineWidth=2;x.stroke();
+    var cols=[['充值本金',money(b.top)],['贈送',money(b.bonus)],['已消費',money(b.spent)]];
+    var cw=(W-PAD*2)/3;
+    cols.forEach(function(c,i){
+      var cx=PAD+cw*i+cw/2;
+      x.textAlign='center';
+      sFont(x,20,600,'#967f89');x.fillText(c[0],cx,sy+58);
+      sFont(x,30,800,'#3b2530');x.fillText(sFit(x,c[1],cw-16),cx,sy+110);
+    });
+    x.textAlign='left';
+
+    var cur=sy+150;
+    if(hasImg){
+      cur+=24;
+      JLessShare.roundRect(x,PAD,cur,W-PAD*2,360,26);
+      x.save();x.clip();sCover(x,img,PAD,cur,W-PAD*2,360);x.restore();
+      JLessShare.roundRect(x,PAD,cur,W-PAD*2,360,26);
+      x.strokeStyle='rgba(59,37,48,.12)';x.lineWidth=2;x.stroke();
+      cur+=360;
+    }
+    if(nrec){
+      cur+=26;
+      sFont(x,21,700,'#967f89');x.fillText('最近記錄',PAD,cur+20);
+      var top=cur+36;
+      recs.forEach(function(t,i){
+        var isIn=t.type==='topup';
+        var yy=top+i*58;
+        JLessShare.roundRect(x,PAD,yy,W-PAD*2,50,15);
+        x.fillStyle='rgba(255,255,255,.78)';x.fill();
+        sFont(x,20,600,'#967f89');
+        x.fillText(fmtDate(t.date),PAD+18,yy+32);
+        sFont(x,21,700,'#3b2530');
+        var label=isIn?'充值':'消費';
+        if(t.note)label+=' · '+t.note;
+        x.fillText(sFit(x,label,W-PAD*2-320),PAD+142,yy+32);
+        x.textAlign='right';
+        sFont(x,22,800,isIn?'#0f766e':accent);
+        x.fillText((isIn?'+':'−')+money(t.amt),W-PAD-18,yy+33);
+        x.textAlign='left';
+      });
+    }
+
+    sFont(x,19,600,'#b3a1a9');
+    x.textAlign='center';
+    x.fillText('JLess 小助手 · 資料只存本機',W/2,H-40);
+    x.textAlign='left';
+    cb(cv);
+  }
+  if(m.card&&m.card.indexOf('data:')===0)loadImage(m.card,function(img){run(img);});
+  else run(null);
+}
+function shareMember(id){
+  var m=memberById(id);if(!m)return;
+  if(!window.JLessShare){toast('分享元件未載入，請重新載入頁面');return;}
+  var items=[];
+  items.push(['🖼️ 卡圖＋餘額（圖片）',function(){shareMemberImage(m);}]);
+  if(m.card)items.push(['💳 只分享會員證卡圖',function(){shareCardOnly(m);}]);
+  items.push(['📝 餘額狀況（文字）',function(){shareMemberText(m);}]);
+  JLessShare.openSheet({title:'分享「'+m.name+'」',items:items});
+}
+function shareMemberImage(m){
+  buildShareCanvas(m,function(cv){
+    JLessShare.shareImage(cv,'jless-member-'+shareFileName(m.name)+'-'+todayStr()+'.png',function(shared){
+      toast(shared?'已開啟分享':'圖片已儲存到裝置');
+    });
+  });
+}
+function shareCardOnly(m){
+  if(!m.card){toast('此會員未上載卡圖');return;}
+  shareImageSrc(m.card,'jless-card-'+shareFileName(m.name)+'.png');
+}
+function shareImageSrc(src,name){
+  loadImage(src,function(img){
+    if(!img){toast('卡圖載入失敗');return;}
+    var max=1400;
+    var sc=Math.min(1,max/Math.max(img.width||900,img.height||600));
+    var cv=document.createElement('canvas');
+    cv.width=Math.round((img.width||900)*sc);
+    cv.height=Math.round((img.height||600)*sc);
+    var ctx=cv.getContext('2d');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.drawImage(img,0,0,cv.width,cv.height);
+    JLessShare.shareImage(cv,name,function(shared){
+      toast(shared?'已開啟分享':'圖片已儲存到裝置');
+    });
+  });
+}
+function shareMemberText(m){
+  var b=calcBalance(m.id);
+  var lines=[];
+  lines.push('💳 '+m.name+'（'+regionName(m.regionId)+'）');
+  lines.push('目前餘額：'+money(b.total));
+  lines.push('充值本金 '+money(b.top)+' · 贈送 '+money(b.bonus)+' · 已消費 '+money(b.spent));
+  if(b.lastDate)lines.push('最近記錄：'+fmtDate(b.lastDate));
+  if(m.note)lines.push('備註：'+m.note);
+  lines.push('');
+  lines.push('— JLess 會員');
+  JLessShare.shareText('會員餘額｜'+m.name,lines.join('\n'),function(shared){
+    toast(shared?'已開啟分享':'已複製到剪貼簿');
+  });
+}
+
+/* ---------- 圖片放大 ---------- */
+function openImg(src){
+  if(!src)return;
+  document.getElementById('imgBig').src=src;
+  document.getElementById('imgView').classList.add('show');
+}
+function closeImg(){
+  document.getElementById('imgView').classList.remove('show');
+  document.getElementById('imgBig').src='';
+}
+function shareCurrentImg(){
+  var src=document.getElementById('imgBig').src;
+  if(!src)return;
+  if(!window.JLessShare){toast('分享元件未載入，請重新載入頁面');return;}
+  var m=detailId?memberById(detailId):null;
+  shareImageSrc(src,'jless-card-'+(m?shareFileName(m.name):'member')+'.png');
+}
+
+/* ---------- 啟動 ---------- */
+load();
+renderRegions();
+renderMembers();
+var lyBtn=document.getElementById('lyBtn');
+if(lyBtn)lyBtn.classList.toggle('on',S.cfg.layout!=='card');
+</script>
+</body>
+</html>

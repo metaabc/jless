@@ -4,6 +4,8 @@
    用法：
      JLessShare.shareText(title, text, cb)        // cb(true)=已叫起分享, false=已複製/兜底
      JLessShare.shareImage(canvas, filename, cb)  // cb(true)=已叫起分享, false=已下載/兜底
+     JLessShare.openSheet({title, image, text, excel, items:[[label, fn],…]})
+                                                  // items 存在時只顯示自訂項目，忽略 image/text/excel
      JLessShare.getVar('--accent', '#c23b6a')     // 讀取目前主題色
      JLessShare.roundRect(ctx,x,y,w,h,r)          // 圓角矩形路徑
      JLessShare.clip(s,n)                         // 截斷文字並加省略號
@@ -124,15 +126,15 @@ window.JLessShare = (function () {
     if (document.getElementById('jlShareMask')) return;
     var st = document.createElement('style');
     st.textContent =
-      '#jlShareMask{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:95;opacity:0;pointer-events:none;transition:opacity .2s}' +
+      '#jlShareMask{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:500;opacity:0;pointer-events:none;transition:opacity .2s}' +
       '#jlShareMask.on{opacity:1;pointer-events:auto}' +
-      '#jlShareSheet{position:fixed;left:0;right:0;bottom:0;max-width:600px;margin:0 auto;background:var(--bg,#fff);border-radius:20px 20px 0 0;padding:14px 14px calc(18px + env(safe-area-inset-bottom,0px));z-index:96;transform:translateY(115%);transition:transform .26s cubic-bezier(.32,.72,0,1);box-shadow:0 -8px 30px rgba(0,0,0,.15)}' +
+      '#jlShareSheet{position:fixed;left:0;right:0;bottom:0;max-width:600px;margin:0 auto;background:var(--bg,#fff);border-radius:20px 20px 0 0;padding:14px 14px calc(18px + env(safe-area-inset-bottom,0px));z-index:501;transform:translateY(115%);transition:transform .26s cubic-bezier(.32,.72,0,1);box-shadow:0 -8px 30px rgba(0,0,0,.15)}' +
       '#jlShareSheet.on{transform:translateY(0)}' +
       '.jl-ss-head{font-size:calc(12.5px*var(--fs,1));font-weight:800;color:var(--muted,#888);text-align:center;margin-bottom:12px;letter-spacing:.3px}' +
       '.jl-ss-list{display:flex;flex-direction:column;gap:8px}' +
       '.jl-ss-item{border:none;border-radius:13px;padding:14px;font-size:calc(15px*var(--fs,1));font-weight:700;cursor:pointer;background:var(--panel,#fff);color:var(--ink,#333);border:1px solid var(--line,#eee);user-select:none;-webkit-user-select:none}' +
       '.jl-ss-item:active{background:var(--line2,#f3f3f3)}' +
-      '.jl-ss-cancel{margin-top:8px;background:var(--gray-bg,#f0f0f0);color:var(--ink2,#555)}';
+      '.jl-ss-cancel{margin-top:8px;background:var(--gray-bg,#f0f0f0);color:var(--ink2,#555);width:100%;display:block}';
     document.head.appendChild(st);
     var mask = document.createElement('div'); mask.id = 'jlShareMask';
     mask.innerHTML =
@@ -147,9 +149,15 @@ window.JLessShare = (function () {
   function openSheet(opts) {
     opts = opts || {};
     var items = [];
-    if (typeof opts.image === 'function') items.push(['🖼️ 分享為圖片', opts.image]);
-    if (typeof opts.text === 'function') items.push(['📝 分享為文字', opts.text]);
-    if (typeof opts.excel === 'function') items.push(['📊 匯出 Excel (CSV)', opts.excel]);
+    if (Array.isArray(opts.items) && opts.items.length) {
+      opts.items.forEach(function (it) {
+        if (it && typeof it[1] === 'function') items.push([String(it[0] || ''), it[1]]);
+      });
+    } else {
+      if (typeof opts.image === 'function') items.push(['🖼️ 分享為圖片', opts.image]);
+      if (typeof opts.text === 'function') items.push(['📝 分享為文字', opts.text]);
+      if (typeof opts.excel === 'function') items.push(['📊 匯出 Excel (CSV)', opts.excel]);
+    }
     if (!items.length) return;
     ensureSheet();
     var mask = document.getElementById('jlShareMask');
