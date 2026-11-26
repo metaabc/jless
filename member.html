@@ -113,9 +113,17 @@ body{
   padding:13px 13px 12px;cursor:pointer;overflow:hidden;box-shadow:0 2px 10px rgba(120,60,80,.06);
   transition:transform .12s ease}
 .mcard:active{transform:scale(.98)}
-.mcard .bgimg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.13;pointer-events:none}
 .mcard::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--accent),#e0729a)}
 .mcard .inner{position:relative;z-index:1}
+.mcard.sel{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft)}
+.mcheck{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;
+  background:rgba(255,255,255,.95);border:1.5px solid var(--accent-line);color:transparent;
+  display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;z-index:3}
+.mcard.sel .mcheck{background:var(--accent);border-color:var(--accent);color:#fff}
+.mgrid.selmode .mcard{padding-right:36px}
+.mgrid.selmode.ly-compact .mcard{padding-right:9px}
+.mgrid.selmode.ly-compact .mcheck{width:18px;height:18px;top:6px;right:6px;font-size:10px}
+.mgrid.selmode.ly-compact .nm span.t{padding-right:16px}
 .mcard .nm{font-size:calc(14px * var(--fs));font-weight:700;line-height:1.35;display:flex;align-items:center;gap:5px}
 .mcard .nm span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mcard .rg{font-size:10.5px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:4px}
@@ -123,7 +131,7 @@ body{
   letter-spacing:-.4px}
 .mcard .bal.zero{color:var(--muted)}
 .mcard .bal.neg{color:#c0392b}
-.mcard .meta{font-size:10.5px;color:var(--muted);margin-top:3px}
+.mcard .meta{font-size:10.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mcard .pin{position:absolute;top:9px;right:9px;font-size:11px;opacity:.75;z-index:1}
 
 /* 列表佈局 */
@@ -148,6 +156,28 @@ body{
 .empty{text-align:center;padding:46px 28px;color:var(--muted);font-size:13px;line-height:1.9}
 .empty .big{font-size:40px;display:block;margin-bottom:10px;opacity:.75}
 .empty button{margin-top:14px}
+
+/* 優惠 */
+.promo{margin-top:11px;border:1px solid var(--accent-line);background:var(--accent-soft);
+  border-radius:14px;padding:11px 13px}
+.promo .ph{font-size:11.5px;font-weight:800;color:var(--accent);margin-bottom:5px;letter-spacing:.3px}
+.promo .pt{font-size:12.5px;line-height:1.68;color:var(--ink2);white-space:pre-wrap;word-break:break-word}
+.promo.empty{background:transparent;border-style:dashed;border-color:var(--line);cursor:pointer}
+.promo.empty .ph{color:var(--muted)}
+.promo.empty .pt{color:var(--muted);font-size:12px}
+
+/* 批次選取列 */
+.selbar{position:fixed;left:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom));z-index:45;
+  max-width:600px;margin:0 auto;display:none;align-items:center;gap:8px;padding:9px 12px;
+  background:rgba(255,255,255,.98);border-top:1px solid var(--line);box-shadow:0 -4px 18px rgba(120,60,80,.10)}
+.selbar.show{display:flex}
+.sb-ghost{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--ink2);
+  border-radius:11px;padding:10px 12px;font-size:12.5px;font-weight:700;cursor:pointer}
+.sb-ghost:active{background:var(--line2)}
+.sb-main{flex:1;min-width:0;border:none;background:var(--accent);color:#fff;border-radius:11px;padding:11px 12px;
+  font-size:13.5px;font-weight:800;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-main:disabled{background:var(--line);color:var(--muted);cursor:default}
+body.selmode{padding-bottom:154px}
 
 /* 通用按鈕 */
 .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:12px;
@@ -291,6 +321,7 @@ textarea.inp{resize:vertical;min-height:64px}
     <div class="sub">充值 · 消費 · 餘額一覽</div>
   </div>
   <div class="topacts">
+    <button class="iconbtn" id="selBtn" title="選取分享" onclick="toggleSelMode()">☑</button>
     <button class="iconbtn" id="lyBtn" title="切換佈局" onclick="openLayoutSheet()">▦</button>
     <button class="iconbtn" id="setBtn" title="設定" onclick="openSettings()">⚙️</button>
   </div>
@@ -307,6 +338,12 @@ textarea.inp{resize:vertical;min-height:64px}
   <button class="bb" onclick="openRegionSheet()"><span class="ic">📍</span>地區</button>
   <button class="bb" onclick="openSettings()"><span class="ic">⚙️</span>設定</button>
 </nav>
+
+<div class="selbar" id="selBar">
+  <button class="sb-ghost" id="selAllBtn" onclick="toggleSelectAll()">全選</button>
+  <button class="sb-main" id="selShareBtn" onclick="openBatchShare()">↗ 分享</button>
+  <button class="sb-ghost" onclick="exitSel()">取消</button>
+</div>
 
 <!-- 會員詳情 -->
 <div class="mask" id="detailMask" onclick="if(event.target===this)closeDetail()">
@@ -341,10 +378,14 @@ textarea.inp{resize:vertical;min-height:64px}
         <div style="flex:1">
           <button class="btn" onclick="document.getElementById('mCardIn').click()">上載／更換</button>
           <button class="btn ghost" id="mCardClear" onclick="clearEditCard()" style="display:none">移除</button>
-          <div class="hint" style="margin-top:6px">相片會自動縮至 900px 並只存此瀏覽器。</div>
+          <div class="hint" style="margin-top:6px">自動壓縮長邊至 760px、約 60–70KB，只存此瀏覽器。</div>
         </div>
       </div>
       <input type="file" id="mCardIn" accept="image/*" style="display:none" onchange="onPickCard(event)">
+    </div>
+    <div class="field">
+      <label>優惠（可選）</label>
+      <textarea class="inp" id="mPromo" rows="3" maxlength="400" placeholder="例如：滿 $200 減 $20、生日月雙倍積分、逢星期三 9 折"></textarea>
     </div>
     <div class="field">
       <label>備註（可選）</label>
@@ -453,6 +494,8 @@ var txMid=null;        /* 交易中的會員 id */
 var txType='topup';
 var txAmt=null;        /* 已選快捷金額 */
 var sortDrag=null;     /* 拖動排序狀態 */
+var selMode=false;     /* 批次選取模式 */
+var selIds={};         /* 已選會員 id */
 
 /* ---------- 工具 ---------- */
 function uid(){return 'm'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
@@ -483,7 +526,7 @@ function toast(msg){
 
 /* ---------- 資料 ---------- */
 function normalize(d){
-  var o={v:1,regions:[],members:[],txns:[],cfg:{layout:'card',sort:'recent'}};
+  var o={v:1,regions:[],members:[],txns:[],cfg:{layout:'card',sort:'recent',region:''}};
   if(!d||typeof d!=='object')d={};
   if(Array.isArray(d.regions))o.regions=d.regions.filter(function(r){return r&&r.id;}).map(function(r){
     return {id:String(r.id),name:String(r.name||'未命名地區').slice(0,20),ts:+r.ts||Date.now()};
@@ -494,6 +537,7 @@ function normalize(d){
       regionId:String(m.regionId||''),
       name:String(m.name||'未命名會員').slice(0,40),
       note:String(m.note||'').slice(0,60),
+      promo:String(m.promo||'').slice(0,400),
       card:typeof m.card==='string'&&m.card.indexOf('data:')===0?m.card:'',
       ord:(typeof m.ord==='number'&&isFinite(m.ord))?m.ord:null,
       ts:+m.ts||Date.now()
@@ -514,6 +558,7 @@ function normalize(d){
   if(d.cfg&&typeof d.cfg==='object'){
     if(/^(card|list|compact)$/.test(d.cfg.layout||''))o.cfg.layout=d.cfg.layout;
     o.cfg.sort=(d.cfg.sort==='manual'?'manual':'recent');
+    if(typeof d.cfg.region==='string')o.cfg.region=d.cfg.region;
   }
   /* 若完全沒有資料，給一個預設地區，方便第一次使用 */
   if(!o.regions.length&&!o.members.length){
@@ -533,6 +578,18 @@ function save(){
 }
 function regionById(id){return S.regions.find(function(r){return r.id===id;})||null;}
 function regionName(id){var r=regionById(id);return r?r.name:'未分區';}
+/* 預設地區：優先「默認」，否則第一個地區 */
+function defaultRegionId(){
+  var d=S.regions.filter(function(r){return r.name==='默認';})[0]||S.regions[0];
+  return d?d.id:'all';
+}
+/* 開啟時：沿用上次選取的地區；首次則看「默認」 */
+function resolveRegion(){
+  var saved=S.cfg&&S.cfg.region;
+  if(saved==='all')return 'all';
+  if(saved&&regionById(saved))return saved;
+  return defaultRegionId();
+}
 function memberById(id){return S.members.find(function(m){return m.id===id;})||null;}
 function txnsOf(mid){
   return S.txns.filter(function(t){return t.mid===mid;})
@@ -570,6 +627,8 @@ function renderRegions(){
 }
 function setRegion(id){
   curRegion=(id==='all'||regionById(id))?id:'all';
+  S.cfg.region=curRegion;
+  save();
   renderRegions();renderMembers();
 }
 
@@ -597,7 +656,7 @@ function renderMembers(){
   var grid=document.getElementById('mGrid');
   var empty=document.getElementById('emptyBox');
   var list=visibleMembers();
-  grid.className='mgrid ly-'+(S.cfg.layout||'card');
+  grid.className='mgrid ly-'+(S.cfg.layout||'card')+(selMode?' selmode':'');
   if(!list.length){
     grid.innerHTML='';
     empty.innerHTML='<div class="empty"><span class="big">💳</span>'+
@@ -612,10 +671,13 @@ function renderMembers(){
 function memberCardHTML(m){
   var b=calcBalance(m.id);
   var cls=b.total>0?'':(b.total<0?'neg':'zero');
-  var lastTxt=b.lastDate?'最近 '+fmtDate(b.lastDate):'尚未有記錄';
-  var bg=m.card?'<div class="bgimg" style="background-image:url(\''+m.card+'\')"></div>':'';
+  var metaTxt='累計充值 '+money(b.top);
+  var on=selMode&&!!selIds[m.id];
+  var act=selMode?'toggleSel(\''+m.id+'\')':'openDetail(\''+m.id+'\')';
+  var check=selMode?'<div class="mcheck">✓</div>':'';
+  var open='<div class="mcard'+(on?' sel':'')+'" onclick="'+act+'">'+check;
   if(S.cfg.layout==='list'){
-    return '<div class="mcard" onclick="openDetail(\''+m.id+'\')">'+bg+
+    return open+
       '<div class="mthumb">'+(m.card?'<img src="'+m.card+'" alt="">':'🏪')+'</div>'+
       '<div class="mtxt">'+
         '<div class="nm"><span class="t">'+esc(m.name)+'</span></div>'+
@@ -623,24 +685,86 @@ function memberCardHTML(m){
         '<div class="bal '+cls+'">'+money(b.total)+'</div>'+
       '</div></div>';
   }
-  return '<div class="mcard" onclick="openDetail(\''+m.id+'\')">'+bg+
+  return open+
     '<div class="inner">'+
       '<div class="nm"><span class="t">'+esc(m.name)+'</span></div>'+
       '<div class="rg">📍 '+esc(regionName(m.regionId))+'</div>'+
       '<div class="bal '+cls+'">'+money(b.total)+'</div>'+
-      '<div class="meta">'+lastTxt+'</div>'+
+      '<div class="meta">'+metaTxt+'</div>'+
     '</div></div>';
 }
 function renderSummary(){
+  var el=document.getElementById('sumLine');
+  if(selMode){
+    var ids=Object.keys(selIds),tot=0;
+    if(!ids.length){
+      el.innerHTML='<span class="sumtxt">點選卡片開始選取（可跨地區）</span>';
+      return;
+    }
+    ids.forEach(function(id){tot+=calcBalance(id).total;});
+    el.innerHTML='<span class="sumtxt">已選 <b>'+ids.length+'</b> 張 · 合計餘額 <b>'+money(tot)+'</b></span>';
+    return;
+  }
   var total=0,n=0;
   var list=visibleMembers();
   list.forEach(function(m){var b=calcBalance(m.id);total+=b.total;n++;});
-  var el=document.getElementById('sumLine');
   if(!S.members.length){el.innerHTML='';return;}
   var txt=n?('共 <b>'+n+'</b> 張會員卡 · 合計餘額 <b>'+money(total)+'</b>'):'此地區未有會員';
   el.innerHTML='<span class="sumtxt">'+txt+'</span>'+
     '<button class="sortbtn'+(S.cfg.sort==='manual'?' on':'')+'" onclick="openSortSheet()" title="排序會員">⇅ '+
     (S.cfg.sort==='manual'?'手動':'排序')+'</button>';
+}
+
+/* ---------- 批次選取 ---------- */
+function selCount(){return Object.keys(selIds).length;}
+function toggleSelMode(){
+  if(!selMode&&!S.members.length){toast('還沒有會員卡');return;}
+  selMode=!selMode;
+  if(!selMode)selIds={};
+  updateSelUI();
+}
+function exitSel(){
+  if(!selMode&&!selCount())return;
+  selMode=false;selIds={};
+  updateSelUI();
+}
+function toggleSel(id){
+  if(!memberById(id))return;
+  if(selIds[id])delete selIds[id];
+  else selIds[id]=1;
+  updateSelUI();
+}
+function toggleSelectAll(){
+  var vis=visibleMembers();
+  var allOn=vis.length>0&&vis.every(function(m){return !!selIds[m.id];});
+  vis.forEach(function(m){
+    if(allOn)delete selIds[m.id];
+    else selIds[m.id]=1;
+  });
+  updateSelUI();
+}
+function selectedMembers(){
+  var order={};
+  orderedMembers().forEach(function(m,i){order[m.id]=i;});
+  return S.members.filter(function(m){return !!selIds[m.id];})
+    .sort(function(a,b){return (order[a.id]||0)-(order[b.id]||0);});
+}
+function updateSelUI(){
+  var bar=document.getElementById('selBar');
+  if(bar)bar.classList.toggle('show',selMode);
+  document.body.classList.toggle('selmode',selMode);
+  var btn=document.getElementById('selBtn');
+  if(btn)btn.classList.toggle('on',selMode);
+  var n=selCount();
+  var sh=document.getElementById('selShareBtn');
+  if(sh){sh.textContent=n?('↗ 分享 '+n+' 張'):'↗ 分享';sh.disabled=!n;}
+  var all=document.getElementById('selAllBtn');
+  if(all){
+    var vis=visibleMembers();
+    var allOn=vis.length>0&&vis.every(function(m){return !!selIds[m.id];});
+    all.textContent=allOn?'全不選':'全選';
+  }
+  renderMembers();
 }
 
 /* ---------- 佈局 ---------- */
@@ -681,6 +805,7 @@ function ensureManual(){
 }
 function openSortSheet(){
   if(!S.members.length){toast('還沒有會員可排序');return;}
+  if(selMode)exitSel();
   ensureManual();
   save();
   renderSortList();
@@ -801,6 +926,7 @@ function openMemberEdit(id){
   document.getElementById('editTitle').textContent=m?'編輯會員':'新增會員';
   document.getElementById('mName').value=m?m.name:'';
   document.getElementById('mNote').value=m?m.note:'';
+  document.getElementById('mPromo').value=m?m.promo:'';
   var sel=document.getElementById('mRegion');
   var opts=S.regions.map(function(r){
     return '<option value="'+r.id+'">'+esc(r.name)+'</option>';
@@ -828,25 +954,37 @@ function onPickCard(ev){
   ev.target.value='';
   if(!f)return;
   if(!/^image\//.test(f.type)){toast('請選擇圖片檔');return;}
-  shrinkImage(f,900,0.78,function(dataUrl){
-    editCard=dataUrl;renderEditCard();toast('已加入會員卡圖');
+  toast('壓縮中…');
+  shrinkImage(f,760,function(dataUrl){
+    editCard=dataUrl;renderEditCard();
+    var kb=Math.round(dataUrl.length*0.75/1024);
+    toast('已加入卡圖（約 '+kb+' KB）');
   });
 }
-/* 壓縮圖片：長邊 900px、JPEG，控制 localStorage 用量 */
-function shrinkImage(file,maxEdge,quality,cb){
+/* 壓縮圖片：長邊最多 760px，逐步降品質令 base64 約 ≤ 60KB，節省儲存空間 */
+function shrinkImage(file,maxEdge,cb){
   var reader=new FileReader();
   reader.onload=function(e){
     var img=new Image();
     img.onload=function(){
-      var w=img.width,h=img.height;
-      var scale=Math.min(1,maxEdge/Math.max(w,h));
-      var cw=Math.round(w*scale),ch=Math.round(h*scale);
-      var cv=document.createElement('canvas');
-      cv.width=cw;cv.height=ch;
-      var ctx=cv.getContext('2d');
-      ctx.fillStyle='#fff';ctx.fillRect(0,0,cw,ch);
-      ctx.drawImage(img,0,0,cw,ch);
-      var out=cv.toDataURL('image/jpeg',quality);
+      function encode(edge){
+        var w=img.width,h=img.height;
+        var scale=Math.min(1,edge/Math.max(w,h));
+        var cw=Math.max(1,Math.round(w*scale)),ch=Math.max(1,Math.round(h*scale));
+        var cv=document.createElement('canvas');
+        cv.width=cw;cv.height=ch;
+        var ctx=cv.getContext('2d');
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,cw,ch);
+        ctx.drawImage(img,0,0,cw,ch);
+        var q=0.72,out=cv.toDataURL('image/jpeg',q);
+        while(out.length>80000&&q>0.42){
+          q-=0.07;
+          out=cv.toDataURL('image/jpeg',q);
+        }
+        return out;
+      }
+      var out=encode(maxEdge);
+      if(out.length>96000)out=encode(Math.round(maxEdge*0.78));
       cb(out);
     };
     img.onerror=function(){toast('無法讀取此圖片');};
@@ -859,6 +997,7 @@ function saveMember(){
   var name=document.getElementById('mName').value.trim();
   var regionId=document.getElementById('mRegion').value;
   var note=document.getElementById('mNote').value.trim();
+  var promo=document.getElementById('mPromo').value.trim();
   if(!name){toast('請輸入商店／會員名稱');return;}
   if(!regionId){
     toast('請先新增一個地區');
@@ -867,7 +1006,7 @@ function saveMember(){
   }
   if(editId){
     var m=memberById(editId);
-    if(m){m.name=name;m.regionId=regionId;m.note=note;m.card=editCard;}
+    if(m){m.name=name;m.regionId=regionId;m.note=note;m.promo=promo.slice(0,400);m.card=editCard;}
   }else{
     var ord=null;
     if(S.cfg.sort==='manual'){
@@ -876,14 +1015,14 @@ function saveMember(){
       S.members.forEach(function(x){if(x.ord!=null&&x.ord<min)min=x.ord;});
       ord=(min===Infinity?0:min-1);
     }
-    S.members.unshift({id:uid(),regionId:regionId,name:name,note:note,card:editCard,ord:ord,ts:Date.now()});
+    S.members.unshift({id:uid(),regionId:regionId,name:name,note:note,promo:promo.slice(0,400),card:editCard,ord:ord,ts:Date.now()});
   }
   save();
   var wasEdit=!!editId;
   closeMemberEdit();
   renderRegions();renderMembers();
   toast(wasEdit?'已更新會員':'已新增會員');
-  if(!wasEdit&&curRegion!=='all'&&curRegion!==regionId)setRegion('all');
+  if(!wasEdit&&curRegion!=='all'&&curRegion!==regionId)setRegion(regionId);
 }
 function delMember() {
   if(!editId)return;
@@ -893,6 +1032,7 @@ function delMember() {
   if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,'會員：'+m.name);}catch(e){}}
   S.members=S.members.filter(function(x){return x.id!==editId;});
   S.txns=S.txns.filter(function(t){return t.mid!==editId;});
+  delete selIds[editId];
   save();
   closeMemberEdit();
   if(detailId===editId)closeDetail();
@@ -938,6 +1078,12 @@ function renderDetail(){
       '<button class="t1" onclick="openTx(\''+m.id+'\',\'topup\')">＋ 充值</button>'+
       '<button class="t2" onclick="openTx(\''+m.id+'\',\'spend\')">－ 消費</button>'+
      '</div>';
+  if(m.promo){
+    h+='<div class="promo"><div class="ph">🎁 優惠</div><div class="pt">'+esc(m.promo)+'</div></div>';
+  }else{
+    h+='<div class="promo empty" onclick="closeDetail();openMemberEdit(\''+m.id+'\')">'+
+        '<div class="ph">🎁 優惠</div><div class="pt">未有記錄，點此新增</div></div>';
+  }
   h+='<div class="txhead"><h5>記錄（'+list.length+'）</h5>'+
       '<button class="btn ghost" style="padding:6px 10px;font-size:12px" onclick="closeDetail();openMemberEdit(\''+m.id+'\')">編輯會員</button></div>';
   if(!list.length){
@@ -1087,7 +1233,8 @@ function delRegion(id){
   }
   if(!confirm('刪除地區「'+r.name+'」？'))return;
   S.regions=S.regions.filter(function(x){return x.id!==id;});
-  if(curRegion===id)curRegion='all';
+  if(curRegion===id)curRegion=defaultRegionId();
+  S.cfg.region=curRegion;
   save();
   renderRegionList();renderRegions();renderMembers();
   toast('已刪除地區');
@@ -1121,8 +1268,11 @@ function importData(ev){
       if(!d||typeof d!=='object')throw new Error('格式不正確');
       if(!confirm('匯入會「取代」目前所有會員資料，確定繼續？'))return;
       if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,'匯入前備份');}catch(err){}}
-      S=normalize(d);save();
-      curRegion='all';
+      S=normalize(d);
+      curRegion=resolveRegion();
+      S.cfg.region=curRegion;
+      save();
+      if(selMode)exitSel();
       renderRegions();renderMembers();renderLayoutChips();
       closeSettings();
       toast('已匯入 '+S.members.length+' 位會員');
@@ -1135,9 +1285,11 @@ function clearAll(){
   if(!S.members.length&&!S.txns.length){toast('目前沒有資料');return;}
   if(!confirm('清除全部 '+S.members.length+' 位會員及其記錄？此動作無法復原。'))return;
   if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,'清除全部會員資料');}catch(e){}}
-  S={v:1,regions:S.regions.slice(),members:[],txns:[],cfg:{layout:S.cfg.layout}};
+  if(selMode)exitSel();
+  S={v:1,regions:S.regions.slice(),members:[],txns:[],cfg:{layout:S.cfg.layout,sort:'recent',region:''}};
+  curRegion=defaultRegionId();
+  S.cfg.region=curRegion;
   save();
-  curRegion='all';
   renderRegions();renderMembers();
   closeSettings();
   toast('已清除全部會員資料（地區保留）');
@@ -1330,12 +1482,130 @@ function shareMemberText(m){
   lines.push('目前餘額：'+money(b.total));
   lines.push('充值本金 '+money(b.top)+' · 贈送 '+money(b.bonus)+' · 已消費 '+money(b.spent));
   if(b.lastDate)lines.push('最近記錄：'+fmtDate(b.lastDate));
+  if(m.promo){lines.push('');lines.push('🎁 優惠：');lines.push(m.promo);}
   if(m.note)lines.push('備註：'+m.note);
   lines.push('');
   lines.push('— JLess 會員');
   JLessShare.shareText('會員餘額｜'+m.name,lines.join('\n'),function(shared){
     toast(shared?'已開啟分享':'已複製到剪貼簿');
   });
+}
+
+/* ---------- 批次分享 ---------- */
+function openBatchShare(){
+  var list=selectedMembers();
+  if(!list.length){toast('先選取會員');return;}
+  if(!window.JLessShare){toast('分享元件未載入，請重新載入頁面');return;}
+  var items=[
+    ['🖼️ 餘額一覽（圖片）',function(){shareBatchImage(list);}],
+    ['📝 餘額狀況（文字）',function(){shareBatchText(list,'balance');}],
+    ['🎁 優惠（文字）',function(){shareBatchText(list,'promo');}]
+  ];
+  JLessShare.openSheet({title:'分享 '+list.length+' 位會員',items:items});
+}
+function shareBatchText(list,mode){
+  var lines=[];
+  if(mode==='promo'){
+    var wp=list.filter(function(m){return m.promo&&m.promo.trim();});
+    if(!wp.length){toast('所選會員未填優惠');return;}
+    lines.push('🎁 會員優惠（'+wp.length+' 間）');
+    lines.push('');
+    wp.forEach(function(m){
+      lines.push('▍'+m.name+'（'+regionName(m.regionId)+'）');
+      lines.push(m.promo.trim());
+      lines.push('');
+    });
+  }else{
+    var total=0;
+    lines.push('💳 會員餘額（'+list.length+' 張）');
+    lines.push('');
+    list.forEach(function(m){
+      var b=calcBalance(m.id);total+=b.total;
+      lines.push('· '+m.name+'（'+regionName(m.regionId)+'）：'+money(b.total));
+    });
+    lines.push('');
+    lines.push('合計：'+money(total));
+  }
+  lines.push('');
+  lines.push('— JLess 會員 · '+shareDateStr());
+  JLessShare.shareText(mode==='promo'?'會員優惠':'會員餘額',lines.join('\n'),function(shared){
+    toast(shared?'已開啟分享':'已複製到剪貼簿');
+  });
+}
+function shareBatchImage(list){
+  buildBatchCanvas(list,function(cv){
+    JLessShare.shareImage(cv,'jless-members-'+todayStr()+'.png',function(shared){
+      toast(shared?'已開啟分享':'圖片已儲存到裝置');
+    });
+  });
+}
+/* 多會員餘額一覽圖 */
+function buildBatchCanvas(list,cb){
+  var accent=JLessShare.getVar('--accent','#c23b6a');
+  var accent2=JLessShare.getVar('--accent2','#a8305c');
+  var W=900,PAD=56,ROWH=68,GAP=8,MAX=12;
+  var rows=list.slice(0,MAX);
+  var more=list.length-rows.length;
+  var total=0;
+  list.forEach(function(m){total+=calcBalance(m.id).total;});
+  var H=PAD+64+66+126+20+rows.length*(ROWH+GAP)+(more?34:0)+58;
+  var cv=document.createElement('canvas');
+  cv.width=W;cv.height=H;
+  var x=cv.getContext('2d');
+  var bg=x.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#fffaf3');bg.addColorStop(1,'#fdf0e8');
+  x.fillStyle=bg;x.fillRect(0,0,W,H);
+  var glow=x.createRadialGradient(W/2,-80,0,W/2,-80,620);
+  glow.addColorStop(0,'rgba(194,59,106,.16)');glow.addColorStop(1,'rgba(194,59,106,0)');
+  x.fillStyle=glow;x.fillRect(0,0,W,620);
+
+  sFont(x,23,800,accent);
+  x.fillText('JLess 會員',PAD,PAD+22);
+  sFont(x,19,600,'#b3a1a9');
+  x.textAlign='right';x.fillText(shareDateStr(),W-PAD,PAD+22);x.textAlign='left';
+
+  sFont(x,36,800,'#3b2530');
+  x.fillText('會員餘額一覽',PAD,PAD+64+38);
+
+  var ty=PAD+64+66;
+  JLessShare.roundRect(x,PAD,ty,W-PAD*2,126,30);
+  var cg=x.createLinearGradient(PAD,ty,PAD+W-2*PAD,ty+126);
+  cg.addColorStop(0,accent);cg.addColorStop(1,accent2);
+  x.fillStyle=cg;x.fill();
+  sFont(x,21,700,'rgba(255,255,255,.84)');
+  x.fillText('合計餘額 · '+list.length+' 張會員卡',PAD+34,ty+44);
+  var fs=58,at=money(total);
+  sFont(x,fs,800,'#fff');
+  while(x.measureText(at).width>W-PAD*2-68&&fs>32){fs-=4;sFont(x,fs,800,'#fff');}
+  x.fillText(at,PAD+34,ty+102);
+
+  var ry=ty+126+20;
+  rows.forEach(function(m,i){
+    var b=calcBalance(m.id);
+    var yy=ry+i*(ROWH+GAP);
+    JLessShare.roundRect(x,PAD,yy,W-PAD*2,ROWH,16);
+    x.fillStyle='#fff';x.fill();
+    x.strokeStyle='rgba(59,37,48,.08)';x.lineWidth=2;x.stroke();
+    sFont(x,23,700,'#3b2530');
+    x.fillText(sFit(x,m.name,W-PAD*2-340),PAD+22,yy+30);
+    sFont(x,18,600,'#967f89');
+    x.fillText(sFit(x,regionName(m.regionId),W-PAD*2-340),PAD+22,yy+53);
+    x.textAlign='right';
+    sFont(x,25,800,b.total<0?'#c0392b':accent);
+    x.fillText(money(b.total),W-PAD-22,yy+42);
+    x.textAlign='left';
+  });
+  var ny=ry+rows.length*(ROWH+GAP);
+  if(more){
+    sFont(x,19,600,'#967f89');
+    x.fillText('另有 '+more+' 張未列出',PAD,ny+20);
+    ny+=34;
+  }
+  sFont(x,19,600,'#b3a1a9');
+  x.textAlign='center';
+  x.fillText('JLess 小助手 · 資料只存本機',W/2,H-32);
+  x.textAlign='left';
+  cb(cv);
 }
 
 /* ---------- 圖片放大 ---------- */
@@ -1358,6 +1628,8 @@ function shareCurrentImg(){
 
 /* ---------- 啟動 ---------- */
 load();
+curRegion=resolveRegion();
+if(S.cfg.region!==curRegion){S.cfg.region=curRegion;save();}
 renderRegions();
 renderMembers();
 var lyBtn=document.getElementById('lyBtn');
