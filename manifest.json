@@ -13,5 +13,38 @@
     { "src": "jless-logo-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "jless-logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "jless-logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "快速新增支出",
+      "short_name": "記一筆",
+      "description": "直接打開記帳輸入金額",
+      "url": "quickbook.html?quick=expense",
+      "icons": [{ "src": "jless-logo-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "新增待辦",
+      "short_name": "待辦",
+      "description": "直接新增一項任務",
+      "url": "todo.html?quick=todo",
+      "icons": [{ "src": "jless-logo-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "搜尋所有記錄",
+      "short_name": "搜尋",
+      "description": "搜尋待辦、筆記、記帳、會員等",
+      "url": "index.html?search=1",
+      "icons": [{ "src": "jless-logo-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "share_target": {
+    "action": "share.html",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

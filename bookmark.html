@@ -1988,6 +1988,7 @@ updateHH();
 window.addEventListener('resize', updateHH);
 
 render();
+try{var q0=new URLSearchParams(location.search).get('q');if(q0){var qe=document.getElementById('search');if(qe){qe.value=q0;render();}}}catch(e){}
 applySharedSkin();
 applySettings();
 

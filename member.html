@@ -165,6 +165,19 @@ body{
 .promo.empty{background:transparent;border-style:dashed;border-color:var(--line);cursor:pointer}
 .promo.empty .ph{color:var(--muted)}
 .promo.empty .pt{color:var(--muted);font-size:12px}
+.pexp{font-size:11px;color:var(--muted);margin-top:6px;border-top:1px dashed var(--accent-line);padding-top:6px}
+.pexp.soon{color:#b45309;font-weight:700}
+.lowbal{font-size:11.5px;color:#b45309;background:#fdf0dd;border-radius:9px;padding:6px 9px;margin-top:9px;line-height:1.5}
+.barcode-btn{margin-top:9px;background:var(--panel);color:var(--accent);border:1.5px solid var(--accent-line);font-weight:800}
+.barbox{width:100%;max-width:520px;background:var(--panel);border-radius:18px;padding:18px 16px calc(16px + env(safe-area-inset-bottom));
+  box-shadow:0 12px 40px rgba(0,0,0,.24);text-align:center}
+.barbox h3{margin:0 0 4px;font-size:15px;color:var(--ink)}
+.barbox .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+.barbox canvas{width:100%;height:auto;background:#fff;border-radius:10px;padding:8px 0}
+.barbox .num{font-size:15px;font-weight:800;letter-spacing:2px;color:var(--ink);margin:12px 0 14px;word-break:break-all}
+.barbox .closeb{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink2);border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer}
+.chkrow{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.chkrow input{width:18px;height:18px;accent-color:var(--accent)}
 
 /* 批次選取列 */
 .selbar{position:fixed;left:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom));z-index:45;
@@ -388,6 +401,14 @@ textarea.inp{resize:vertical;min-height:64px}
       <textarea class="inp" id="mPromo" rows="3" maxlength="400" placeholder="例如：滿 $200 減 $20、生日月雙倍積分、逢星期三 9 折"></textarea>
     </div>
     <div class="field">
+      <label>優惠到期日（可選）</label>
+      <input class="inp" id="mPromoEnd" type="date">
+    </div>
+    <div class="field">
+      <label>卡號／條碼（可選）</label>
+      <input class="inp" id="mCardNo" maxlength="40" inputmode="numeric" placeholder="例如：88231 0000 1234">
+    </div>
+    <div class="field">
       <label>備註（可選）</label>
       <input class="inp" id="mNote" placeholder="例如：會員號、到期日" maxlength="60">
     </div>
@@ -443,6 +464,19 @@ textarea.inp{resize:vertical;min-height:64px}
       <button class="btn wide" onclick="closeSettings();openSortSheet()">⇅ 手動排序會員</button>
     </div>
     <div class="field">
+      <label>充值快捷金額</label>
+      <button class="btn wide" id="presetBtn" onclick="editPresets()">$100 · $300 · $500 · $1000</button>
+    </div>
+    <div class="field">
+      <label>低餘額提示</label>
+      <button class="btn wide" id="lowBtn" onclick="editLowBal()">未設定</button>
+    </div>
+    <div class="field">
+      <label>消費同步</label>
+      <label class="chkrow"><input type="checkbox" id="setSync" onchange="toggleSync(this.checked)"> 消費自動記入「記帳」</label>
+      <div class="hint" style="margin-top:5px">會以「會員：店名」加入一筆支出；刪除記錄時會同步移除。</div>
+    </div>
+    <div class="field">
       <label>資料</label>
       <button class="btn wide" onclick="exportData()" style="margin-bottom:8px">⬇️ 匯出備份（JSON）</button>
       <button class="btn wide" onclick="document.getElementById('impFile').click()" style="margin-bottom:8px">⬆️ 匯入備份</button>
@@ -470,6 +504,17 @@ textarea.inp{resize:vertical;min-height:64px}
 </div>
 
 <!-- 圖片放大 -->
+<!-- 條碼出示 -->
+<div class="mask" id="barMask" onclick="if(event.target===this)closeBarcode()">
+  <div class="barbox">
+    <h3 id="barName">會員卡</h3>
+    <div class="sub">店員掃描用 · 螢幕調光一點更易讀</div>
+    <canvas id="barCv"></canvas>
+    <div class="num" id="barNum"></div>
+    <button class="closeb" onclick="closeBarcode()">關閉</button>
+  </div>
+</div>
+
 <div class="imgview" id="imgView" onclick="closeImg()">
   <button class="cl" onclick="closeImg()">✕</button>
   <button class="sh" onclick="event.stopPropagation();shareCurrentImg()" title="分享卡圖">↗</button>
@@ -538,6 +583,8 @@ function normalize(d){
       name:String(m.name||'未命名會員').slice(0,40),
       note:String(m.note||'').slice(0,60),
       promo:String(m.promo||'').slice(0,400),
+      promoEnd:/^\d{4}-\d{2}-\d{2}$/.test(m.promoEnd||'')?m.promoEnd:'',
+      cardNo:String(m.cardNo||'').slice(0,40),
       card:typeof m.card==='string'&&m.card.indexOf('data:')===0?m.card:'',
       ord:(typeof m.ord==='number'&&isFinite(m.ord))?m.ord:null,
       ts:+m.ts||Date.now()
@@ -552,6 +599,7 @@ function normalize(d){
       bonus:Math.max(0,+t.bonus||0),
       date:String(t.date||todayStr()).slice(0,10),
       note:String(t.note||'').slice(0,60),
+      qbId:String(t.qbId||''),
       ts:+t.ts||Date.now()
     };
   });
@@ -559,6 +607,10 @@ function normalize(d){
     if(/^(card|list|compact)$/.test(d.cfg.layout||''))o.cfg.layout=d.cfg.layout;
     o.cfg.sort=(d.cfg.sort==='manual'?'manual':'recent');
     if(typeof d.cfg.region==='string')o.cfg.region=d.cfg.region;
+    var pr=Array.isArray(d.cfg.presets)?d.cfg.presets.filter(function(x){return +x>0;}).slice(0,6).map(Number):[];
+    o.cfg.presets=pr.length?pr:[100,300,500,1000];
+    o.cfg.lowBal=Math.max(0,+d.cfg.lowBal||0);
+    o.cfg.syncBook=!!d.cfg.syncBook;
   }
   /* 若完全沒有資料，給一個預設地區，方便第一次使用 */
   if(!o.regions.length&&!o.members.length){
@@ -927,6 +979,8 @@ function openMemberEdit(id){
   document.getElementById('mName').value=m?m.name:'';
   document.getElementById('mNote').value=m?m.note:'';
   document.getElementById('mPromo').value=m?m.promo:'';
+  document.getElementById('mPromoEnd').value=m?(m.promoEnd||''):'';
+  document.getElementById('mCardNo').value=m?(m.cardNo||''):'';
   var sel=document.getElementById('mRegion');
   var opts=S.regions.map(function(r){
     return '<option value="'+r.id+'">'+esc(r.name)+'</option>';
@@ -998,6 +1052,8 @@ function saveMember(){
   var regionId=document.getElementById('mRegion').value;
   var note=document.getElementById('mNote').value.trim();
   var promo=document.getElementById('mPromo').value.trim();
+  var promoEnd=document.getElementById('mPromoEnd').value||'';
+  var cardNo=document.getElementById('mCardNo').value.trim();
   if(!name){toast('請輸入商店／會員名稱');return;}
   if(!regionId){
     toast('請先新增一個地區');
@@ -1006,7 +1062,7 @@ function saveMember(){
   }
   if(editId){
     var m=memberById(editId);
-    if(m){m.name=name;m.regionId=regionId;m.note=note;m.promo=promo.slice(0,400);m.card=editCard;}
+    if(m){m.name=name;m.regionId=regionId;m.note=note;m.promo=promo.slice(0,400);m.promoEnd=promoEnd;m.cardNo=cardNo.slice(0,40);m.card=editCard;}
   }else{
     var ord=null;
     if(S.cfg.sort==='manual'){
@@ -1015,9 +1071,10 @@ function saveMember(){
       S.members.forEach(function(x){if(x.ord!=null&&x.ord<min)min=x.ord;});
       ord=(min===Infinity?0:min-1);
     }
-    S.members.unshift({id:uid(),regionId:regionId,name:name,note:note,promo:promo.slice(0,400),card:editCard,ord:ord,ts:Date.now()});
+    S.members.unshift({id:uid(),regionId:regionId,name:name,note:note,promo:promo.slice(0,400),promoEnd:promoEnd,cardNo:cardNo.slice(0,40),card:editCard,ord:ord,ts:Date.now()});
   }
   save();
+  scheduleNotices();
   var wasEdit=!!editId;
   closeMemberEdit();
   renderRegions();renderMembers();
@@ -1030,6 +1087,7 @@ function delMember() {
   var n=txnsOf(editId).length;
   if(!confirm('刪除會員「'+m.name+'」'+(n?'及其 '+n+' 筆記錄':'')+'？此動作無法復原。'))return;
   if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,'會員：'+m.name);}catch(e){}}
+  S.txns.filter(function(t){return t.mid===editId&&t.qbId;}).forEach(function(t){removeFromQuickbook(t.qbId);});
   S.members=S.members.filter(function(x){return x.id!==editId;});
   S.txns=S.txns.filter(function(t){return t.mid!==editId;});
   delete selIds[editId];
@@ -1063,7 +1121,9 @@ function renderDetail(){
         (m.card?'<img src="'+m.card+'" alt="會員卡">':'💳<span class="plus">＋</span>')+
       '</div>'+
       '<div class="dinfo"><h4>'+esc(m.name)+'</h4>'+
-        '<div class="dr">📍 '+esc(regionName(m.regionId))+(m.note?' · '+esc(m.note):'')+'</div></div>'+
+        '<div class="dr">📍 '+esc(regionName(m.regionId))+(m.note?' · '+esc(m.note):'')+'</div>'+
+        (m.cardNo?'<div class="dr" style="margin-top:3px">🔢 '+esc(m.cardNo)+'</div>':'')+
+      '</div>'+
       '<button class="iconbtn" onclick="shareMember(\''+m.id+'\')" title="分享會員卡">↗</button>'+
       '<button class="iconbtn" onclick="closeDetail();openMemberEdit(\''+m.id+'\')" title="編輯">✎</button>'+
     '</div>';
@@ -1073,13 +1133,24 @@ function renderDetail(){
       '<div class="split"><span>充值本金 <b>'+money(b.top)+'</b></span>'+
         '<span>贈送 <b>'+money(b.bonus)+'</b></span>'+
         '<span>已消費 <b>'+money(b.spent)+'</b></span></div>'+
+      (S.cfg.lowBal>0&&b.total<=S.cfg.lowBal?'<div class="lowbal">⚠️ 餘額低於提示值 '+money(S.cfg.lowBal)+'，可考慮充值</div>':'')+
      '</div>';
   h+='<div class="quick">'+
       '<button class="t1" onclick="openTx(\''+m.id+'\',\'topup\')">＋ 充值</button>'+
       '<button class="t2" onclick="openTx(\''+m.id+'\',\'spend\')">－ 消費</button>'+
      '</div>';
+  if(m.cardNo){
+    h+='<button class="btn wide barcode-btn" onclick="showBarcode(\''+m.id+'\')">▥ 出示會員條碼</button>';
+  }
   if(m.promo){
-    h+='<div class="promo"><div class="ph">🎁 優惠</div><div class="pt">'+esc(m.promo)+'</div></div>';
+    var pe='';
+    if(m.promoEnd){
+      var d0=new Date();d0.setHours(0,0,0,0);
+      var d1=new Date(m.promoEnd+'T00:00:00');
+      var left=Math.round((d1-d0)/864e5);
+      pe='<div class="pexp'+(left<=7?' soon':'')+'">優惠至 '+fmtDate(m.promoEnd)+(left>=0?'（剩 '+left+' 日）':'（已過期）')+'</div>';
+    }
+    h+='<div class="promo"><div class="ph">🎁 優惠</div><div class="pt">'+esc(m.promo)+'</div>'+pe+'</div>';
   }else{
     h+='<div class="promo empty" onclick="closeDetail();openMemberEdit(\''+m.id+'\')">'+
         '<div class="ph">🎁 優惠</div><div class="pt">未有記錄，點此新增</div></div>';
@@ -1108,11 +1179,45 @@ function renderDetail(){
 }
 function delTx(id){
   var t=S.txns.find(function(x){return x.id===id;});if(!t)return;
-  var b=calcBalance(t.mid);
   if(!confirm('刪除這筆'+(t.type==='topup'?'充值':'消費')+' '+money(t.amt)+'（'+fmtDate(t.date)+'）？'))return;
+  if(t.qbId)removeFromQuickbook(t.qbId);
   S.txns=S.txns.filter(function(x){return x.id!==id;});
   save();renderDetail();renderMembers();
   toast('已刪除記錄');
+}
+
+/* ---------- 與記帳同步（可選） ---------- */
+function pushToQuickbook(m,t){
+  if(!m||!t)return '';
+  var d=null;
+  try{d=JSON.parse(localStorage.getItem('jless_quickbook_v1'));}catch(e){}
+  if(!d||!Array.isArray(d.expense)||!d.expense.length)return '';
+  if(!Array.isArray(d.txns))d.txns=[];
+  var cat=d.expense.filter(function(c){return /會員/.test(String(c.name||''));})[0]||d.expense[0];
+  var qid='qb'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  d.txns.push({id:qid,type:'expense',catId:cat.id,accId:d.defAcc||'a_none',amount:Math.abs(+t.amt||0),
+    note:('會員：'+m.name+(t.note?' · '+t.note:'')).slice(0,60),
+    ts:new Date(t.date+'T12:00:00').getTime(),date:t.date,receipt:'',tplId:'',period:'',src:'member',mtid:t.id});
+  try{localStorage.setItem('jless_quickbook_v1',JSON.stringify(d));}catch(e){return '';}
+  return qid;
+}
+function removeFromQuickbook(qid){
+  try{
+    var d=JSON.parse(localStorage.getItem('jless_quickbook_v1'));
+    if(!d||!Array.isArray(d.txns))return;
+    d.txns=d.txns.filter(function(x){return x.id!==qid;});
+    localStorage.setItem('jless_quickbook_v1',JSON.stringify(d));
+  }catch(e){}
+}
+/* ---------- 優惠到期提醒 ---------- */
+function scheduleNotices(){
+  if(!window.JLess||!JLess.notify||!JLess.notify.schedule)return;
+  S.members.forEach(function(m){
+    if(!m.promoEnd)return;
+    var end=new Date(m.promoEnd+'T10:00:00').getTime();
+    var at=end-3*864e5;
+    if(at>Date.now())JLess.notify.schedule('mem_promo_'+m.id,at,'會員優惠快到期',m.name+'：優惠至 '+fmtDate(m.promoEnd));
+  });
 }
 
 /* ---------- 充值／消費 ---------- */
@@ -1123,7 +1228,7 @@ function openTx(mid,type){
   var h='';
   if(type==='topup'){
     h+='<div class="field" style="margin-top:0"><label>充值金額</label><div class="chips" id="txChips">'+
-        [100,300,500,1000].map(function(v){
+        (S.cfg.presets||[100,300,500,1000]).map(function(v){
           return '<div class="chip" data-v="'+v+'" onclick="pickAmt('+v+')">$'+v+'</div>';
         }).join('')+
         '<div class="chip" data-v="0" onclick="pickAmt(0)">自訂</div>'+
@@ -1174,7 +1279,13 @@ function saveTx(){
     }
   }
   S.txns.push({id:uid(),mid:txMid,type:txType,amt:amt,bonus:bonus,date:date,note:note,ts:Date.now()});
+  var newTx=S.txns[S.txns.length-1];
+  if(txType==='spend'&&S.cfg.syncBook){
+    var qid=pushToQuickbook(memberById(txMid),newTx);
+    if(qid)newTx.qbId=qid;
+  }
   save();
+  scheduleNotices();
   var mid=txMid;
   closeTx();
   renderMembers();renderRegions();
@@ -1243,7 +1354,36 @@ function delRegion(id){
 /* ---------- 設定／資料 ---------- */
 function openSettings(){
   renderLayoutChips();
+  var pb=document.getElementById('presetBtn');
+  if(pb)pb.textContent=(S.cfg.presets||[100,300,500,1000]).map(function(v){return '$'+v;}).join(' · ');
+  var lb=document.getElementById('lowBtn');
+  if(lb)lb.textContent=S.cfg.lowBal>0?('低於 '+money(S.cfg.lowBal)+' 時提示'):'未設定（點此設定）';
+  var sc=document.getElementById('setSync');
+  if(sc)sc.checked=!!S.cfg.syncBook;
   document.getElementById('setMask').classList.add('show');
+}
+function editPresets(){
+  var cur=(S.cfg.presets||[100,300,500,1000]).join(',');
+  var v=prompt('充值快捷金額（用逗號分隔，最多 6 個）',cur);
+  if(v===null)return;
+  var arr=v.split(/[,，\s]+/).map(function(x){return Math.round(parseFloat(x)*100)/100;}).filter(function(x){return x>0;}).slice(0,6);
+  if(!arr.length){toast('請輸入最少一個金額');return;}
+  S.cfg.presets=arr;save();
+  document.getElementById('presetBtn').textContent=arr.map(function(x){return '$'+x;}).join(' · ');
+  toast('已更新快捷金額');
+}
+function editLowBal(){
+  var v=prompt('低於此餘額時在詳情提示（輸入 0 關閉）',String(S.cfg.lowBal||0));
+  if(v===null)return;
+  var n=Math.max(0,parseFloat(v)||0);
+  S.cfg.lowBal=n;save();
+  document.getElementById('lowBtn').textContent=n>0?('低於 '+money(n)+' 時提示'):'未設定（點此設定）';
+  if(detailId)renderDetail();
+  toast(n>0?'已設定低餘額提示':'已關閉低餘額提示');
+}
+function toggleSync(v){
+  S.cfg.syncBook=!!v;save();
+  toast(v?'已開啟：消費會記入記帳':'已關閉消費同步');
 }
 function closeSettings(){document.getElementById('setMask').classList.remove('show');}
 function exportData(){
@@ -1286,7 +1426,7 @@ function clearAll(){
   if(!confirm('清除全部 '+S.members.length+' 位會員及其記錄？此動作無法復原。'))return;
   if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,'清除全部會員資料');}catch(e){}}
   if(selMode)exitSel();
-  S={v:1,regions:S.regions.slice(),members:[],txns:[],cfg:{layout:S.cfg.layout,sort:'recent',region:''}};
+  S={v:1,regions:S.regions.slice(),members:[],txns:[],cfg:{layout:S.cfg.layout,sort:'recent',region:'',presets:S.cfg.presets,lowBal:S.cfg.lowBal,syncBook:S.cfg.syncBook}};
   curRegion=defaultRegionId();
   S.cfg.region=curRegion;
   save();
@@ -1608,6 +1748,49 @@ function buildBatchCanvas(list,cb){
   cb(cv);
 }
 
+/* ---------- 會員條碼（Code 39，免外部程式庫） ---------- */
+var C39={
+  '0':'000110100','1':'100100001','2':'001100001','3':'101100000','4':'000110001',
+  '5':'100110000','6':'001110000','7':'000100101','8':'100100100','9':'001100100',
+  'A':'100001001','B':'001001001','C':'101001000','D':'000011001','E':'100011000',
+  'F':'001011000','G':'000001101','H':'100001100','I':'001001100','J':'000011100',
+  'K':'100000011','L':'001000011','M':'101000010','N':'000010011','O':'100010010',
+  'P':'001010010','Q':'000000111','R':'100000110','S':'001000110','T':'000010110',
+  'U':'110000001','V':'011000001','W':'111000000','X':'010010001','Y':'110010000',
+  'Z':'011010000','-':'010000101','.':'110000100',' ':'011000100',
+  '$':'010101000','/':'010100010','+':'010001010','%':'000101010','*':'010010100'
+};
+function showBarcode(id){
+  var m=memberById(id);if(!m||!m.cardNo){toast('請先輸入卡號');return;}
+  var raw=String(m.cardNo).toUpperCase().replace(/[^0-9A-Z\-. $/+%]/g,'');
+  if(!raw){toast('卡號沒有可編碼的字元');return;}
+  var chars=('*'+raw+'*').split('');
+  var units=20;
+  chars.forEach(function(ch,i){units+=9;if(i<chars.length-1)units+=1;});
+  var narrow=Math.max(1,Math.min(3,Math.floor(820/units)));
+  var W=units*narrow,H=150;
+  var cv=document.getElementById('barCv');
+  cv.width=W;cv.height=H;
+  var x=cv.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,W,H);
+  var px=10*narrow;
+  chars.forEach(function(ch){
+    var pat=C39[ch]||C39['-'];
+    for(var i=0;i<9;i++){
+      var w=(pat.charAt(i)==='1'?3:1)*narrow;
+      if(i%2===0){x.fillStyle='#111';x.fillRect(px,12,w,H-24);}
+      px+=w;
+    }
+    px+=narrow;
+  });
+  document.getElementById('barName').textContent=m.name;
+  document.getElementById('barNum').textContent=m.cardNo;
+  document.getElementById('barMask').classList.add('show');
+}
+function closeBarcode(){
+  document.getElementById('barMask').classList.remove('show');
+}
+
 /* ---------- 圖片放大 ---------- */
 function openImg(src){
   if(!src)return;
@@ -1632,6 +1815,7 @@ curRegion=resolveRegion();
 if(S.cfg.region!==curRegion){S.cfg.region=curRegion;save();}
 renderRegions();
 renderMembers();
+scheduleNotices();
 var lyBtn=document.getElementById('lyBtn');
 if(lyBtn)lyBtn.classList.toggle('on',S.cfg.layout!=='card');
 </script>

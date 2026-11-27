@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fffaf3">
+<meta name="robots" content="noindex,nofollow">
+<title>分享到小助手</title>
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+<style>
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+  .wrap{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 22px) 18px calc(env(safe-area-inset-bottom) + 28px)}
+  h1{font-size:19px;margin:0 0 4px}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+  label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:6px}
+  input,textarea{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:11px;padding:11px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box}
+  textarea{resize:vertical;min-height:96px;line-height:1.6}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:6px}
+  .btns button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:13px;padding:13px 8px;font-size:13.5px;font-weight:700;cursor:pointer}
+  .btns button.primary{grid-column:1/-1;background:var(--accent);border-color:var(--accent);color:#fff}
+  .btns button:active{transform:scale(.98)}
+  .note{font-size:11.5px;color:var(--muted);text-align:center;line-height:1.7;margin-top:14px}
+  .ok{display:none;text-align:center;padding:30px 8px}
+  .ok .big{font-size:42px;margin-bottom:10px}
+  .ok b{display:block;font-size:16px;margin-bottom:6px}
+  .ok p{font-size:12.5px;color:var(--muted);line-height:1.7}
+  .ok a{display:inline-block;margin-top:14px;text-decoration:none;background:var(--accent);color:#fff;border-radius:12px;padding:11px 18px;font-size:13px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>分享到小助手</h1>
+  <div class="sub">內容只會存入這部裝置的瀏覽器，不會上傳。</div>
+  <div class="card" id="form">
+    <label for="sTitle">標題</label>
+    <input id="sTitle" placeholder="例如：想買的書" maxlength="80">
+    <label for="sText" style="margin-top:12px">內容／連結</label>
+    <textarea id="sText" placeholder="貼上文字或網址…"></textarea>
+    <div class="btns">
+      <button onclick="saveAs('note')">📝 存為筆記</button>
+      <button onclick="saveAs('todo')">✅ 存為待辦</button>
+      <button class="primary" onclick="saveAs('bookmark')">🔖 存為書籤</button>
+    </div>
+  </div>
+  <div class="ok" id="done">
+    <div class="big">✓</div>
+    <b id="doneTitle">已儲存</b>
+    <p id="doneMsg"></p>
+    <a id="doneLink" href="index.html">回到小助手</a>
+  </div>
+  <div class="note">由其他應用「分享」到此頁時，標題與連結會自動帶入。<br>書籤需要網址；沒有網址時可改存筆記或待辦。</div>
+</div>
+<script>
+function pad(n){return (n<10?'0':'')+n;}
+function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function uid(p){return (p||'s')+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}
+function toast(m){
+  var t=document.createElement('div');t.textContent=m;
+  t.style.cssText='position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 30px);transform:translateX(-50%);background:rgba(50,32,42,.95);color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;z-index:99';
+  document.body.appendChild(t);setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},1800);
+}
+var q=new URLSearchParams(location.search);
+var title=(q.get('title')||'').trim();
+var text=(q.get('text')||'').trim();
+var url=(q.get('url')||'').trim();
+if(!text&&url)text=url;
+if(!text&&!title){/* 手動開啟，留空 */}else{
+  document.getElementById('sTitle').value=title||(text.split('\n')[0]||'').slice(0,80);
+  document.getElementById('sText').value=(text+(url&&text.indexOf(url)<0?'\n'+url:'')).trim();
+}
+function validUrl(u){
+  u=String(u||'').trim();
+  if(!u)return '';
+  if(!/^https?:\/\//i.test(u))u='https://'+u;
+  try{var x=new URL(u);return /^https?:$/.test(x.protocol)?x.href:'';}catch(e){return '';}
+}
+function firstUrl(s){
+  var m=String(s||'').match(/https?:\/\/[^\s<>"']+/i);
+  return m?m[0]:'';
+}
+function saveAs(kind){
+  var t=document.getElementById('sTitle').value.trim();
+  var body=document.getElementById('sText').value.trim();
+  if(!t&&!body){toast('請先輸入內容');return;}
+  if(kind==='bookmark'){
+    var u=validUrl(url||firstUrl(body))||validUrl(body);
+    if(!u){toast('書籤需要有效網址');return;}
+    var db=null;try{db=JSON.parse(lsGet('bookmark_mgr_v1'));}catch(e){}
+    if(!db||!Array.isArray(db.bookmarks))db={bookmarks:[],cats:[],groups:[]};
+    if(db.bookmarks.some(function(b){return b&&b.url===u;})){toast('這個網址已在書籤中');return;}
+    db.bookmarks.push({id:uid('b'),url:u,title:t||u.replace(/^https?:\/\//,'').slice(0,60),tags:[],cats:[],desc:body===u?'':body,img:'',pinned:false,seq:-Date.now(),added:Date.now()});
+    if(!lsSet('bookmark_mgr_v1',JSON.stringify(db))){toast('儲存失敗');return;}
+    done('已加入書籤',t||u,'bookmark.html');
+    return;
+  }
+  if(kind==='todo'){
+    var raw=lsGet('jless_todo_v1'),d=null;try{d=JSON.parse(raw);}catch(e){}
+    if(!d||!Array.isArray(d.lists)||!d.lists.length)d={v:1,lists:[{id:uid('l'),name:'我的清單',tasks:[],completed:[]}]};
+    var l=d.lists[0];if(!Array.isArray(l.tasks))l.tasks=[];
+    l.tasks.unshift({id:uid('t'),title:(t||body.split('\n')[0]||'分享的任務').slice(0,100),content:body,due:'',time:'',tags:[],repeat:'none',done:false,completedAt:0,pin:false,attach:[]});
+    if(!lsSet('jless_todo_v1',JSON.stringify(d))){toast('儲存失敗');return;}
+    done('已加入待辦',t||'新任務','todo.html');
+    return;
+  }
+  var raw2=lsGet('jless_note_v1'),n=null;try{n=JSON.parse(raw2);}catch(e){}
+  if(!n||!Array.isArray(n.lists)||!n.lists.length)n={v:1,lists:[{id:uid('l'),name:'我的筆記',notes:[]}]};
+  var nl=n.lists[0];if(!Array.isArray(nl.notes))nl.notes=[];
+  nl.notes.unshift({id:uid('n'),title:(t||'分享的筆記').slice(0,80),body:body,color:'#ffffff',img:'',items:null,pin:false,ts:Date.now()});
+  if(!lsSet('jless_note_v1',JSON.stringify(n))){toast('儲存失敗');return;}
+  done('已加入筆記',t||'分享的筆記','note.html');
+}
+function done(title,what,file){
+  document.getElementById('form').style.display='none';
+  document.getElementById('done').style.display='block';
+  document.getElementById('doneTitle').textContent=title;
+  document.getElementById('doneMsg').textContent=what;
+  document.getElementById('doneLink').href=file;
+}
+</script>
+</body>
+</html>

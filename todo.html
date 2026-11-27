@@ -261,6 +261,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
     <div class="field"><label>清單管理</label><div id="mngLists"></div>
       <div class="attzone" onclick="addList()" style="margin-top:6px">＋ 新增清單</div></div>
     <div class="hint">備份會包含全部清單、任務與附件（圖片）。附件以圖片形式存於本機，體積較大，請適量使用。</div>
+    <div class="field"><label>到期提醒</label>
+      <button class="btn ghost" onclick="askTodoNotify()">🔔 開啟通知</button>
+      <div class="hint" id="notifyState" style="margin-top:6px">有到期日與時間的任務會在此裝置提醒。</div>
+    </div>
     <button class="btn primary" onclick="exportTD()">⬇️ 匯出備份（本應用）</button>
     <button class="btn ghost" onclick="importTD()">⬆️ 匯入備份（取代）</button>
     <input type="file" id="tdFile" accept="application/json,.json" style="display:none" onchange="onTDFile(event)">
@@ -415,7 +419,9 @@ function toggleDone(id){
   l.tasks=l.tasks.filter(function(x){return x.id!==id;});
   t.done=true;t.completedAt=Date.now();
   l.completed=l.completed||[];l.completed.unshift(t);
+  try{if(window.JLess&&JLess.notify&&JLess.notify.cancel)JLess.notify.cancel('todo_'+id);}catch(e){}
   save();renderTabs();renderTasks();
+  scheduleTodoNotices();
   toast(t.repeat&&t.repeat!=='none'?'已完成，並產生下一次任務':'已封存到「已完成」');
 }
 function restoreTask(id){
@@ -433,12 +439,23 @@ function restoreAll(){
 }
 function delTask(id){
   var t=findTask(id);if(!t)return;
-  if(!confirm('刪除「'+t.title+'」？'))return;
+  var l=curListObj(),lid=l.id;
+  var inTasks=(l.tasks||[]).some(function(x){return x.id===id;});
+  var idx=(inTasks?l.tasks:l.completed||[]).findIndex(function(x){return x.id===id;});
   trashSnap('待辦：'+t.title);
-  var l=curListObj();
   l.tasks=l.tasks.filter(function(x){return x.id!==id;});
   if(l.completed)l.completed=l.completed.filter(function(x){return x.id!==id;});
   save();renderTabs();renderTasks();
+  if(window.JLess&&JLess.undo){
+    JLess.undo('已刪除「'+t.title+'」',function(){
+      var ll=S.lists.filter(function(x){return x.id===lid;})[0]||curListObj();
+      var arr=inTasks?ll.tasks:(ll.completed=ll.completed||[]);
+      arr.splice(Math.max(0,idx),0,t);
+      save();renderTabs();renderTasks();
+    });
+  }else{
+    toast('已刪除');
+  }
 }
 /* 拖動排序：交由 listview.js 統一處理；此處只把新順序寫回資料 */
 function reorderTasks(ids){
@@ -581,10 +598,11 @@ function saveEditor(){
   }
   if(!old)view='list';
   save();closeEditor();renderTabs();renderTasks();toast('已儲存');
+  scheduleTodoNotices();
 }
 
 /* 設定 */
-function openSettings(){renderMngLists();document.getElementById('setMask').classList.add('show');}
+function openSettings(){renderMngLists();scheduleTodoNotices();document.getElementById('setMask').classList.add('show');}
 function closeSettings(){document.getElementById('setMask').classList.remove('show');}
 function renderMngLists(){
   var b=document.getElementById('mngLists');b.innerHTML='';
@@ -602,6 +620,34 @@ function onTDFile(ev){var f=ev.target.files&&ev.target.files[0];ev.target.value=
 function clearAll(){if(!confirm('清除全部清單與任務（含附件），無法復原。\n建議先匯出備份。確定？'))return;
   trashSnap('待辦：全部資料');
   S=defaultState();curList=S.lists[0].id;view='list';save();renderTabs();renderTasks();toast('已清除');}
+
+/* ---------- 到期提醒 ---------- */
+function scheduleTodoNotices(){
+  if(!window.JLess||!JLess.notify||!JLess.notify.schedule)return;
+  var today=todayStr();
+  S.lists.forEach(function(l){
+    (l.tasks||[]).forEach(function(t){
+      if(!t||t.done||!t.due)return;
+      var hm=/^\d{2}:\d{2}$/.test(t.time||'')?t.time:'09:00';
+      var ts=new Date(t.due+'T'+hm+':00').getTime();
+      if(isNaN(ts)||ts<=Date.now())return;
+      JLess.notify.schedule('todo_'+t.id,ts,'待辦到期：'+t.title,
+        (l.name?l.name+' · ':'')+t.due+' '+hm+(t.content?' · '+String(t.content).slice(0,40):''));
+    });
+  });
+  var el=document.getElementById('notifyState');
+  if(el){
+    var granted=('Notification' in window)&&Notification.permission==='granted';
+    el.textContent=granted?'通知已開啟；有到期時間的任務會提醒（需保持小助手頁面開啟）。':'通知未開啟，按上面按鈕允許通知。';
+  }
+}
+function askTodoNotify(){
+  if(!window.JLess||!JLess.notify){toast('此瀏覽器不支援通知');return;}
+  JLess.notify.enable().then(function(p){
+    toast(p==='granted'?'已開啟到期提醒':'未開啟（可到瀏覽器設定允許通知）');
+    if(p==='granted')scheduleTodoNotices();
+  });
+}
 
 /* 分享清單（圖片 / 文字 / Excel） */
 function drawTodoImage(l,cb){
@@ -669,6 +715,8 @@ renderTabs();renderTasks();
 LV.init({id:'todo', bar:'lvBar', container:'tasks', layout:'card',
   onReorder:reorderTasks,
   onSorting:function(s){ window.todoSorting=s; }});
+scheduleTodoNotices();
+try{if(new URLSearchParams(location.search).get('quick')==='todo')setTimeout(function(){openEditor();},250);}catch(e){}
 </script>
   <script src="help.js"></script>
 </body>

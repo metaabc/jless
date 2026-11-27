@@ -378,7 +378,25 @@ function noteEl(n){
   return d;
 }
 function toggleItem(ev,id,iid){ev.stopPropagation();var n=byId(id);if(!n)return;var it=n.items.filter(function(x){return x.id===iid;})[0];if(it){it.done=!it.done;save();renderNotes();}}
-function delNote(id){if(!confirm('刪除這則筆記？'))return;var target=byId(id);trashSnap('筆記：'+((target&&target.title)||'(無標題)'));for(var i=0;i<S.lists.length;i++){var before=S.lists[i].notes.length;S.lists[i].notes=S.lists[i].notes.filter(function(x){return x.id!==id;});if(S.lists[i].notes.length!==before){save();renderNotes();return;}}}
+function delNote(id){
+  var target=byId(id);if(!target)return;
+  if(!(window.JLess&&JLess.undo)&&!confirm('刪除這則筆記？'))return;
+  var list=null,idx=-1;
+  for(var i=0;i<S.lists.length;i++){
+    var j=S.lists[i].notes.findIndex(function(x){return x.id===id;});
+    if(j>=0){list=S.lists[i];idx=j;break;}
+  }
+  if(!list)return;
+  trashSnap('筆記：'+((target&&target.title)||'(無標題)'));
+  list.notes.splice(idx,1);save();renderNotes();
+  if(window.JLess&&JLess.undo){
+    var lid=list.id;
+    JLess.undo('已刪除筆記',function(){
+      var l=S.lists.filter(function(x){return x.id===lid;})[0];
+      if(l){l.notes.splice(Math.max(0,idx),0,target);save();renderNotes();}
+    });
+  }
+}
 
 /* 編輯器 */
 function renderPalette(){
@@ -595,7 +613,9 @@ function clearAll(){if(!confirm('清除全部筆記（含圖片），無法復�
 var toastTimer=null;
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},1800);}
 function reorderNotes(ids){var l=curListObj();var map={};l.notes.forEach(function(n){map[n.id]=n;});l.notes=ids.map(function(id){return map[id];}).filter(Boolean);save();}
-renderTabs();renderNotes();
+renderTabs();
+try{var q0=new URLSearchParams(location.search).get('q');if(q0){var qel=document.getElementById('q');if(qel)qel.value=q0;}}catch(e){}
+renderNotes();
 </script>
 <script src="listview.js"></script>
 <script>

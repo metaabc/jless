@@ -160,6 +160,9 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .ly-list .ptags .tg{background:var(--accent-soft);color:var(--accent)}
 /* 時間軸布局 */
 .ly-timeline{display:block;padding:10px 16px 4px}
+.ly-timeline .tyear{position:sticky;top:0;z-index:3;display:flex;align-items:baseline;gap:8px;margin:6px -16px 2px;padding:9px 16px 7px;background:var(--bg);font-size:calc(17px * var(--fs));font-weight:900;color:var(--ink);letter-spacing:.5px}
+.ly-timeline .tyear small{color:var(--muted);font-weight:400;font-size:calc(10.5px * var(--fs));letter-spacing:0}
+.ly-timeline .tyear:first-child{margin-top:0}
 .ly-timeline .tmonth{font-size:calc(14px * var(--fs));font-weight:800;color:var(--ink);margin:16px 0 9px;padding-left:4px;border-left:3px solid var(--accent);line-height:1.2}
 .ly-timeline .tmonth small{color:var(--muted);font-weight:400;font-size:calc(10.5px * var(--fs));margin-left:6px}
 .ly-timeline .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -498,6 +501,7 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
   <div class="selbar" id="selBar">
     <span class="cnt" id="selCnt">已選 0 張</span>
     <button onclick="selectAllVisible()">全選</button>
+    <button id="moveSelBtn" disabled onclick="openMoveSheet()">📁 移動</button>
     <button class="del" id="delSelBtn" disabled onclick="deleteSelected()">🗑️ 刪除</button>
     <button class="pri" id="shareSelBtn" disabled onclick="shareSelected()">📤 分享</button>
     <button onclick="toggleSelectMode(false)" title="完成選取">✕</button>
@@ -511,6 +515,18 @@ body.selon .toast{bottom:calc(env(safe-area-inset-bottom) + 122px)}
 </div>
 
 <!-- 全屏查看器 -->
+<!-- 批量移動到相簿 -->
+<div id="moveMask" style="position:fixed;inset:0;z-index:420;background:rgba(20,10,14,.6);display:none;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeMoveSheet()">
+  <div style="width:100%;max-width:560px;background:var(--panel);border-radius:20px 20px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom) + 18px);max-height:72vh;overflow:auto">
+    <div style="display:flex;align-items:center;margin-bottom:12px">
+      <b style="font-size:15px;color:var(--ink)">移動到相簿</b>
+      <button onclick="closeMoveSheet()" style="margin-left:auto;width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink2)">✕</button>
+    </div>
+    <div id="moveList"></div>
+    <button onclick="moveToNewAlbum()" style="width:100%;margin-top:8px;border:1px dashed var(--line);background:transparent;color:var(--accent);border-radius:12px;padding:11px;font-size:13px;font-weight:700">＋ 新相簿</button>
+  </div>
+</div>
+
 <div class="viewer" id="viewer" onclick="if(event.target===this)closeViewer()">
   <div class="vtop"><span id="vTitle"></span><button onclick="closeViewer()">✕ 關閉</button></div>
   <div class="vimgwrap" id="vImgWrap"><img id="vImg" src="" alt="相片"></div>
@@ -840,6 +856,7 @@ function updateSelBar(){
   var n=selectedIds().length;
   var cnt=document.getElementById('selCnt');if(cnt)cnt.textContent='已選 '+n+' 張';
   var sb=document.getElementById('shareSelBtn');if(sb)sb.disabled=!n;
+  var mb=document.getElementById('moveSelBtn');if(mb)mb.disabled=!n;
   var db=document.getElementById('delSelBtn');if(db)db.disabled=!n;
   var b=document.getElementById('selToggle');if(b){
     b.textContent=selectMode?'✕':'☑️';b.classList.toggle('on',selectMode);
@@ -1143,6 +1160,37 @@ function delPhoto(id){
   if(!confirm('刪除相片「'+(p.name||'未命名')+'」？此動作無法復原。'))return;
   removePhotos([id]);toast('已刪除');
 }
+/* 批量移動到相簿 */
+function openMoveSheet(){
+  var ids=selectedIds();
+  if(!ids.length){toast('請先選取相片');return;}
+  var box=document.getElementById('moveList');
+  box.innerHTML=S.albums.map(function(a){
+    var n=S.photos.filter(function(p){return p.albumId===a.id;}).length;
+    return '<button onclick="moveSelected(\''+a.id+'\')" style="width:100%;display:flex;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:12px;margin-bottom:7px;font-size:13.5px;font-weight:600">'+
+      '<span style="flex:1">'+esc(a.name)+'</span><span style="font-size:11px;color:var(--muted)">'+n+' 張</span><span style="color:var(--muted)">›</span></button>';
+  }).join('');
+  document.getElementById('moveMask').style.display='flex';
+}
+function closeMoveSheet(){document.getElementById('moveMask').style.display='none';}
+function moveSelected(albumId){
+  var a=albumById(albumId);if(!a)return;
+  var ids=selectedIds();if(!ids.length){toast('請先選取相片');return;}
+  var k={};ids.forEach(function(id){k[id]=1;});
+  S.photos.forEach(function(p){if(k[p.id])p.albumId=albumId;});
+  save();
+  selectMode=false;selected={};
+  closeMoveSheet();
+  renderAllA();updateSelBar();
+  toast('已移動 '+ids.length+' 張到「'+a.name+'」');
+}
+function moveToNewAlbum(){
+  var name=(prompt('新相簿名稱：','相簿 '+(S.albums.length+1))||'').trim().slice(0,24);
+  if(!name)return;
+  var a=newAlbumObj(name);S.albums.push(a);save();
+  renderAlbTabs();
+  moveSelected(a.id);
+}
 /* 批量刪除已選取相片 */
 function deleteSelected(){
   var ids=selectedIds();if(!ids.length){toast('請先選取相片');return;}
@@ -1220,11 +1268,24 @@ function renderGallery(boxId,list){
   var layout=LAYOUTS.some(function(l){return l.k===S.cfg.layout;})?S.cfg.layout:'g3';
   if(layout==='timeline'){
     box.className='ly-timeline';
-    var groups={},order=[];
-    list.forEach(function(p){var d=new Date(p.ts||0),k=d.getFullYear()+'年'+(d.getMonth()+1)+'月';if(!groups[k]){groups[k]=[];order.push(k);}groups[k].push(p);});
-    box.innerHTML=order.map(function(k){
-      return '<div class="tmonth">'+esc(k)+' <small>'+groups[k].length+' 張</small></div><div class="tgrid">'+
-        groups[k].map(function(p,i){return photoHTML(p,list.indexOf(p));}).join('')+'</div>';
+    var years={},yorder=[];
+    list.forEach(function(p){
+      var d=new Date(p.ts||0),y=d.getFullYear(),m=d.getMonth()+1;
+      if(!years[y]){years[y]={n:0,ms:{},morder:[]};yorder.push(y);}
+      var yd=years[y];
+      if(!yd.ms[m]){yd.ms[m]=[];yd.morder.push(m);}
+      yd.ms[m].push(p);yd.n++;
+    });
+    yorder.sort(function(a,b){return b-a;});
+    box.innerHTML=yorder.map(function(y){
+      var yd=years[y];
+      yd.morder.sort(function(a,b){return b-a;});
+      return '<div class="tyear">'+y+' 年<small>'+yd.n+' 張</small></div>'+
+        yd.morder.map(function(m){
+          var arr=yd.ms[m];
+          return '<div class="tmonth">'+m+' 月 <small>'+arr.length+' 張</small></div><div class="tgrid">'+
+            arr.map(function(p){return photoHTML(p,list.indexOf(p));}).join('')+'</div>';
+        }).join('');
     }).join('');
     return;
   }
@@ -1509,6 +1570,12 @@ function clearAll(){
 
 /* ============ 初始化 ============ */
 S=load();init();
+setTimeout(function(){
+  try{
+    var q0=new URLSearchParams(location.search).get('q');
+    if(q0){var q=document.getElementById('albQ');if(q){q.value=q0;renderAlbum();}}
+  }catch(e){}
+},400);
 </script>
 <script src="backup.js"></script>
 <script src="theme.js"></script>

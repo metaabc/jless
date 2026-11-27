@@ -246,6 +246,12 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 .acc .a.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
 .save{margin-top:12px;width:100%;border:none;border-radius:14px;padding:14px;background:var(--accent);color:#fff;font-size:calc(16px * var(--fs));font-weight:800;cursor:pointer;box-shadow:0 5px 16px rgba(120,60,80,.2);user-select:none;-webkit-user-select:none}
 .save:active{transform:scale(.99)}
+.controw{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:9px;font-size:calc(12px * var(--fs));color:var(--muted)}
+.controw input{width:16px;height:16px;accent-color:var(--accent)}
+.qbfav{display:flex;gap:6px;overflow-x:auto;padding:0 0 2px;margin-top:2px;scrollbar-width:none}
+.qbfav::-webkit-scrollbar{display:none}
+.qbfav:empty{display:none}
+.qbfav button{flex:0 0 auto;border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:6px 10px;font-size:calc(11.5px * var(--fs));font-weight:700;cursor:pointer;white-space:nowrap}
 
 /* 收據 */
 .rcpt-row{display:flex;align-items:center;gap:10px;margin-top:9px;padding:8px 10px;background:var(--gray-bg);border:1px dashed var(--line);border-radius:12px}
@@ -279,6 +285,9 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(2
 a:focus-visible,button:focus-visible,input:focus-visible,.key:focus-visible,.cat:focus-visible,.tab:focus-visible,.nav .it:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 90px);transform:translateX(-50%) translateY(20px);background:rgba(40,20,30,.92);color:#fff;padding:11px 18px;border-radius:12px;font-size:calc(13.5px * var(--fs));font-weight:600;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:86%}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* 輸入面板打開時提示移到頂部，避免蓋住鍵盤區與「保存記錄」 */
+.toast.up{bottom:auto;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%) translateY(-14px)}
+.toast.up.show{transform:translateX(-50%) translateY(0)}
 
 /* 明細／圖表 篩選下拉 */
 .fsel{appearance:none;-webkit-appearance:none;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 26px 8px 10px;font-size:calc(12.5px * var(--fs));color:var(--ink2);font-family:inherit;outline:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 14px) 50%,calc(100% - 9px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
@@ -497,6 +506,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,.key:focus-visible,.cat
     <div class="key" onclick="press('.')">.</div><div class="key" onclick="press('0')">0</div><div class="key fn" onclick="back()">⌫</div><div class="key op" onclick="press('+')">+</div>
     <div class="key fn" onclick="setToday()">📅</div><div class="key fn" onclick="clearExpr()">C</div><div class="key eq" style="grid-column:span 2" onclick="equal()">=</div>
   </div>
+<div id="qbFav" class="qbfav"></div>
   <div class="row">
     <input class="note" id="sNote" placeholder="備註（選填）" maxlength="60">
     <div class="dt"><input type="date" id="sDate"></div>
@@ -510,6 +520,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,.key:focus-visible,.cat
     <input type="file" id="sReceiptFile" accept="image/*" style="display:none" onchange="onPickReceipt(event)">
   </div>
   <button class="save" onclick="saveTxn()">保存記錄</button>
+  <label class="controw"><input type="checkbox" id="qbCont" onchange="setCont(this.checked)"> 儲存後繼續記下一筆</label>
 </div>
 
 <!-- 交易詳情 -->
@@ -793,9 +804,35 @@ function openSheet(catId){
   document.getElementById('sNote').value='';
   document.getElementById('sDate').value=sheetDate;
   sheetReceipt='';renderReceiptPrev();
+  var cc=document.getElementById('qbCont');
+  if(cc){try{cc.checked=localStorage.getItem('jless_qb_cont_v1')==='1';}catch(e){}}
+  renderFavCombos();
   renderSAcc(); renderSDisp();
   document.getElementById('mask').classList.add('show');
   document.getElementById('sheet').classList.add('show');
+}
+function setCont(v){try{localStorage.setItem('jless_qb_cont_v1',v?'1':'0');}catch(e){}}
+function renderFavCombos(){
+  var box=document.getElementById('qbFav');if(!box)return;
+  var map={},arr=[];
+  (S.txns||[]).forEach(function(t){
+    if(!t||t.type!=='expense')return;
+    var k=t.catId+'|'+t.amount;
+    if(!map[k]){map[k]={catId:t.catId,amount:t.amount,n:0,last:0};arr.push(map[k]);}
+    map[k].n++;map[k].last=Math.max(map[k].last,t.ts||0);
+  });
+  arr=arr.filter(function(x){return x.n>=2;}).sort(function(a,b){return b.n-a.n||b.last-a.last;}).slice(0,4);
+  box.innerHTML=arr.map(function(x){
+    var c=catById('expense',x.catId)||{icon:'❓',name:'?'};
+    return '<button onclick="applyFav(\''+x.catId+'\','+x.amount+')">'+c.icon+' '+money(x.amount)+'</button>';
+  }).join('');
+}
+function applyFav(catId,amt){
+  curType='expense';selCat=catId;expr=String(amt);justEval=false;
+  var c=catById('expense',catId);
+  document.getElementById('sIc').textContent=c?c.icon:'❓';
+  document.getElementById('sNm').textContent=c?c.name:'未選分類';
+  renderSDisp();
 }
 function closeSheet(){
   document.getElementById('mask').classList.remove('show');
@@ -881,6 +918,17 @@ function saveTxn(){
     ts:dateToTs(date),date:date,receipt:sheetReceipt||'',tplId:'',period:''};
   var big=!!(sheetReceipt&&kbOf(sheetReceipt)>120);
   S.txns.push(t);save();
+  var cont=document.getElementById('qbCont');
+  if(cont&&cont.checked){
+    /* 連續記帳：保留面板，清空金額與備註，分類沿用 */
+    expr='';justEval=false;
+    document.getElementById('sNote').value='';
+    sheetReceipt='';renderReceiptPrev();
+    renderSDisp();renderFavCombos();
+    renderSummary();renderList();
+    toast('已記錄 '+money(t.amount)+' · '+c.name+'，繼續下一筆');
+    return;
+  }
   closeSheet();renderSummary();renderList();
   toast('已記錄 '+money(t.amount)+' · '+c.name+(big?'（收據較大）':''));
 }
@@ -917,7 +965,19 @@ function renderList(){
   });
   box.innerHTML=html;
 }
-function delTxn(id){if(!confirm('刪除這筆記錄？'))return;S.txns=S.txns.filter(function(t){return t.id!==id;});save();renderSummary();renderList();closeTxnDetail();toast('已刪除');}
+function delTxn(id){
+  var t=S.txns.filter(function(x){return x.id===id;})[0];if(!t)return;
+  if(!(window.JLess&&JLess.undo)&&!confirm('刪除這筆記錄？'))return;
+  var idx=S.txns.findIndex(function(x){return x.id===id;});
+  S.txns=S.txns.filter(function(x){return x.id!==id;});
+  save();renderSummary();renderList();closeTxnDetail();
+  if(window.JLess&&JLess.undo){
+    JLess.undo('已刪除一筆記錄',function(){
+      S.txns.splice(Math.max(0,idx),0,t);
+      save();renderSummary();renderList();
+    });
+  }else toast('已刪除');
+}
 function openTxnDetail(id){
   var t=S.txns.filter(function(x){return x.id===id;})[0];if(!t)return;
   detailTxnId=id;
@@ -1238,7 +1298,10 @@ function clearAll(){if(!confirm('清除全部記帳資料與自訂分類／帳�
 
 /* ============ 工具 ============ */
 var toastTimer=null;
-function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;
+  var sh=document.getElementById('sheet');
+  t.classList.toggle('up',!!(sh&&sh.classList.contains('show')));
+  t.classList.add('show');
   if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},1800);}
 
 /* ============ 初始化 ============ */
@@ -1246,6 +1309,11 @@ S=load();
 selCat=S.expense.length?S.expense[0].id:null;
 curAcc=S.accounts.some(function(a){return a.id==='a_none';})?'a_none':(S.accounts[0]?S.accounts[0].id:'a_none');
 renderSummary();renderCats();
+try{
+  if(new URLSearchParams(location.search).get('quick')==='expense'){
+    setTimeout(function(){openSheet(S.expense.length?S.expense[0].id:null);},250);
+  }
+}catch(e){}
 </script>
 <script src="backup.js"></script>
 <script src="theme.js"></script>

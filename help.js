@@ -25,8 +25,11 @@
     ]},
     'quickbook.html':{name:'記帳',scenes:[
       ['3 秒記一筆','首頁選「支出／收入」→ 點分類 → 輸入金額（可用 + − × ÷）→「儲存」。'],
+      ['連續記幾筆','面板勾選「儲存後繼續記下一筆」，儲存後面板不關、金額清空，分類沿用，適合一次補記整天。'],
+      ['常用組合','面板上方會出現你用過 2 次以上的「分類＋金額」快捷（如 ☕ 25），點一下即填好，再按儲存。'],
       ['指定帳戶 / 日期','記帳前在帳戶選擇（如信用卡），或點日期改為其它日子；未選則用設定的預設帳戶。'],
       ['查這個月花多少','「統計」選月份看橫向柱圖；可用帳戶、分類篩選；「明細」可逐筆查看。'],
+      ['刪錯可復原','刪除明細不再彈確認，底部會出現「復原」，按一下即原位插回。'],
       ['分享明細','「設定 → 匯出 CSV」把收支傳出試算表；長按清單可調順序、改分類名稱與圖示。'],
       ['預算與週期','設定可設月度預算與分類預算；週期交易一鍵套用本月；每筆可附 320px 收據縮圖。'],
     ]},
@@ -38,8 +41,12 @@
     ]},
     'member.html':{name:'會員',scenes:[
       ['新增會員','按底部「＋ 新增會員」→ 輸入商店名稱、選擇地區，可即時上載會員證卡圖 →「儲存」。'],
-      ['快捷充值','會員詳情按「＋ 充值」，直接點 100／300／500／1000，或輸入自訂金額；有贈送就填「贈送金額」。'],
+      ['快捷充值','會員詳情按「＋ 充值」，直接點 100／300／500／1000，或輸入自訂金額；有贈送就填「贈送金額」。金額按鈕可在設定改（如 50／200／800）。'],
       ['記錄消費','按「－ 消費」輸入金額，日期預設今天，可改成之前日子補記；餘額即時扣減。'],
+      ['出示會員條碼','會員詳情按「▥ 出示會員條碼」放大成條碼卡（編輯會員時填「卡號／條碼」即可，店員掃描用）。'],
+      ['低餘額提醒','設定 →「低餘額提醒」設門檻（如 100）；低於門檻的會員卡片會標紅，充值時一眼看到誰要加值。'],
+      ['記入記帳','設定可開啟「消費自動記入記帳」，選好對應分類後，每次會員消費同時寫進記帳，不必重複輸入。'],
+      ['優惠到期提醒','編輯會員時填「優惠到期日」；詳情會顯示剩幾天，並在到期前 3 日於本頁提醒。'],
       ['看餘額','會員卡片直接顯示目前餘額；詳情頁分開顯示充值本金、贈送與已消費。'],
       ['優惠記錄','編輯會員時可在「優惠」多行輸入滿減、折扣、生日禮遇或到期日；詳情頁會顯示，分享時可一併帶出。'],
       ['地區與佈局','開啟時預設看「默認」地區，之後會記住上次選取的地區；頂部 tab 切換，右上 ▦ 循環切換三種佈局。'],
@@ -67,6 +74,8 @@
       ['管理多个清單','用頂部清單列切換不同主題（如工作／家庭）；「＋」可新增清單。'],
       ['查看近期','首頁卡片顯示「未來 7 天即將到期」數量，避免漏掉期限。'],
       ['完成與排序','點方塊標記完成；可拖曳調整順序、滑動做更多操作。'],
+      ['到期提醒','設定 →「到期提醒」開啟通知後，有到期日的任務會在當天提醒（需保持頁面開啟）。'],
+      ['刪錯可復原','刪除任務不再彈確認，底部「復原」可即時插回原本位置。'],
       ['自然輸入','輸入「明天 3點 交作業 #工作」會自動拆出日期、時間與標籤；完成後移到「已完成」，可還原。'],
     ]},
     'remember.html':{name:'記憶卡',scenes:[
@@ -104,6 +113,8 @@
       ['選喜愛','點相片右上 ♡ 加入喜愛；首頁只顯示喜愛相片。'],
       ['多選與分享','右上角按 ☑️ 選取，可拖拉連續選取；底部「📤 分享」可一次分享多張，「全選」再按一次可取消。'],
       ['批量刪除','選取多張後按底部「🗑️ 刪除」，會先確認再一次刪除；刪除後自動離開選取模式。'],
+      ['批量移動相簿','選取多張 → 底部「📁 移至」可一次放進現有相簿，或「＋ 新建相簿」邊移動邊建立。'],
+      ['時間軸分年份','排版切到「時間軸」時會按「年份 → 月份」分層，年份標題會貼在頂部，長相簿也找得快。'],
       ['清空相簿','選取某個相簿後，搜尋列右邊會出現 🗑，按一下確認即清空該相簿（相簿會保留）；「設定 → 相簿管理」每列亦有 🧹，全局清除在「資料管理」。'],
       ['換排版','右上角按 ▦，一次過切換网格、瀑布流、列表、緊湊、時間軸等七種佈局；設定頁亦可選。'],
       ['私隐與備份','相片永遠不上雲、只有你看得到；到「設定 → 資料管理」可匯出完整備份（含相片）。'],
@@ -273,6 +284,36 @@
   setTimeout(applyPos,300);
   window.addEventListener('resize',function(){clearTimeout(fab._rt);fab._rt=setTimeout(applyPos,200);});
   window.addEventListener('orientationchange',function(){setTimeout(applyPos,400);});
+
+  /* ---- 任何彈層打開時自動隱藏，避免蓋住輸入面板／詳情內容 ---- */
+  function overlayOpen(){
+    var vw=window.innerWidth||390, vh=window.innerHeight||800, min=vw*vh*0.45;
+    var cand=document.querySelectorAll('[id*="Mask"],[class*="mask"],[class*="sheet"],[class*="modal"],[class*="drawer"]');
+    for(var i=0;i<cand.length;i++){
+      var el=cand[i];
+      if(el===fab||mask.contains(el))continue;
+      var cs;try{cs=getComputedStyle(el);}catch(e){continue;}
+      if(!cs||cs.display==='none'||cs.visibility==='hidden'||cs.opacity==='0')continue;
+      var r=el.getBoundingClientRect();
+      var visW=Math.min(r.right,vw)-Math.max(r.left,0), visH=Math.min(r.bottom,vh)-Math.max(r.top,0);
+      if(visW>0&&visH>0&&visW*visH>=min)return true;
+    }
+    return false;
+  }
+  var ovLast=null;
+  function ovSync(){
+    var o=overlayOpen();
+    if(o===ovLast)return;
+    ovLast=o;
+    fab.style.opacity=o?'0':'1';
+    fab.style.transform=o?'scale(.86)':'none';
+    fab.style.pointerEvents=o?'none':'auto';
+  }
+  var ovTk=null;
+  function ovQueue(){if(ovTk)return;ovTk=setTimeout(function(){ovTk=null;ovSync();},120);}
+  try{new MutationObserver(ovQueue).observe(document.body,{attributes:true,subtree:true,attributeFilter:['class','style']});}catch(e){}
+  window.setInterval(ovSync,1200);
+  ovSync();
 
   /* ---- 可按住拖曳微調位置 ---- */
   var dragging=false, moved=false, sx=0, sy=0, ox=0, oy=0, longTimer=null;

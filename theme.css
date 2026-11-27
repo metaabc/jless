@@ -33,3 +33,121 @@ body{
 .bottombar .bb:active{background:var(--line2)}
 .bottombar .bb .ic{font-size:19px;line-height:1}
 .bottombar .bb.primary{color:var(--accent)}
+
+/* ===== 夜間模式（跟隨系統或手動）=====
+   以 data-mode="dark" 套用；data-theme 仍保留主題色名。 */
+:root[data-mode="dark"]{
+  --bg:#171114; --panel:#221a1e; --line:#3b2c34; --line2:#2b2026;
+  --ink:#f5eaee; --ink2:#dccbd3; --muted:#a8919b;
+  /* 各頁沿用的淺色別名（--card/--gray-bg/--bg1…）一律映射到深色面板 */
+  --card:var(--panel); --gray-bg:var(--panel); --gray-tx:var(--muted);
+  --bg1:var(--panel); --bg2:var(--bg);
+  /* 狀態色：文字提亮、底色壓暗，避免深色下出現刺眼淺塊 */
+  --gold:#e2b76a; --gold-bg:#2f2718; --gold-tx:#e6c17a; --gold-line:#4a3a22;
+  --green:#3aa38f; --green-bg:#16302b; --green-line:#265045;
+  --orange:#dd9d55; --orange-bg:#33261a; --orange-line:#4d3a24;
+  --red:#e5867a; --red-bg:#38201f; --red-line:#54302c;
+  --blue:#7f9fd8;
+  color-scheme:dark;
+}
+:root[data-mode="dark"][data-theme="rose"]  {--accent:#e06a94;--accent2:#c23b6a;--accent-soft:#3d2030;--accent-line:#5d3346}
+:root[data-mode="dark"][data-theme="blue"]  {--accent:#6f9dff;--accent2:#3b6fe0;--accent-soft:#1e2a42;--accent-line:#2f4a78}
+:root[data-mode="dark"][data-theme="green"] {--accent:#4fc3b5;--accent2:#0f9b8f;--accent-soft:#173432;--accent-line:#26544f}
+:root[data-mode="dark"][data-theme="purple"]{--accent:#b18cff;--accent2:#8b5cf6;--accent-soft:#2b2143;--accent-line:#46356b}
+:root[data-mode="dark"][data-theme="amber"] {--accent:#f0ab4b;--accent2:#d97706;--accent-soft:#3a2a17;--accent-line:#5c4526}
+
+html[data-mode="dark"] body{background:var(--bg)!important;color:var(--ink)}
+html[data-mode="dark"] header,
+html[data-mode="dark"] .topbar,
+html[data-mode="dark"] .bottombar,
+html[data-mode="dark"] .tabbar,
+html[data-mode="dark"] .nav,
+html[data-mode="dark"] nav,
+html[data-mode="dark"] .sheet,
+html[data-mode="dark"] .toast,
+html[data-mode="dark"] .summary,
+html[data-mode="dark"] .sec-h,
+html[data-mode="dark"] .add,
+html[data-mode="dark"] .budget-box,
+html[data-mode="dark"] .search{
+  background:var(--bg)!important;
+  border-color:var(--line)!important;
+  color:var(--ink)!important;
+}
+html[data-mode="dark"] .card,
+html[data-mode="dark"] .box,
+html[data-mode="dark"] .item,
+html[data-mode="dark"] .row,
+html[data-mode="dark"] .txn,
+html[data-mode="dark"] .mcard,
+html[data-mode="dark"] .panel,
+html[data-mode="dark"] .sec,
+html[data-mode="dark"] .stat,
+html[data-mode="dark"] .task,
+html[data-mode="dark"] .note,
+html[data-mode="dark"] .note-card,
+html[data-mode="dark"] .entry,
+html[data-mode="dark"] .day,
+html[data-mode="dark"] .vcard,
+html[data-mode="dark"] .tool,
+html[data-mode="dark"] .key,
+html[data-mode="dark"] .btn,
+html[data-mode="dark"] .chip,
+html[data-mode="dark"] .tab,
+html[data-mode="dark"] .rb,
+html[data-mode="dark"] .b,
+html[data-mode="dark"] .iconbtn,
+html[data-mode="dark"] .hact,
+html[data-mode="dark"] .fsel,
+html[data-mode="dark"] input,
+html[data-mode="dark"] textarea,
+html[data-mode="dark"] select{
+  background:var(--panel)!important;
+  border-color:var(--line)!important;
+  color:var(--ink)!important;
+}
+html[data-mode="dark"] .card .ds,
+html[data-mode="dark"] .hint,
+html[data-mode="dark"] .meta,
+html[data-mode="dark"] .sub,
+html[data-mode="dark"] .muted{color:var(--muted)!important}
+html[data-mode="dark"] .mask{background:rgba(0,0,0,.6)}
+html[data-mode="dark"] .empty{color:var(--muted)}
+html[data-mode="dark"] .tag,
+html[data-mode="dark"] .soon{background:var(--line2)!important;color:var(--ink2)!important;border-color:var(--line)!important}
+html[data-mode="dark"] img{opacity:.96}
+
+/* ---------- 深色：仍以固定淺色繪製的元件（小習慣／團購券／消費券…） ---------- */
+html[data-mode="dark"] .weekbar,
+html[data-mode="dark"] .heatwrap,
+html[data-mode="dark"] .share-preview,
+html[data-mode="dark"] .hcheck,
+html[data-mode="dark"] .set-btn,
+html[data-mode="dark"] .upload,
+html[data-mode="dark"] .pay,
+html[data-mode="dark"] .cell.empty,
+html[data-mode="dark"] .wnav,
+html[data-mode="dark"] .ptr,
+html[data-mode="dark"] .empty:not(.cal-cell),
+html[data-mode="dark"] .fc-ops,
+html[data-mode="dark"] .stage,
+html[data-mode="dark"] .srcbar,
+html[data-mode="dark"] .layswitch,
+html[data-mode="dark"] nav.mbar{
+  background:var(--panel)!important;
+  border-color:var(--line)!important;
+  color:var(--ink2)!important;
+}
+html[data-mode="dark"] .tabs{background:var(--line2)!important;border-color:var(--line)!important}
+html[data-mode="dark"] .empty:not(.cal-cell){color:var(--muted)!important;border-style:dashed!important}
+html[data-mode="dark"] .hcheck{border-color:var(--accent-line)!important;background:var(--bg)!important}
+html[data-mode="dark"] .hcheck svg{stroke:#8c7280}
+html[data-mode="dark"] .hcard.is-done .hcheck,
+html[data-mode="dark"] .is-done .hcheck{background:var(--green)!important;border-color:var(--green)!important}
+html[data-mode="dark"] .hbadge.zero{background:var(--line2)!important;color:var(--muted)!important}
+html[data-mode="dark"] button.on{background:var(--accent-soft)!important;border-color:var(--accent-line)!important;color:var(--accent)!important}
+html[data-mode="dark"] .dopt-btns button{background:var(--panel)!important;border-color:var(--line)!important;color:var(--ink2)!important}
+html[data-mode="dark"] .dopt-btns button.on{background:var(--accent-soft)!important;border-color:var(--accent-line)!important;color:var(--accent)!important}
+html[data-mode="dark"] .soonbar{background:var(--red-bg)!important;border-color:var(--red-line)!important;color:var(--red)!important}
+html[data-mode="dark"] .pbar{background:var(--line2)!important}
+html[data-mode="dark"] .pbar>i{background:var(--accent)!important}

@@ -30,6 +30,7 @@
 
 <!-- Google Analytics（統計；不傳個人／敏感資料，離線時靜默） -->
 <script defer src="ga.js"></script>
+<link rel="stylesheet" href="theme.css">
 <style>
   :root{
     --bg:#fffaf3; --panel:#ffffff; --line:#f0e2d8; --line2:#f8efe7;
@@ -167,6 +168,23 @@
   .reset:active{background:var(--line2)}
   .note{font-size:calc(11px * var(--fs));color:var(--muted);text-align:center;margin-top:10px;line-height:1.6}
 
+  /* 夜間模式／匯入模式／備份狀態／儲存用量 */
+  .mode-row{display:flex;gap:8px;margin-bottom:6px}
+  .mode-row button{flex:1;border:1px solid var(--line);background:var(--panel);color:var(--ink2);
+    border-radius:12px;padding:10px 4px;font-size:calc(12px * var(--fs));font-weight:700;cursor:pointer}
+  .mode-row button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .bk-state{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 13px;
+    font-size:calc(12px * var(--fs));color:var(--ink2);line-height:1.6;margin:8px 0}
+  .bk-state b{color:var(--ink)}
+  .bk-state .warn{color:#b45309}
+  .bk-opt{display:flex;align-items:center;gap:8px;font-size:calc(12px * var(--fs));color:var(--ink2);
+    background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 13px;margin-bottom:8px}
+  .bk-opt input{width:17px;height:17px;accent-color:var(--accent)}
+  .storage-box{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 13px;
+    font-size:calc(12px * var(--fs));color:var(--ink2);line-height:1.7}
+  .storage-box .bar{height:7px;border-radius:999px;background:var(--line2);overflow:hidden;margin:7px 0 4px}
+  .storage-box .bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+
   /* ===== Bottom tab bar (phone menu) ===== */
   nav{
     position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:560px;z-index:30;
@@ -184,6 +202,11 @@
     border-radius:999px;background:var(--accent);color:#fff;font-size:calc(9px * var(--fs));font-weight:700;
     display:flex;align-items:center;justify-content:center}
   .tab:active{transform:scale(.95)}
+  .tab.addtab{color:var(--accent)}
+  .tab.addtab .ti{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:22px;margin-top:-14px;
+    box-shadow:0 5px 14px rgba(120,60,80,.35);padding-bottom:2px}
+  .tab.addtab span:last-child{font-size:calc(9.5px * var(--fs));margin-top:-1px}
   a:focus-visible,button:focus-visible,.gear:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
   /* ===== 進階功能密碼彈窗 ===== */
@@ -267,6 +290,7 @@
   }
 }
 </script>
+<script src="theme.js"></script>
 <script src="jless-common.js"></script>
 </head>
 <body>
@@ -331,13 +355,29 @@
       <div class="sec-title" style="margin-top:20px"><h2>皮膚設定</h2><span class="hint">顏色與字型大小</span></div>
       <div class="skin-box" id="skinBox"></div>
       <button class="reset" onclick="resetSettings()">重設為預設顯示</button>
+      <div class="sec-title" style="margin-top:20px"><h2>夜間模式</h2><span class="hint">跟隨系統或手動</span></div>
+      <div class="mode-row" id="modeRow">
+        <button type="button" data-mode="auto" onclick="setThemeMode('auto')">跟隨系統</button>
+        <button type="button" data-mode="light" onclick="setThemeMode('light')">淺色</button>
+        <button type="button" data-mode="dark" onclick="setThemeMode('dark')">深色</button>
+      </div>
       <div class="sec-title" style="margin-top:20px"><h2>資料備份</h2><span class="hint">全部應用的設定與資料</span></div>
       <button class="reset" style="margin-top:0" onclick="JLess.search.open()">🔍 全域搜尋</button>
       <button class="reset" onclick="JLess.trash.open()">♻️ 回收桶（還原誤刪）</button>
+      <button class="reset" onclick="JLess.quick.open()">＋ 快速新增（待辦／筆記／支出）</button>
+      <div class="bk-state" id="backupState">檢查備份狀態…</div>
+      <label class="bk-opt"><input type="checkbox" id="bkMedia" checked> 包含相片與團購券（檔案較大，但換機必備）</label>
+      <div class="mode-row" id="importModeRow">
+        <button type="button" data-im="merge" onclick="setImportMode('merge')">匯入：合併</button>
+        <button type="button" data-im="replace" onclick="setImportMode('replace')">匯入：取代</button>
+      </div>
       <button class="reset" onclick="exportAll()">⬇️ 匯出全部資料</button>
-      <button class="reset" onclick="importAll()">⬆️ 匯入全部資料（取代）</button>
+      <button class="reset" onclick="importAll()">⬆️ 匯入全部資料</button>
       <input type="file" id="allFile" accept="application/json,.json" style="display:none" onchange="onAllFile(event)">
-      <div class="note">匯出會包含本工具箱所有應用的設定與資料（一個 JSON 檔）。<br>匯入會以備份「取代」目前全部內容，匯入前請先匯出。</div>
+      <div class="note">匯出包含各應用資料、相簿相片與團購券（可取消勾選）。<br>「合併」只加入備份中未有的項目，保留現有記錄；「取代」會以備份覆蓋目前全部內容。</div>
+      <div class="sec-title" style="margin-top:20px"><h2>儲存空間</h2><span class="hint">本機用量</span></div>
+      <div class="storage-box" id="storageBox">計算中…</div>
+      <button class="reset" style="margin-top:8px" onclick="askNotify()">🔔 開啟到期提醒</button>
     </section>
   </main>
 
@@ -345,6 +385,7 @@
     <div class="tabbar">
       <div class="tab active" data-view="home" onclick="go('home')"><span class="ti">🏠</span>首頁</div>
       <div class="tab" data-view="all" onclick="go('all')"><span class="ti">📚</span>全部</div>
+      <div class="tab addtab" role="button" tabindex="0" onclick="JLess.quick.open()"><span class="ti">＋</span><span>新增</span></div>
       <div class="tab" data-view="fav" onclick="go('fav')"><span class="ti">⭐</span>常用<span class="badge" id="favBadge" style="display:none">0</span></div>
       <div class="tab" data-view="settings" onclick="go('settings')"><span class="ti">⚙️</span>設定</div>
     </div>
@@ -409,6 +450,7 @@ function applySkin(){
   r.setProperty('--accent-soft', t.soft);
   r.setProperty('--accent-line', t.line);
   r.setProperty('--fs', (FONTS.find(f=>f.k===skin.fkey) || FONTS[1]).v);
+  if(window.JLessTheme)JLessTheme.apply();
 }
 function saveSkin(){ try{ localStorage.setItem(SKIN_KEY, JSON.stringify(skin)); }catch(e){} }
 function renderSkin(){
@@ -610,7 +652,7 @@ function appExtra(file){
   return '';
 }
 function cardHTML(a){
-  return `<a class="card" href="${a.file}" target="_blank" rel="noopener" onclick="if(window.homeSorting){event.preventDefault();return false;}">
+  return `<a class="card" href="${a.file}" rel="noopener" onclick="markFromHome();if(window.homeSorting){event.preventDefault();return false;}">
     <div class="ic">${a.icon}</div>
     <div class="nm">${a.name}</div>
     <div class="xarea">${appExtra(a.file)}</div>
@@ -678,28 +720,156 @@ function renderChips(){
   if(!list.length){ el.style.display='none'; el.innerHTML=''; return; }
   el.style.display='flex';
   el.innerHTML = list.map(a =>
-    '<a class="chip" href="'+a.file+'" target="_blank" rel="noopener"><span class="ci">'+a.icon+'</span>'+a.name+'</a>'
+    '<a class="chip" href="'+a.file+'" rel="noopener" onclick="markFromHome()"><span class="ci">'+a.icon+'</span>'+a.name+'</a>'
   ).join('');
+}
+/* ===== 今日頁：可勾完成、快速新增、跨應用摘要 ===== */
+function pad2(n){return (n<10?'0':'')+n;}
+function isoToday(){var d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function readJSON(k){try{var o=JSON.parse(localStorage.getItem(k));return (o&&typeof o==='object')?o:null;}catch(e){return null;}}
+function writeJSON(k,o){try{localStorage.setItem(k,JSON.stringify(o));return true;}catch(e){return false;}}
+function markFromHome(){try{sessionStorage.setItem('jless_from_home','1');}catch(e){}}
+
+function toggleHabitToday(id){
+  var d=readJSON('habit_checkin_v1');
+  if(!d||!Array.isArray(d.habits))return;
+  if(!d.logs||typeof d.logs!=='object')d.logs={};
+  var iso=isoToday(),arr=Array.isArray(d.logs[iso])?d.logs[iso]:[];
+  var next=arr.filter(function(e){return e&&e.id!==id;});
+  var had=next.length!==arr.length;
+  if(!had)next.push({k:'q'+Date.now().toString(36),id:id,t:Date.now()});
+  if(next.length)d.logs[iso]=next;else delete d.logs[iso];
+  if(writeJSON('habit_checkin_v1',d)){
+    renderFocus();
+    if(window.JLess&&JLess.util)JLess.util.toast(had?'已取消打卡':'已打卡');
+  }
+}
+function completeTodo(listId,taskId){
+  var d=readJSON('jless_todo_v1');
+  if(!d||!Array.isArray(d.lists))return;
+  var l=null,i;
+  for(i=0;i<d.lists.length;i++)if(d.lists[i].id===listId){l=d.lists[i];break;}
+  if(!l||!Array.isArray(l.tasks))return;
+  var t=null;
+  for(i=0;i<l.tasks.length;i++)if(l.tasks[i].id===taskId){t=l.tasks[i];break;}
+  if(!t)return;
+  l.tasks.splice(i,1);
+  t.done=true;t.completedAt=Date.now();
+  if(!Array.isArray(l.completed))l.completed=[];
+  l.completed.unshift(t);
+  if(writeJSON('jless_todo_v1',d)){
+    renderFocus();
+    if(window.JLess&&JLess.undo){
+      JLess.undo('已完成「'+t.title+'」',function(){
+        var dd=readJSON('jless_todo_v1');if(!dd)return;
+        dd.lists.forEach(function(x){
+          if(x.id!==listId)return;
+          x.completed=(x.completed||[]).filter(function(y){return y.id!==taskId;});
+          t.done=false;t.completedAt=0;x.tasks.unshift(t);
+        });
+        writeJSON('jless_todo_v1',dd);renderFocus();
+      });
+    }
+  }
+}
+function monthSpend(){
+  var m=isoToday().slice(0,7),sum=0;
+  var qb=readJSON('jless_quickbook_v1');
+  if(qb&&Array.isArray(qb.txns))qb.txns.forEach(function(t){
+    if(t&&t.type==='expense'&&String(t.date||'').slice(0,7)===m)sum+=(+t.amount||0);
+  });
+  var mb=readJSON('jless_member_v1');
+  if(mb&&Array.isArray(mb.txns))mb.txns.forEach(function(t){
+    if(t&&t.type==='spend'&&!t.qbId&&String(t.date||'').slice(0,7)===m)sum+=(+t.amt||0);
+  });
+  return sum;
+}
+function dueTodos(){
+  var out=[],d=readJSON('jless_todo_v1'),today=isoToday();
+  if(!d||!Array.isArray(d.lists))return out;
+  d.lists.forEach(function(l){
+    (l.tasks||[]).forEach(function(t){
+      if(t&&t.due&&t.due<=today)out.push({listId:l.id,task:t});
+    });
+  });
+  out.sort(function(a,b){return String(a.task.due).localeCompare(String(b.task.due));});
+  return out;
 }
 function renderFocus(){
   var box=document.getElementById('focusBox');if(!box)return;
-  var items=[];
-  ['todo.html','metric.html','consume.html','member.html','wealth.html','album.html'].forEach(function(f){
-    /* 進階應用未解鎖時不顯示其資料摘要，避免泄漏 */
-    var app=APPS.find(function(a){return a.file===f;});
-    if(app&&!isVisible(app))return;
-    var x=appExtra(f);if(x)items.push({f:f,h:x});
+  var today=new Date();
+  var wd='日一二三四五六'.charAt(today.getDay());
+  var habits=[],hab=readJSON('habit_checkin_v1');
+  if(hab&&Array.isArray(hab.habits)){
+    var iso=isoToday(),logs=(hab.logs&&Array.isArray(hab.logs[iso]))?hab.logs[iso]:[];
+    habits=hab.habits.filter(function(h){return h&&h.created<=iso;}).map(function(h){
+      return {h:h,done:logs.some(function(e){return e&&e.id===h.id;})};
+    });
+    habits.sort(function(a,b){return (a.done?1:0)-(b.done?1:0);});
+  }
+  var todos=dueTodos();
+  try{if(window.JLess&&JLess.badge)JLess.badge.set(todos.length);}catch(e){}
+  var total=habits.length,done=habits.filter(function(x){return x.done;}).length;
+  var lines=[];
+
+  habits.slice(0,4).forEach(function(x){
+    lines.push('<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed var(--line)">'+
+      '<button onclick="toggleHabitToday(\''+x.h.id+'\')" aria-label="打卡" style="width:28px;height:28px;border-radius:50%;flex:0 0 auto;cursor:pointer;'+
+      'border:1.5px solid '+(x.done?'var(--accent)':'var(--line)')+';background:'+(x.done?'var(--accent)':'var(--panel)')+';color:'+(x.done?'#fff':'var(--muted)')+';font-size:14px">'+(x.done?'✓':'')+'</button>'+
+      '<div style="flex:1;min-width:0;font-size:13px;'+(x.done?'color:var(--muted);text-decoration:line-through':'font-weight:600;color:var(--ink)')+'">'+
+        (x.h.icon?x.h.icon+' ':'')+hEsc(x.h.name||'習慣')+'</div>'+
+      (x.h.weekly?'<span style="font-size:10.5px;color:var(--muted);flex:0 0 auto">每週 '+x.h.weekly+'</span>':'')+
+    '</div>');
   });
+  todos.slice(0,4).forEach(function(x){
+    var late=x.task.due<isoToday();
+    lines.push('<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed var(--line)">'+
+      '<button onclick="completeTodo(\''+x.listId+'\',\''+x.task.id+'\')" aria-label="完成" style="width:28px;height:28px;border-radius:50%;flex:0 0 auto;cursor:pointer;border:1.5px solid var(--line);background:var(--panel);color:var(--muted);font-size:14px"></button>'+
+      '<div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+hEsc(x.task.title)+'</div>'+
+      '<span style="font-size:10.5px;flex:0 0 auto;color:'+(late?'#d9534f':'var(--muted)')+'">'+(late?'逾期':'今天')+(x.task.time?' '+x.task.time:'')+'</span>'+
+    '</div>');
+  });
+
+  var chips=[];
+  var spend=monthSpend();
+  if(spend>0)chips.push('<a href="quickbook.html" onclick="markFromHome()" style="text-decoration:none;color:var(--ink2);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">🧾 本月支出 '+spend.toLocaleString('zh-Hant',{maximumFractionDigits:2})+'</a>');
+  var mb=readJSON('jless_member_v1');
+  if(mb&&Array.isArray(mb.members)&&mb.members.length){
+    var alive={};mb.members.forEach(function(m){alive[m.id]=1;});
+    var bal=0;mb.txns.forEach(function(t){if(!t||!alive[t.mid])return;if(t.type==='topup')bal+=(+t.amt||0)+(+t.bonus||0);else bal-=(+t.amt||0);});
+    chips.push('<a href="member.html" onclick="markFromHome()" style="text-decoration:none;color:var(--ink2);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">💳 會員餘額 '+bal.toLocaleString('zh-Hant',{maximumFractionDigits:2})+'</a>');
+  }
   try{
-    var ns=(window.JLess&&JLess.notify.list?JLess.notify.list():[]).filter(function(n){return !n.done&&n.ts<=Date.now()+7*864e5;});
-    if(ns.length)items.unshift({f:'index.html',h:'<span class="soon">🔔 提醒：'+ns.length+' 項</span>'});
+    var cb=readJSON('coupon_book_v1'),soon=0,t0=new Date();t0.setHours(0,0,0,0);
+    (Array.isArray(cb&&cb.favs)?cb.favs:[]).forEach(function(f){
+      if(!f||!f.expiry)return;
+      var d=new Date(f.expiry+'T00:00:00');
+      if(!isNaN(d.getTime())&&d>=t0&&d<=new Date(t0.getTime()+7*864e5))soon++;
+    });
+    if(soon>0)chips.push('<a href="consume.html" onclick="markFromHome()" style="text-decoration:none;color:#b45309;background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">🔔 7 日內到期 '+soon+' 張</a>');
   }catch(e){}
-  if(!items.length){box.innerHTML='';return;}
-  box.innerHTML='<div style="margin:10px 16px 0;padding:10px 12px;background:var(--panel,#fff);border:1px solid var(--line,#f0e2d8);border-radius:14px">'+
-    '<div style="font-size:12px;font-weight:700;color:var(--ink,#3b2530);margin-bottom:7px">今日焦點</div>'+
-    '<div style="display:flex;flex-wrap:wrap;gap:6px">'+items.map(function(i){
-      return '<a href="'+i.f+'" target="_blank" rel="noopener" style="text-decoration:none">'+i.h+'</a>';
-    }).join('')+'</div></div>';
+  try{
+    var meta=JLessBackup.meta(),last=+meta.lastExport||0;
+    var days=last?Math.floor((Date.now()-last)/864e5):-1;
+    if(days<0)chips.push('<a href="javascript:go(\'settings\')" style="text-decoration:none;color:#b45309;background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">💾 尚未備份</a>');
+    else if(days>=7)chips.push('<a href="javascript:go(\'settings\')" style="text-decoration:none;color:#b45309;background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">💾 備份已 '+days+' 日</a>');
+  }catch(e){}
+
+  if(!lines.length&&!chips.length){
+    box.innerHTML='<div style="margin:10px 16px 0;padding:13px 14px;background:var(--panel);border:1px solid var(--line);border-radius:16px;display:flex;align-items:center;gap:10px">'+
+      '<div style="font-size:22px">☀️</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ink)">今日還沒有事項</div>'+
+      '<div style="font-size:11.5px;color:var(--muted);margin-top:2px">用左下「＋」快速記一筆</div></div></div>';
+    return;
+  }
+  box.innerHTML='<div style="margin:10px 16px 0;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:16px">'+
+    '<div style="display:flex;align-items:center;gap:8px">'+
+      '<b style="font-size:13px;color:var(--ink)">今日</b>'+
+      '<span style="font-size:11px;color:var(--muted)">'+(today.getMonth()+1)+' 月 '+today.getDate()+' 日 · 週'+wd+'</span>'+
+      (total?'<span style="font-size:11px;color:var(--muted);margin-left:auto">習慣 '+done+'/'+total+'</span>':'')+
+    '</div>'+
+    (lines.length?'<div style="margin-top:4px">'+lines.join('')+'</div>':'')+
+    (chips.length?'<div style="display:flex;flex-wrap:wrap;gap:6px;'+(lines.length?'border-top:1px dashed var(--line);padding-top:9px;margin-top:4px':'margin-top:8px')+'">'+chips.join('')+'</div>':'')+
+  '</div>';
 }
 function renderHome(){
   renderFocus();
@@ -751,6 +921,14 @@ function renderSettings(){
     </div>` : ''
   ).join('');
   document.getElementById('setList').innerHTML = advRow + rows;
+  syncModeButtons();
+  renderBackupState();
+}
+function syncModeButtons(){
+  var m=(window.JLessTheme&&JLessTheme.mode)||localStorage.getItem('jless_theme_mode_v1')||'auto';
+  document.querySelectorAll('#modeRow button').forEach(function(b){
+    b.classList.toggle('on',b.getAttribute('data-mode')===m);
+  });
 }
 function renderBadge(){
   const b = document.getElementById('favBadge');
@@ -837,22 +1015,74 @@ function lbToast(msg){
   requestAnimationFrame(function(){ t.style.opacity='1'; });
   setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ if(t.parentNode)t.parentNode.removeChild(t); },250); },1900);
 }
+let importMode='merge';
+function setThemeMode(m){
+  if(window.JLessTheme)JLessTheme.set(m);
+  document.querySelectorAll('#modeRow button').forEach(function(b){
+    b.classList.toggle('on',b.getAttribute('data-mode')===m);
+  });
+}
+function setImportMode(m){
+  importMode=(m==='replace')?'replace':'merge';
+  document.querySelectorAll('#importModeRow button').forEach(function(b){
+    b.classList.toggle('on',b.getAttribute('data-im')===importMode);
+  });
+}
+function renderBackupState(){
+  var el=document.getElementById('backupState');if(!el)return;
+  var meta=(window.JLessBackup&&JLessBackup.meta)?JLessBackup.meta():{};
+  var last=+meta.lastExport||0;
+  if(!last){el.innerHTML='<span class="warn">尚未備份</span><br>建議先匯出一次，換機或清瀏覽器時可完整還原。';return;}
+  var d=new Date(last),days=Math.floor((Date.now()-last)/864e5);
+  var txt='上次備份：<b>'+d.getFullYear()+'/'+pad2(d.getMonth()+1)+'/'+pad2(d.getDate())+' '+pad2(d.getHours())+':'+pad2(d.getMinutes())+'</b>';
+  if(days>=7)txt+='<br><span class="warn">已 '+days+' 日未備份，建議再匯出一次。</span>';
+  else txt+='<br>狀態良好（'+days+' 日前）。';
+  el.innerHTML=txt;
+}
+function renderStorage(){
+  var el=document.getElementById('storageBox');if(!el)return;
+  if(!window.JLessBackup||!JLessBackup.estimate){el.textContent='此瀏覽器不支援用量查詢';return;}
+  JLessBackup.estimate().then(function(e){
+    var pct=e.percent||0;
+    var color=pct>=80?'#d9534f':'var(--accent)';
+    el.innerHTML='本機資料 <b>'+JLessBackup.fmtSize(e.usage)+'</b>'+
+      (e.quota?' / 可用 '+JLessBackup.fmtSize(e.quota):'')+
+      (e.quota?'<div class="bar"><i style="width:'+Math.min(100,pct)+'%;background:'+color+'"></i></div><div style="font-size:11px;color:var(--muted)">已用 '+pct+'%'+(pct>=80?' · 建議清理相簿或備份後清空':'')+'</div>':'<div style="font-size:11px;color:var(--muted);margin-top:4px">此瀏覽器未提供總配額</div>');
+  });
+}
+function askNotify(){
+  if(!window.JLess||!JLess.notify){lbToast('此瀏覽器不支援提醒');return;}
+  JLess.notify.enable().then(function(p){
+    lbToast(p==='granted'?'已開啟提醒':'未開啟（可到瀏覽器設定允許通知）');
+  });
+}
 function exportAll(){
-  var n=JLessBackup.allKeys().length;
-  JLessBackup.export(null,'jless-all-backup-'+ (function(){var d=new Date();function p(x){return(x<10?'0':'')+x;}return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());})() +'.json');
-  lbToast('已匯出全部資料（'+n+' 項）');
+  var media=document.getElementById('bkMedia')?document.getElementById('bkMedia').checked:true;
+  lbToast('正在整理資料…');
+  JLessBackup.exportFull({includeMedia:media},function(ok,size,counts){
+    if(!ok){alert('匯出失敗：資料可能過大，請取消「包含相片」再試。');return;}
+    var extra=[];
+    if(counts&&counts['相簿相片'])extra.push(counts['相簿相片']+' 張相片');
+    if(counts&&counts['團購券'])extra.push(counts['團購券']+' 張券');
+    lbToast('已匯出 '+JLessBackup.fmtSize(size)+(extra.length?'（含 '+extra.join('、')+'）':''));
+    renderBackupState();
+  });
 }
 function importAll(){
-  if(!confirm('匯入會「取代」目前所有應用的設定與資料。\n建議先「匯出全部資料」備份。確定匯入？')) return;
+  var msg=importMode==='merge'
+    ? '「合併」會保留目前資料，只加入備份中未有的項目（待辦／筆記／記帳／會員／小習慣／相片／券）。\n確定匯入？'
+    : '「取代」會以備份覆蓋目前所有應用的設定與資料。\n建議先匯出備份。確定匯入？';
+  if(!confirm(msg)) return;
   document.getElementById('allFile').click();
 }
 function onAllFile(ev){
   var f=ev.target.files&&ev.target.files[0]; ev.target.value='';
   if(!f) return;
-  JLessBackup.importFromFile(f, null, function(ok,msg){
+  var media=document.getElementById('bkMedia')?document.getElementById('bkMedia').checked:true;
+  JLessBackup.importFull(f,{mode:importMode,includeMedia:media},function(ok,msg){
     if(!ok){ alert(msg||'匯入失敗'); return; }
-    lbToast('已匯入，重整中…');
-    setTimeout(function(){ location.reload(); }, 600);
+    lbToast(msg+'，重整中…');
+    setTimeout(function(){ location.reload(); }, 700);
   });
 }
 let advSwitchEl = null;
@@ -901,6 +1131,15 @@ function go(view){
 applySkin();
 applyLayout();
 renderAllViews();
+setImportMode('merge');
+renderStorage();
+try{
+  if(new URLSearchParams(location.search).get('search')==='1')setTimeout(function(){JLess.search.open();},120);
+}catch(e){}
+window.addEventListener('jless:data',function(){renderFocus();});
+window.addEventListener('storage',function(e){
+  if(e&&/jless_todo|habit_checkin|jless_quickbook|jless_member|coupon_book/.test(e.key||''))renderFocus();
+});
 </script>
 <div id="advModal" class="adv-modal" style="display:none">
   <div class="adv-box">

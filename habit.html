@@ -633,7 +633,7 @@ h1{font-size:calc(17px * var(--fs))}
     <div id="metricList"></div>
   </div>
 
-  <div class="ver">單檔網頁 · 資料只存本機 · 版本 2026-11-08 v3.9</div>
+  <div class="ver">單檔網頁 · 資料只存本機 · 版本 2026-11-28 v4.0</div>
 </div>
 
 <!-- v3：浮動分享鈕（底部選單上兩行、靠右） -->
@@ -711,6 +711,17 @@ h1{font-size:calc(17px * var(--fs))}
   <div class="set-row">
     <div><b>一週開始日</b><small>影響「本週次數」同七日條排列</small></div>
     <select id="weekStart"><option value="1">星期一</option><option value="0">星期日</option></select>
+  </div>
+  <div class="set-row">
+    <div><b>每日提醒</b><small>今日未完成時提醒</small></div>
+    <select id="remindSel" aria-label="每日提醒">
+      <option value="0">關閉</option>
+      <option value="8">08:00</option>
+      <option value="12">12:00</option>
+      <option value="18">18:00</option>
+      <option value="20">20:00</option>
+      <option value="21">21:00</option>
+    </select>
   </div>
   <div class="set-row">
     <div><b>本機儲存</b><small id="storeInfo">localStorage</small></div>
@@ -1124,13 +1135,14 @@ function fmtStamp(e){
 function addEntry(id,iso,back){
   var e={k:uid(),id:id,t:Date.now(),back:!!back};
   if(!state.logs[iso])state.logs[iso]=[];
-  state.logs[iso].push(e);save();return e;
+  state.logs[iso].push(e);save();if(typeof scheduleHabitReminder==='function')scheduleHabitReminder();return e;
 }
 function restoreEntry(iso,e){
   if(!state.logs[iso])state.logs[iso]=[];
   state.logs[iso].push(e);
   state.logs[iso].sort(function(a,b){return a.t-b.t;});
   save();
+  if(typeof scheduleHabitReminder==='function')scheduleHabitReminder();
 }
 function removeEntry(k){
   var days=Object.keys(state.logs);
@@ -1140,7 +1152,7 @@ function removeEntry(k){
       if(arr[j].k===k){
         var e=arr[j];arr.splice(j,1);
         if(arr.length)state.logs[iso]=arr;else delete state.logs[iso];
-        save();return {iso:iso,entry:e};
+        save();if(typeof scheduleHabitReminder==='function')scheduleHabitReminder();return {iso:iso,entry:e};
       }
     }
   }
@@ -2311,6 +2323,7 @@ $('delHabit').addEventListener('click',function(){if(editId)deleteHabit(editId);
 $('weekStart').addEventListener('change',function(){
   state.settings.weekStart=parseInt(this.value,10)===0?0:1;save();clampWeek();renderAll();toast(tx('一週開始日已改'));
 });
+if($('remindSel'))$('remindSel').addEventListener('change',function(){onRemindChange(this.value);});
 $('langSel').addEventListener('change',function(){setLang(this.value);});
 $('fsSel').addEventListener('change',function(){setFs(this.value);});
 $('exportBtn').addEventListener('click',exportData);
@@ -2397,11 +2410,31 @@ setInterval(function(){
 },60000);
 
 /* ============ init ============ */
+var REMIND_KEY='habit_remind_v1';
+function reminderHour(){var n=parseInt(lsGet(REMIND_KEY),10);return (n>=0&&n<=23)?n:0;}
+function initReminderSelect(){var s=$('remindSel');if(s)s.value=String(reminderHour());}
+function scheduleHabitReminder(){
+  if(!window.JLess||!JLess.notify)return;
+  var h=reminderHour();
+  if(!h){JLess.notify.cancel&&JLess.notify.cancel('habit_daily');return;}
+  var iso=today();
+  var hs=habitsOn(iso).filter(function(x){return !has(x.id,iso);});
+  if(!hs.length){JLess.notify.cancel&&JLess.notify.cancel('habit_daily');return;}
+  var d=new Date();d.setHours(h,0,0,0);
+  if(d.getTime()<=Date.now())d.setDate(d.getDate()+1);
+  JLess.notify.schedule('habit_daily',d.getTime(),'今日仲有 '+hs.length+' 個習慣未完成','撳一下打開小習慣打卡 🌱');
+}
+function onRemindChange(v){
+  var n=parseInt(v,10)||0;lsSet(REMIND_KEY,String(n));
+  scheduleHabitReminder();
+  toast(n?('每日 '+('0'+n).slice(-2)+':00 提醒'):'已關閉每日提醒');
+}
 load();
 var savedLang=lsGet(LANG_KEY);lang=LANGS.indexOf(savedLang)>=0?savedLang:'zh-Hant';
 applyFs(lsGet(FS_KEY));
 if($('langSel'))$('langSel').value=lang;
 setTab('today');renderAll();applyLang();
+initReminderSelect();scheduleHabitReminder();
 if(migrationMerged)setTimeout(function(){
   toast(F('已合併 {0} 筆同日重複打卡（每日每事只計一次）',migrationMerged));
 },500);
