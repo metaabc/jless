@@ -313,6 +313,7 @@
     <section class="view active" id="view-home">
       <div class="chips" id="chips"></div>
       <div id="focusBox"></div>
+      <div id="walletBox"></div>
       <div class="sec-title">
         <h2>應用</h2>
         <span class="home-tools">
@@ -378,6 +379,7 @@
       <div class="sec-title" style="margin-top:20px"><h2>儲存空間</h2><span class="hint">本機用量</span></div>
       <div class="storage-box" id="storageBox">計算中…</div>
       <button class="reset" style="margin-top:8px" onclick="askNotify()">🔔 開啟到期提醒</button>
+      <label class="bk-opt"><input type="checkbox" id="bkRemind" onchange="setBackupRemind(this.checked)"> 每 7 日提醒備份（需保持頁面開啟）</label>
     </section>
   </main>
 
@@ -729,6 +731,41 @@ function isoToday(){var d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth(
 function readJSON(k){try{var o=JSON.parse(localStorage.getItem(k));return (o&&typeof o==='object')?o:null;}catch(e){return null;}}
 function writeJSON(k,o){try{localStorage.setItem(k,JSON.stringify(o));return true;}catch(e){return false;}}
 function markFromHome(){try{sessionStorage.setItem('jless_from_home','1');}catch(e){}}
+function quickBackup(){
+  if(!window.JLessBackup){go('settings');return;}
+  JLessBackup.exportFull({includeMedia:true},function(ok,size,counts){
+    if(ok){lbToast('已備份 '+JLessBackup.fmtSize(size));renderFocus();if(window.renderBackupState)renderBackupState();}
+    else lbToast('備份失敗，請到設定重試');
+  });
+}
+function completeAllOverdue(){
+  var list=dueTodos().filter(function(x){return x.task.due<isoToday();});
+  if(!list.length)return;
+  var d=readJSON('jless_todo_v1');if(!d)return;
+  var ids={};list.forEach(function(x){ids[x.listId+'>'+x.task.id]=1;});
+  var moved=[];
+  d.lists.forEach(function(l){
+    var keep=[];
+    (l.tasks||[]).forEach(function(t){
+      if(ids[l.id+'>'+t.id]){t.done=true;t.completedAt=Date.now();if(!Array.isArray(l.completed))l.completed=[];l.completed.unshift(t);moved.push({listId:l.id,t:t});}
+      else keep.push(t);
+    });
+    l.tasks=keep;
+  });
+  if(!writeJSON('jless_todo_v1',d))return;
+  renderFocus();
+  if(window.JLess&&JLess.undo)JLess.undo('已完成 '+moved.length+' 筆逾期事項',function(){
+    var dd=readJSON('jless_todo_v1');if(!dd)return;
+    moved.forEach(function(x){
+      dd.lists.forEach(function(l){
+        if(l.id!==x.listId)return;
+        l.completed=(l.completed||[]).filter(function(y){return y.id!==x.t.id;});
+        x.t.done=false;x.t.completedAt=0;l.tasks.unshift(x.t);
+      });
+    });
+    writeJSON('jless_todo_v1',dd);renderFocus();
+  });
+}
 
 function toggleHabitToday(id){
   var d=readJSON('habit_checkin_v1');
@@ -772,8 +809,8 @@ function completeTodo(listId,taskId){
     }
   }
 }
-function monthSpend(){
-  var m=isoToday().slice(0,7),sum=0;
+function monthSpend(month){
+  var m=month||isoToday().slice(0,7),sum=0;
   var qb=readJSON('jless_quickbook_v1');
   if(qb&&Array.isArray(qb.txns))qb.txns.forEach(function(t){
     if(t&&t.type==='expense'&&String(t.date||'').slice(0,7)===m)sum+=(+t.amount||0);
@@ -783,6 +820,32 @@ function monthSpend(){
     if(t&&t.type==='spend'&&!t.qbId&&String(t.date||'').slice(0,7)===m)sum+=(+t.amt||0);
   });
   return sum;
+}
+function prevMonth(){
+  var d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1);
+}
+function habitDayOn(h,iso){
+  if(!h||!h.days||!h.days.length)return true;
+  var s=iso||isoToday();
+  var d=new Date(s+'T00:00:00').getDay();
+  return h.days.indexOf(d)>=0;
+}
+/* 連續全勤：只計有排程的日子，中斷即停 */
+function habitStreak(){
+  var d=readJSON('habit_checkin_v1');
+  if(!d||!Array.isArray(d.habits)||!d.logs||typeof d.logs!=='object')return 0;
+  var n=0,day=new Date();day.setHours(0,0,0,0);
+  for(var i=0;i<400;i++){
+    var iso=day.getFullYear()+'-'+pad2(day.getMonth()+1)+'-'+pad2(day.getDate());
+    var hs=d.habits.filter(function(h){return habitDayOn(h,iso)&&h.created<=iso;});
+    if(!hs.length){day.setDate(day.getDate()-1);continue;}
+    var arr=Array.isArray(d.logs[iso])?d.logs[iso]:[];
+    var all=hs.every(function(h){return arr.some(function(e){return e&&e.id===h.id;});});
+    if(!all)break;
+    n++;day.setDate(day.getDate()-1);
+  }
+  return n;
 }
 function dueTodos(){
   var out=[],d=readJSON('jless_todo_v1'),today=isoToday();
@@ -802,7 +865,7 @@ function renderFocus(){
   var habits=[],hab=readJSON('habit_checkin_v1');
   if(hab&&Array.isArray(hab.habits)){
     var iso=isoToday(),logs=(hab.logs&&Array.isArray(hab.logs[iso]))?hab.logs[iso]:[];
-    habits=hab.habits.filter(function(h){return h&&h.created<=iso;}).map(function(h){
+    habits=hab.habits.filter(function(h){return h&&h.created<=iso&&habitDayOn(h,iso);}).map(function(h){
       return {h:h,done:logs.some(function(e){return e&&e.id===h.id;})};
     });
     habits.sort(function(a,b){return (a.done?1:0)-(b.done?1:0);});
@@ -821,18 +884,19 @@ function renderFocus(){
       (x.h.weekly?'<span style="font-size:10.5px;color:var(--muted);flex:0 0 auto">每週 '+x.h.weekly+'</span>':'')+
     '</div>');
   });
+  var lateCount=todos.filter(function(x){return x.task.due<isoToday();}).length;
   todos.slice(0,4).forEach(function(x){
     var late=x.task.due<isoToday();
     lines.push('<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed var(--line)">'+
-      '<button onclick="completeTodo(\''+x.listId+'\',\''+x.task.id+'\')" aria-label="完成" style="width:28px;height:28px;border-radius:50%;flex:0 0 auto;cursor:pointer;border:1.5px solid var(--line);background:var(--panel);color:var(--muted);font-size:14px"></button>'+
+      '<button onclick="completeTodo(\''+x.listId+'\',\''+x.task.id+'\')" aria-label="完成 '+(x.task.title||'待辦')+'" style="width:32px;height:32px;border-radius:50%;flex:0 0 auto;cursor:pointer;border:1.5px solid var(--line);background:var(--panel);color:var(--muted);font-size:14px"></button>'+
       '<div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+hEsc(x.task.title)+'</div>'+
       '<span style="font-size:10.5px;flex:0 0 auto;color:'+(late?'#d9534f':'var(--muted)')+'">'+(late?'逾期':'今天')+(x.task.time?' '+x.task.time:'')+'</span>'+
     '</div>');
   });
 
   var chips=[];
-  var spend=monthSpend();
-  if(spend>0)chips.push('<a href="quickbook.html" onclick="markFromHome()" style="text-decoration:none;color:var(--ink2);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">🧾 本月支出 '+spend.toLocaleString('zh-Hant',{maximumFractionDigits:2})+'</a>');
+  var spend=monthSpend(),prev=monthSpend(prevMonth()),delta=prev>0?Math.round((spend-prev)/prev*100):0;
+  if(spend>0)chips.push('<a href="quickbook.html" onclick="markFromHome()" style="text-decoration:none;color:var(--ink2);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">🧾 本月支出 '+spend.toLocaleString('zh-Hant',{maximumFractionDigits:2})+(prev>0?' <span style="color:'+(delta>0?'#d9534f':'#2f9e6e')+'">'+(delta>0?'+':'')+delta+'%</span>':'')+'</a>');
   var mb=readJSON('jless_member_v1');
   if(mb&&Array.isArray(mb.members)&&mb.members.length){
     var alive={};mb.members.forEach(function(m){alive[m.id]=1;});
@@ -851,25 +915,80 @@ function renderFocus(){
   try{
     var meta=JLessBackup.meta(),last=+meta.lastExport||0;
     var days=last?Math.floor((Date.now()-last)/864e5):-1;
-    if(days<0)chips.push('<a href="javascript:go(\'settings\')" style="text-decoration:none;color:#b45309;background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">💾 尚未備份</a>');
-    else if(days>=7)chips.push('<a href="javascript:go(\'settings\')" style="text-decoration:none;color:#b45309;background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">💾 備份已 '+days+' 日</a>');
+    if(days<0)chips.push('<button type="button" onclick="quickBackup()" style="cursor:pointer;color:#b45309;background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">💾 尚未備份 · 立即備份</button>');
+    else if(days>=7)chips.push('<button type="button" onclick="quickBackup()" style="cursor:pointer;color:#b45309;background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:999px;padding:6px 10px;font-size:11.5px;white-space:nowrap">💾 備份已 '+days+' 日 · 立即備份</button>');
   }catch(e){}
 
+  var streak=habitStreak();
+  var acts='<div style="display:flex;gap:6px;margin-top:9px">'+
+    '<button type="button" onclick="openQuickAdd(\'expense\')" style="flex:1;min-height:36px;border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);border-radius:10px;font-size:12px;font-weight:700;cursor:pointer">＋ 記一筆</button>'+
+    '<button type="button" onclick="openQuickAdd(\'todo\')" style="flex:1;min-height:36px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:10px;font-size:12px;font-weight:700;cursor:pointer">＋ 加待辦</button>'+
+    (lateCount>1?'<button type="button" onclick="completeAllOverdue()" style="flex:0 0 auto;min-height:36px;padding:0 9px;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:10px;font-size:11.5px;cursor:pointer">全部完成 '+lateCount+'</button>':'')+
+  '</div>';
   if(!lines.length&&!chips.length){
-    box.innerHTML='<div style="margin:10px 16px 0;padding:13px 14px;background:var(--panel);border:1px solid var(--line);border-radius:16px;display:flex;align-items:center;gap:10px">'+
-      '<div style="font-size:22px">☀️</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ink)">今日還沒有事項</div>'+
-      '<div style="font-size:11.5px;color:var(--muted);margin-top:2px">用左下「＋」快速記一筆</div></div></div>';
-    return;
+    box.innerHTML='<div style="margin:10px 16px 0;padding:13px 14px;background:var(--panel);border:1px solid var(--line);border-radius:16px">'+
+      '<div style="display:flex;align-items:center;gap:10px"><div style="font-size:22px">☀️</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ink)">今日還沒有事項</div>'+
+      '<div style="font-size:11.5px;color:var(--muted);margin-top:2px">用底部中央「＋ 新增」快速記一筆</div></div></div>'+acts+'</div>';
+    renderWallet();return;
   }
   box.innerHTML='<div style="margin:10px 16px 0;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:16px">'+
     '<div style="display:flex;align-items:center;gap:8px">'+
       '<b style="font-size:13px;color:var(--ink)">今日</b>'+
       '<span style="font-size:11px;color:var(--muted)">'+(today.getMonth()+1)+' 月 '+today.getDate()+' 日 · 週'+wd+'</span>'+
       (total?'<span style="font-size:11px;color:var(--muted);margin-left:auto">習慣 '+done+'/'+total+'</span>':'')+
+      (streak>1?'<span style="font-size:11px;color:#b45309;margin-left:6px">🔥 '+streak+'</span>':'')+
     '</div>'+
     (lines.length?'<div style="margin-top:4px">'+lines.join('')+'</div>':'')+
     (chips.length?'<div style="display:flex;flex-wrap:wrap;gap:6px;'+(lines.length?'border-top:1px dashed var(--line);padding-top:9px;margin-top:4px':'margin-top:8px')+'">'+chips.join('')+'</div>':'')+
+    acts+
   '</div>';
+  renderWallet();
+}
+/* 錢包：會員餘額 + 本月支出 + 到期券，收合成一張可折疊卡 */
+function walletData(){
+  var mb=readJSON('jless_member_v1'),bal=0,alive={};
+  if(mb&&Array.isArray(mb.members))mb.members.forEach(function(m){alive[m.id]=1;});
+  if(mb&&Array.isArray(mb.txns))mb.txns.forEach(function(t){
+    if(!t||!alive[t.mid])return;
+    if(t.type==='topup')bal+=(+t.amt||0)+(+t.bonus||0);else bal-=(+t.amt||0);
+  });
+  var soon=[],cb=readJSON('coupon_book_v1'),t0=new Date();t0.setHours(0,0,0,0);
+  (Array.isArray(cb&&cb.favs)?cb.favs:[]).forEach(function(f){
+    if(!f||!f.expiry)return;
+    var d=new Date(f.expiry+'T00:00:00');
+    if(!isNaN(d.getTime())&&d>=t0){
+      var dd=Math.ceil((d.getTime()-t0.getTime())/864e5);
+      if(dd<=7)soon.push({name:f.name||f.shop||'優惠券',days:dd});
+    }
+  });
+  soon.sort(function(a,b){return a.days-b.days;});
+  return {bal:bal,spend:monthSpend(),soon:soon};
+}
+function renderWallet(){
+  var box=document.getElementById('walletBox');if(!box)return;
+  var open=false;try{open=localStorage.getItem('jless_wallet_open_v1')==='1';}catch(e){}
+  var d=walletData();
+  var head='<button type="button" onclick="toggleWallet()" aria-expanded="'+open+'" style="width:100%;display:flex;align-items:center;gap:8px;border:none;background:none;cursor:pointer;padding:0;text-align:left">'+
+    '<b style="font-size:13px;color:var(--ink)">💼 錢包</b>'+
+    '<span style="font-size:11.5px;color:var(--muted);margin-left:auto">'+(d.soon.length?'<span style="color:#b45309">'+d.soon.length+' 張將到期 · </span>':'')+'點開詳情</span>'+
+    '<span style="color:var(--muted);font-size:13px">'+(open?'▾':'▸')+'</span></button>';
+  var body='';
+  if(open){
+    body='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">'+
+      '<a href="member.html" onclick="markFromHome()" style="text-decoration:none;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:9px 10px">'+
+        '<div style="font-size:10.5px;color:var(--muted)">會員餘額</div><div style="font-size:16px;font-weight:800;color:var(--ink)">$'+d.bal.toLocaleString('zh-Hant',{maximumFractionDigits:2})+'</div></a>'+
+      '<a href="quickbook.html" onclick="markFromHome()" style="text-decoration:none;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:9px 10px">'+
+        '<div style="font-size:10.5px;color:var(--muted)">本月支出</div><div style="font-size:16px;font-weight:800;color:var(--ink)">$'+d.spend.toLocaleString('zh-Hant',{maximumFractionDigits:2})+'</div></a></div>'+
+      (d.soon.length?'<div style="margin-top:9px;font-size:11px;color:var(--muted)">7 日內到期</div>'+d.soon.slice(0,3).map(function(x){
+        return '<a href="consume.html" onclick="markFromHome()" style="display:flex;gap:8px;align-items:center;text-decoration:none;color:var(--ink2);font-size:12px;padding:6px 0;border-top:1px dashed var(--line)"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🎟️ '+hEsc(x.name)+'</span><span style="color:#b45309;font-weight:700">'+(x.days===0?'今天':x.days+' 日')+'</span></a>';
+      }).join(''):'<div style="margin-top:9px;font-size:11.5px;color:var(--muted)">近 7 日沒有到期 coupon</div>');
+  }
+  box.innerHTML='<div style="margin:9px 16px 0;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:16px">'+head+body+'</div>';
+}
+function toggleWallet(){
+  var open=false;try{open=localStorage.getItem('jless_wallet_open_v1')==='1';}catch(e){}
+  try{localStorage.setItem('jless_wallet_open_v1',open?'0':'1');}catch(e){}
+  renderWallet();
 }
 function renderHome(){
   renderFocus();
@@ -1054,7 +1173,20 @@ function askNotify(){
   if(!window.JLess||!JLess.notify){lbToast('此瀏覽器不支援提醒');return;}
   JLess.notify.enable().then(function(p){
     lbToast(p==='granted'?'已開啟提醒':'未開啟（可到瀏覽器設定允許通知）');
+    if(p==='granted')startBackupRemind();
   });
+}
+function setBackupRemind(on){
+  try{localStorage.setItem('jless_bk_remind_v1',on?'1':'0');}catch(e){}
+  if(on)startBackupRemind();else if(window.JLess&&JLess.notify)JLess.notify.cancel('backup_due');
+}
+function startBackupRemind(){
+  if(!window.JLess||!JLess.notify)return;
+  var on=false;try{on=localStorage.getItem('jless_bk_remind_v1')==='1';}catch(e){}
+  if(!on)return;
+  var meta=JLessBackup.meta(),last=+meta.lastExport||0;
+  if(!last||Date.now()-last<7*864e5)return;
+  JLess.notify.schedule('backup_due',Date.now()+5000,'JLess 備份提醒','已超過 7 日未備份，開啟首頁點「立即備份」。');
 }
 function exportAll(){
   var media=document.getElementById('bkMedia')?document.getElementById('bkMedia').checked:true;
@@ -1133,6 +1265,8 @@ applyLayout();
 renderAllViews();
 setImportMode('merge');
 renderStorage();
+try{document.getElementById('bkRemind').checked=localStorage.getItem('jless_bk_remind_v1')==='1';}catch(e){}
+startBackupRemind();
 try{
   if(new URLSearchParams(location.search).get('search')==='1')setTimeout(function(){JLess.search.open();},120);
 }catch(e){}

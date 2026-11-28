@@ -496,6 +496,14 @@ h1{font-size:calc(17px * var(--fs))}
 @media (max-height:884px){
   .fab-share{bottom:calc(64px + env(safe-area-inset-bottom,0px));padding:9px 13px}
 }
+/* 習慣出現日子：44px 觸控目標 */
+.ed-days{display:flex;gap:5px;margin:0 0 12px}
+.ed-days button{flex:1;min-width:0;min-height:44px;border-radius:11px;border:1px solid var(--line);background:var(--card);
+  color:var(--muted);font-size:calc(14px * var(--fs));font-weight:800;cursor:pointer;touch-action:manipulation}
+.ed-days button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+html[data-mode="dark"] .ed-days button{background:var(--panel);color:var(--ink2);border-color:var(--line)}
+html[data-mode="dark"] .ed-days button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ed-days button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 <script type="application/ld+json">
 {
@@ -633,7 +641,7 @@ h1{font-size:calc(17px * var(--fs))}
     <div id="metricList"></div>
   </div>
 
-  <div class="ver">單檔網頁 · 資料只存本機 · 版本 2026-11-28 v4.0</div>
+  <div class="ver">單檔網頁 · 資料只存本機 · 版本 2026-11-28 v4.1</div>
 </div>
 
 <!-- v3：浮動分享鈕（底部選單上兩行、靠右） -->
@@ -679,6 +687,10 @@ h1{font-size:calc(17px * var(--fs))}
   <select class="inp" id="edGoal"></select>
   <label class="lbl" for="edCycle">每輪打卡次數（0＝不循環）</label>
   <input class="inp" id="edCycle" type="number" inputmode="numeric" min="0" max="99" value="0">
+  <label class="lbl">日子（只揀選嘅日子先會出現；全選＝每日）</label>
+  <div class="ed-days" id="edDays" role="group" aria-label="習慣出現的日子">
+    <button type="button" data-d="1">一</button><button type="button" data-d="2">二</button><button type="button" data-d="3">三</button><button type="button" data-d="4">四</button><button type="button" data-d="5">五</button><button type="button" data-d="6">六</button><button type="button" data-d="0">日</button>
+  </div>
   <div class="set-hint" style="display:block;background:var(--gold-bg);border-color:var(--gold-line);color:var(--gold-tx);margin:-6px 0 12px">
     每打滿一輪由 0 重新計，<b>累計次數唔會清零</b>。
   </div>
@@ -974,6 +986,18 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 /* ============ 資料 ============ */
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}
+/* null／空陣列＝每日；其餘為 0=日 1=一 … 6=六 */
+function normalizeDays(v){
+  if(!v||!v.length)return null;
+  var a=(Array.isArray(v)?v:[]).map(function(x){return parseInt(x,10);}).filter(function(x){return x>=0&&x<=6;});
+  var u=[];a.forEach(function(x){if(u.indexOf(x)<0)u.push(x);});
+  return u.length===7||u.length===0?null:u.slice().sort(function(a,b){return a-b;});
+}
+function dayOn(h,iso){
+  if(!h||!h.days||!h.days.length)return true;
+  var d=pd(iso).getDay();
+  return h.days.indexOf(d)>=0;
+}
 function emptyState(){return {habits:[],logs:{},metrics:[],settings:{weekStart:1}};}
 function normalize(raw){
   var s=emptyState();migrationMerged=0;
@@ -985,7 +1009,7 @@ function normalize(raw){
     var cy=parseInt(h.cycle,10);if(!isFinite(cy)||cy<0||cy>99)cy=0;
     var cr=(/^\d{4}-\d{2}-\d{2}$/.test(h.created)?h.created:today());
     return {id:String(h.id||uid()),name:String(h.name||'新習慣').trim().slice(0,24)||'新習慣',
-      emoji:String(h.emoji||'🌱').slice(0,4),goal:g,cycle:cy,created:cr};
+      emoji:String(h.emoji||'🌱').slice(0,4),goal:g,cycle:cy,created:cr,days:normalizeDays(h.days)};
   }).filter(Boolean);
   var ids={};s.habits.forEach(function(h){ids[h.id]=1;});
   var lg=(raw.logs&&typeof raw.logs==='object'&&!Array.isArray(raw.logs))?raw.logs:{};
@@ -1089,7 +1113,7 @@ function findH(id){return state.habits.find(function(h){return h.id===id;})||nul
 function has(id,iso){return (state.logs[iso]||[]).some(function(e){return e.id===id;});}
 function countOn(id,iso){return (state.logs[iso]||[]).filter(function(e){return e.id===id;}).length;}
 /* v3.1：補打可以打到建立日之前，所以有紀錄嘅舊日子都要計入統計 */
-function habitsOn(iso){return state.habits.filter(function(h){return diffDays(iso,h.created)>=0||has(h.id,iso);});}
+function habitsOn(iso){return state.habits.filter(function(h){return dayOn(h,iso)&&(diffDays(iso,h.created)>=0||has(h.id,iso));});}
 function doneOn(iso){var hs=habitsOn(iso);return hs.filter(function(h){return has(h.id,iso);}).length;}
 function totalChecks(){
   var n=0;Object.keys(state.logs).forEach(function(k){n+=state.logs[k].length;});return n;
@@ -1858,7 +1882,7 @@ function logText(){
 function addHabit(name,emoji,goal,cycle){
   name=String(name||'').trim();if(!name){toast('請輸入習慣名稱');return false;}
   var cy=parseInt(cycle,10);if(!isFinite(cy)||cy<0||cy>99)cy=0;
-  var h={id:uid(),name:name.slice(0,24),emoji:emoji||'🌱',goal:goal||7,cycle:cy,created:today()};
+  var h={id:uid(),name:name.slice(0,24),emoji:emoji||'🌱',goal:goal||7,cycle:cy,created:today(),days:null};
   state.habits.push(h);save();renderAll();toast(F('已新增「{0}」',h.name));
   return true;
 }
@@ -1873,12 +1897,32 @@ function openEdit(id){
   $('edName').value=h.name;
   $('edGoal').innerHTML=goalOptions(h.goal);
   $('edCycle').value=h.cycle;
+  renderDayPicker(h.days);
   openEmoEdit(h);
   openSheet('editSheet');
 }
 function openEmoEdit(h){
   emoGrid($('edEmoGrid'),h.emoji,function(e){var x=findH(editId);if(!x)return;x.emoji=e;save();renderAll();openEmoEdit(x);});
 }
+function renderDayPicker(days){
+  var box=$('edDays');if(!box)return;
+  var a=days&&days.length?days:[0,1,2,3,4,5,6];
+  [].slice.call(box.querySelectorAll('button')).forEach(function(b){
+    var on=a.indexOf(parseInt(b.getAttribute('data-d'),10))>=0;
+    b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+$('edDays').addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('button[data-d]');if(!b)return;
+  var h=findH(editId);if(!h)return;
+  var d=parseInt(b.getAttribute('data-d'),10);
+  var cur=h.days&&h.days.length?h.days.slice():[0,1,2,3,4,5,6];
+  var i=cur.indexOf(d);
+  if(i>=0)cur.splice(i,1);else cur.push(d);
+  if(!cur.length){toast('至少要揀一日');return;}
+  h.days=normalizeDays(cur);save();renderDayPicker(h.days);renderAll();
+  toast(h.days?('只喺 '+h.days.map(function(x){return '日一二三四五六'.charAt(x);}).join('、')+' 出現'):'每日都會出現');
+});
 function deleteHabit(id){
   var h=findH(id);if(!h)return;
   if(!confirm(F('刪除「{0}」？佢嘅打卡紀錄都會一齊清除，無法復原。',h.name)))return;

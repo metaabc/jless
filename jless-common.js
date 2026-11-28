@@ -73,6 +73,38 @@ function snapshot(key,label){
   a.unshift({id:'t'+Date.now()+Math.random().toString(36).slice(2,6),key:key,label:label||key,value:v,ts:Date.now()});
   tsave(a);
 }
+/* 合併還原：只把快照中有、目前沒有的項目加回，保留現有資料 */
+function keyOf(x){
+  if(!x||typeof x!=='object')return null;
+  var k=x.id!=null?x.id:(x.k!=null?x.k:(x.key!=null?x.key:null));
+  return k==null?null:String(k);
+}
+function unionArr(cur,inc){
+  var out=Array.isArray(cur)?cur.slice():[],seen={};
+  out.forEach(function(x){var k=keyOf(x)||JSON.stringify(x);seen[k]=1;});
+  (Array.isArray(inc)?inc:[]).forEach(function(x){
+    var k=keyOf(x)||JSON.stringify(x);
+    if(!seen[k]){out.push(x);seen[k]=1;}
+  });
+  return out;
+}
+function mergeRestore(snapVal,curVal){
+  var s,j;try{s=JSON.parse(snapVal);}catch(e){return null;}
+  var c;try{c=JSON.parse(curVal);}catch(e){return null;}
+  if(!s||!c)return null;
+  if(Array.isArray(s)&&Array.isArray(c))return JSON.stringify(unionArr(c,s));
+  if(!Array.isArray(s)&&!Array.isArray(c)&&typeof s==='object'&&typeof c==='object'){
+    var added=0;
+    Object.keys(s).forEach(function(k){
+      if(k==='logs'||k==='history'||k==='done'||k==='completed'||k==='checked')return;
+      if(Array.isArray(s[k])&&Array.isArray(c[k])){
+        var before=c[k].length;c[k]=unionArr(c[k],s[k]);if(c[k].length>before)added++;
+      }else if(c[k]==null&&s[k]!=null){c[k]=s[k];added++;}
+    });
+    return added?JSON.stringify(c):null;
+  }
+  return null;
+}
 function openTrash(){
   var old=document.getElementById('jTrash');
   if(old)old.parentNode.removeChild(old);
@@ -83,14 +115,15 @@ function openTrash(){
   var a=tlist();
   var h='<div style="display:flex;align-items:center;margin-bottom:12px"><b style="font-size:15px;color:var(--ink,#3b2530)">回收桶</b>'+
     '<button data-x style="margin-left:auto;width:32px;height:32px;border-radius:9px;border:1px solid var(--line,#f0e2d8);background:var(--panel,#fff);cursor:pointer">✕</button></div>'+
-    '<p style="font-size:12px;color:var(--muted,#967f89);margin:0 0 12px">只保留最近 '+TMAX+' 筆；還原會以快照取代該應用目前資料。</p>';
+    '<p style="font-size:12px;color:var(--muted,#967f89);margin:0 0 12px">只保留最近 '+TMAX+' 筆。「合併還原」只加回不存在的項目；「取代」會覆蓋目前資料。</p>';
   if(!a.length)h+='<p style="font-size:13px;color:var(--muted,#967f89);text-align:center;padding:24px 0">回收桶是空的</p>';
   a.forEach(function(x){
     h+='<div style="background:var(--panel,#fff);border:1px solid var(--line,#f0e2d8);border-radius:12px;padding:10px 12px;margin-bottom:8px">'+
       '<div style="font-size:13px;font-weight:600;color:var(--ink,#3b2530)">'+esc(x.label)+'</div>'+
       '<div style="font-size:11px;color:var(--muted,#967f89);margin:3px 0 8px">'+dateStr(x.ts)+' · '+esc(x.key)+'</div>'+
-      '<button data-r="'+esc(x.id)+'" style="border:1px solid var(--accent,#c23b6a);background:var(--accent-soft,#fdeaf2);color:var(--accent,#c23b6a);border-radius:9px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">還原</button> '+
-      '<button data-d="'+esc(x.id)+'" style="border:1px solid var(--line,#f0e2d8);background:var(--bg,#fffaf3);color:var(--muted,#967f89);border-radius:9px;padding:6px 12px;font-size:12px;cursor:pointer">永久刪除</button></div>';
+      '<button data-m="'+esc(x.id)+'" style="border:1px solid var(--accent,#c23b6a);background:var(--accent-soft,#fdeaf2);color:var(--accent,#c23b6a);border-radius:9px;padding:8px 12px;min-height:38px;font-size:12px;font-weight:700;cursor:pointer">合併還原</button> '+
+      '<button data-r="'+esc(x.id)+'" style="border:1px solid var(--line,#f0e2d8);background:var(--panel,#fff);color:var(--ink2,#5b4750);border-radius:9px;padding:8px 12px;min-height:38px;font-size:12px;cursor:pointer">取代</button> '+
+      '<button data-d="'+esc(x.id)+'" style="border:1px solid var(--line,#f0e2d8);background:var(--bg,#fffaf3);color:var(--muted,#967f89);border-radius:9px;padding:8px 12px;min-height:38px;font-size:12px;cursor:pointer">永久刪除</button></div>';
   });
   box.innerHTML=h;mask.appendChild(box);document.body.appendChild(mask);
   function close(){if(mask.parentNode)mask.parentNode.removeChild(mask);}
@@ -98,7 +131,17 @@ function openTrash(){
   box.addEventListener('click',function(e){
     var r=e.target.getAttribute&&e.target.getAttribute('data-r');
     var d=e.target.getAttribute&&e.target.getAttribute('data-d');
-    if(r){
+    var m=e.target.getAttribute&&e.target.getAttribute('data-m');
+    if(m){
+      var item=tlist().filter(function(x){return x.id===m;})[0];
+      if(!item)return;
+      var merged=mergeRestore(item.value,lsGet(item.key));
+      if(!merged){toast('這筆快照不支援合併，請改用「取代」');return;}
+      if(!confirm('合併還原「'+item.label+'」？只會加回目前沒有的項目。'))return;
+      lsSet(item.key,merged);
+      tsave(tlist().filter(function(x){return x.id!==m;}));
+      close();location.reload();
+    }else if(r){
       var item=tlist().filter(function(x){return x.id===r;})[0];
       if(item&&confirm('還原「'+item.label+'」？該應用目前資料會被快照取代。')){
         lsSet(item.key,item.value);
@@ -121,7 +164,9 @@ var MAP={
   'coupon_book_v1':['消費券','consume.html'],'jless_album_v1':['相簿','album.html'],
   'jless_member_v1':['會員','member.html']
 };
-var DEEP={'note.html':1,'album.html':1,'bookmark.html':1};
+var DEEP={'note.html':1,'album.html':1,'bookmark.html':1,'todo.html':1,'quickbook.html':1,
+  'member.html':1,'voucher.html':1,'consume.html':1,'leave.html':1,'absence.html':1,
+  'metric.html':1,'remember.html':1,'calc.html':1,'excel.html':1,'ocr.html':1,'timer.html':1,'wealth.html':1};
 function walk(o,out,depth){
   if(depth>5||out.length>4000)return;
   if(typeof o==='string'){
@@ -334,26 +379,31 @@ function openQuickAdd(type){
   box.style.cssText='width:100%;max-width:560px;background:var(--bg,#fffaf3);border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom) + 18px);box-shadow:0 -10px 34px rgba(0,0,0,.2)';
   var qb=qbState();
   var cats=(qb&&Array.isArray(qb.expense))?qb.expense:[];
+  var last={};try{last=JSON.parse(lsGet('jless_quick_last_v1')||'{}')||{};}catch(e){}
   box.innerHTML=
     '<div style="display:flex;align-items:center;margin-bottom:12px"><b style="font-size:16px;color:var(--ink)">快速新增</b>'+
     '<button data-x style="margin-left:auto;width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);cursor:pointer">✕</button></div>'+
     '<div id="jqTabs" style="display:flex;gap:6px;margin-bottom:12px">'+
       ['todo:待辦','note:筆記','expense:支出'].map(function(x){
         var k=x.split(':')[0];
-        return '<button data-t="'+k+'" class="'+((k===tab)?'on':'')+'" style="flex:1;padding:9px 0;border-radius:11px;border:1px solid var(--line);background:'+((k===tab)?'var(--accent)':'var(--panel)')+';color:'+((k===tab)?'#fff':'var(--ink2)')+';font-weight:700;font-size:13px;cursor:pointer">'+x.split(':')[1]+'</button>';
+        return '<button data-t="'+k+'" class="'+((k===tab)?'on':'')+'" style="flex:1;min-height:44px;border-radius:11px;border:1px solid var(--line);background:'+((k===tab)?'var(--accent)':'var(--panel)')+';color:'+((k===tab)?'#fff':'var(--ink2)')+';font-weight:700;font-size:13px;cursor:pointer">'+x.split(':')[1]+'</button>';
       }).join('')+'</div>'+
-    '<textarea id="jqText" rows="2" placeholder="一句話…例如：明天 3點 交作業 #工作" style="width:100%;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:11px;font-size:14px;outline:none;resize:none"></textarea>'+
+    '<textarea id="jqText" rows="2" placeholder="一句話…例如：明天 3點 交作業 #工作" style="width:100%;min-height:52px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:11px;font-size:14px;outline:none;resize:none"></textarea>'+
     '<div id="jqExp" style="display:none;margin-top:10px">'+
-      '<div style="display:flex;gap:8px"><input id="jqAmt" type="number" inputmode="decimal" step="any" min="0" placeholder="金額" style="flex:1;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:11px;font-size:14px;outline:none">'+
-      '<input id="jqNote" placeholder="備註（可選）" style="flex:1.4;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:11px;font-size:13px;outline:none"></div>'+
+      '<div style="display:flex;gap:8px"><input id="jqAmt" type="number" inputmode="decimal" step="any" min="0" placeholder="金額" value="'+(last.amount||'')+'" style="flex:1;min-height:44px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:11px;font-size:14px;outline:none">'+
+      '<input id="jqNote" placeholder="備註（可選）" list="jqNotes" style="flex:1.4;min-height:44px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:11px;font-size:13px;outline:none">'+
+      '<datalist id="jqNotes">'+(Array.isArray(last.notes)?last.notes.slice(0,8).map(function(x){return '<option value="'+esc(x)+'">';}).join(''):'')+'</datalist></div>'+
       '<div id="jqCats" style="display:flex;gap:6px;overflow-x:auto;margin-top:9px;padding-bottom:2px">'+cats.map(function(c,i){
-        return '<button data-c="'+esc(c.id)+'" style="flex:0 0 auto;border:1px solid var(--line);background:'+(i===0?'var(--accent-soft)':'var(--panel)')+';color:'+(i===0?'var(--accent)':'var(--ink2)')+';border-radius:999px;padding:7px 11px;font-size:12px;cursor:pointer;white-space:nowrap">'+esc(c.icon||'')+' '+esc(c.name)+'</button>';
+        var on=c.id===last.cat;
+        return '<button data-c="'+esc(c.id)+'" aria-label="'+esc(c.name)+'" style="flex:0 0 auto;min-height:38px;border:1px solid var(--line);background:'+(on?'var(--accent-soft)':'var(--panel)')+';color:'+(on?'var(--accent)':'var(--ink2)')+';border-radius:999px;padding:7px 11px;font-size:12px;cursor:pointer;white-space:nowrap">'+esc(c.icon||'')+' '+esc(c.name)+'</button>';
       }).join('')+'</div>'+
     '</div>'+
-    '<button id="jqSave" style="width:100%;margin-top:12px;border:none;border-radius:13px;padding:13px;background:var(--accent);color:#fff;font-size:15px;font-weight:800;cursor:pointer">儲存</button>';
+    '<button id="jqSave" style="width:100%;margin-top:12px;min-height:46px;border:none;border-radius:13px;background:var(--accent);color:#fff;font-size:15px;font-weight:800;cursor:pointer">儲存</button>'+
+    '<div style="font-size:10.5px;color:var(--muted);text-align:center;margin-top:7px">Enter 儲存 · Esc 關閉</div>';
   mask.appendChild(box);document.body.appendChild(mask);
   var ta=box.querySelector('#jqText'),exp=box.querySelector('#jqExp'),amt=box.querySelector('#jqAmt'),note=box.querySelector('#jqNote');
-  var selCat=cats.length?cats[0].id:'';
+  var selCat=(last.cat&&cats.some(function(c){return c.id===last.cat;}))?last.cat:(cats.length?cats[0].id:'');
+  [].slice.call(box.querySelectorAll('#jqCats button')).forEach(function(b){b.classList.toggle('on',b.getAttribute('data-c')===selCat);});
   function setTab(k){
     tab=k;
     box.querySelectorAll('#jqTabs button').forEach(function(b){
@@ -362,7 +412,8 @@ function openQuickAdd(type){
       b.style.color=on?'#fff':'var(--ink2)';
     });
     exp.style.display=k==='expense'?'block':'none';
-    ta.placeholder=k==='todo'?'一句話…例如：明天 3點 交作業 #工作':(k==='note'?'隨手記下想法…':'支出備註（可選）');
+    ta.style.display=k==='expense'?'none':'block';
+    ta.placeholder=k==='todo'?'一句話…例如：明天 3點 交作業 #工作':'隨手記下想法…';
     if(k==='expense')setTimeout(function(){amt.focus();},50);else setTimeout(function(){ta.focus();},50);
   }
   box.querySelector('#jqTabs').addEventListener('click',function(e){
@@ -375,6 +426,14 @@ function openQuickAdd(type){
       var on=x===b;x.style.background=on?'var(--accent-soft)':'var(--panel)';x.style.color=on?'var(--accent)':'var(--ink2)';
     });
   });
+  function remember(){
+    var l={};try{l=JSON.parse(lsGet('jless_quick_last_v1')||'{}')||{};}catch(e){}
+    if(isFinite(parseFloat(amt.value)))l.amount=parseFloat(amt.value);
+    l.cat=selCat;
+    var nt=note.value.trim(),ns=Array.isArray(l.notes)?l.notes.slice():[];
+    if(nt&&ns.indexOf(nt)<0){ns.unshift(nt);l.notes=ns.slice(0,8);}
+    lsSet('jless_quick_last_v1',JSON.stringify(l));
+  }
   function close(){if(mask.parentNode)mask.parentNode.removeChild(mask);}
   mask.addEventListener('click',function(e){if(e.target===mask||e.target.hasAttribute('data-x'))close();});
   box.querySelector('#jqSave').onclick=function(){
@@ -387,7 +446,7 @@ function openQuickAdd(type){
       }
       if(!cats.length){toast('請先在記帳建立支出分類');close();location.href='quickbook.html';return;}
       if(!addExpense(v,selCat,note.value.trim())){toast('儲存失敗');return;}
-      toast('已記支出 $'+v);
+      remember();toast('已記支出 $'+v);
     }else if(tab==='todo'){
       if(!text){toast('請輸入內容');ta.focus();return;}
       /* 在待辦頁就用原生編輯器，避免與頁面記憶體狀態衝突 */
@@ -415,6 +474,16 @@ function openQuickAdd(type){
     try{window.dispatchEvent(new CustomEvent('jless:data',{detail:{type:tab}}));}catch(e){}
     close();
   };
+  /* Enter / Ctrl+Enter 儲存、Esc 關閉 */
+  function keySave(e){
+    if(e.key==='Escape'){e.preventDefault();close();return;}
+    if(e.key!=='Enter')return;
+    if(e.shiftKey)return;
+    if(e.target===ta&&tab!=='expense'){e.preventDefault();box.querySelector('#jqSave').click();return;}
+    if(e.target===note||e.target===amt){e.preventDefault();box.querySelector('#jqSave').click();}
+  }
+  box.addEventListener('keydown',keySave);
+  mask.addEventListener('keydown',function(e){if(e.key==='Escape'){e.preventDefault();close();}});
   setTab(tab);
 }
 function mountQuickAdd(){
@@ -525,11 +594,164 @@ function check(){
 }
 check();setInterval(check,60000);
 
-J.search={open:openSearch,entries:entries};
+/* ---------- 全域鍵盤快捷鍵 ---------- */
+function typing(el){
+  if(!el)return false;
+  var t=String(el.tagName||'').toLowerCase();
+  return t==='input'||t==='textarea'||t==='select'||el.isContentEditable;
+}
+window.addEventListener('keydown',function(e){
+  var mod=e.ctrlKey||e.metaKey;
+  if(mod&&String(e.key||'').toLowerCase()==='k'){e.preventDefault();clearHits();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('jSearch')||document.getElementById('jQuick')||document.getElementById('jTrash'))return;
+    if(hitTerm){clearHits();return;}
+    /* 關閉最上層 app 面板 */
+    var sheets=document.querySelectorAll('.sheet.on,.modal.on,[class*="Mask"][style*="flex"]');
+    if(sheets.length){
+      for(var i=sheets.length-1;i>=0;i--){
+        var s=sheets[i],x=s.querySelector('[data-close],.x');
+        if(x){x.click();return;}
+      }
+    }
+    return;
+  }
+  if(typing(e.target)||e.altKey||mod)return;
+  if(e.key==='/'||e.key==='？'){e.preventDefault();openSearch();return;}
+  if(String(e.key||'').toLowerCase()==='n'){e.preventDefault();openQuickAdd();}
+});
+
+/* ---------- 搜尋落地：把命中字眼在頁面中高亮並捲到可見範圍 ---------- */
+var hitTerm='',hitBar=null;
+function clearHits(){
+  if(hitBar&&hitBar.parentNode)hitBar.parentNode.removeChild(hitBar);hitBar=null;
+  try{
+    [].slice.call(document.querySelectorAll('mark.jl-hit')).forEach(function(m){
+      var p=m.parentNode;if(!p)return;
+      while(m.firstChild)p.insertBefore(m.firstChild,m);
+      p.removeChild(m);p.normalize();
+    });
+  }catch(e){}
+  hitTerm='';
+}
+function markHits(term){
+  clearHits();
+  term=String(term||'').trim();if(term.length<1)return 0;
+  hitTerm=term;
+  var low=term.toLowerCase(),n=0,first=null;
+  var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{
+    acceptNode:function(node){
+      var p=node.parentNode;if(!p)return NodeFilter.FILTER_REJECT;
+      var tag=String(p.nodeName||'').toLowerCase();
+      if(tag==='script'||tag==='style'||tag==='mark'||tag==='input'||tag==='textarea')return NodeFilter.FILTER_REJECT;
+      if(!node.nodeValue||node.nodeValue.toLowerCase().indexOf(low)<0)return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  var nodes=[],x;while((x=walker.nextNode()))nodes.push(x);
+  nodes.forEach(function(node){
+    var s=node.nodeValue,ls=s.toLowerCase(),frag=document.createDocumentFragment(),i=0,pos;
+    while((pos=ls.indexOf(low,i))>=0){
+      if(pos>i)frag.appendChild(document.createTextNode(s.slice(i,pos)));
+      var m=document.createElement('mark');m.className='jl-hit';m.textContent=s.slice(pos,pos+term.length);
+      frag.appendChild(m);n++;i=pos+term.length;
+      if(!first)first=m;
+    }
+    if(i<s.length)frag.appendChild(document.createTextNode(s.slice(i)));
+    node.parentNode.replaceChild(frag,node);
+  });
+  if(!n)return 0;
+  var style=document.createElement('style');style.id='jlHitStyle';
+  style.textContent='mark.jl-hit{background:#ffe08a!important;color:#3b2530!important;border-radius:4px;padding:0 2px;box-shadow:0 0 0 2px rgba(255,190,60,.35)}'+
+    'html[data-mode="dark"] mark.jl-hit{background:#7a5a1e!important;color:#fff5d6!important}';
+  if(!document.getElementById('jlHitStyle'))document.head.appendChild(style);
+  hitBar=document.createElement('div');
+  hitBar.style.cssText='position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);z-index:555;'+
+    'background:rgba(50,32,42,.94);color:#fff;border-radius:12px;padding:8px 10px;font-size:11.5px;display:flex;align-items:center;gap:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap;max-width:calc(100% - 20px)';
+  hitBar.innerHTML='<span style="min-width:0;overflow:hidden;text-overflow:ellipsis">找到 '+n+' 處「'+esc(term)+'」</span><button type="button" style="flex:0 0 auto;white-space:nowrap;border:none;background:rgba(255,255,255,.18);color:#fff;border-radius:7px;padding:4px 9px;font-size:11.5px;cursor:pointer">關閉</button>';
+  hitBar.querySelector('button').onclick=clearHits;
+  document.body.appendChild(hitBar);
+  try{first.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}
+  return n;
+}
+function locate(term){return markHits(term);}
+function autoLocate(){
+  var q='';try{q=new URLSearchParams(location.search).get('q')||'';}catch(e){}
+  if(!q)return;
+  /* 有原生搜尋框的頁面先讓它自行篩選，再做文字高亮 */
+  markHits(q);setTimeout(function(){markHits(q);},650);
+}
+
+/* ---------- 券核銷 → 自動記帳（共用，寫 src / voucherId 供還原時移除） ---------- */
+function voucherBook(o){
+  o=o||{};
+  var amt=Math.abs(+o.amount||0);if(!(amt>0))return '';
+  var d=null;try{d=JSON.parse(lsGet('jless_quickbook_v1'));}catch(e){}
+  if(!d||!Array.isArray(d.expense)||!d.expense.length)return '';
+  if(!Array.isArray(d.txns))d.txns=[];
+  var cat=d.expense.filter(function(c){return /券|優惠|消費/.test(String(c.name||''));})[0]||d.expense[0];
+  var qid='qb'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  var dt=new Date(o.ts||Date.now());
+  function p(n){return (n<10?'0':'')+n;}
+  var date=dt.getFullYear()+'-'+p(dt.getMonth()+1)+'-'+p(dt.getDate());
+  d.txns.push({id:qid,type:'expense',catId:cat.id,accId:d.defAcc||'a_none',amount:amt,
+    note:String(o.note||'券核銷').slice(0,60),ts:dt.getTime(),date:date,receipt:'',tplId:'',period:'',
+    src:o.src||'voucher',voucherId:o.id||'',voucherApp:o.app||''});
+  if(!lsSet('jless_quickbook_v1',JSON.stringify(d)))return '';
+  return qid;
+}
+function voucherUnbook(qid){
+  if(!qid)return;
+  var d=null;try{d=JSON.parse(lsGet('jless_quickbook_v1'));}catch(e){}
+  if(!d||!Array.isArray(d.txns))return;
+  d.txns=d.txns.filter(function(x){return x.id!==qid;});
+  lsSet('jless_quickbook_v1',JSON.stringify(d));
+}
+function autoBookOn(){return lsGet('jless_voucher_autobook_v1')==='1';}
+function setAutoBook(on){lsSet('jless_voucher_autobook_v1',on?'1':'0');}
+
+/* ---------- PWA 安裝引導 + 離線提示 ---------- */
+var deferredInstall=null;
+function showInstallBar(){
+  if(document.getElementById('jInstall'))return;
+  var b=document.createElement('div');b.id='jInstall';
+  b.style.cssText='position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 74px);transform:translateX(-50%);z-index:554;'+
+    'display:flex;align-items:center;gap:8px;max-width:calc(100% - 24px);background:var(--panel,#fff);color:var(--ink,#3b2530);'+
+    'border:1px solid var(--line,#f0e2d8);border-radius:14px;padding:8px 10px;box-shadow:0 8px 26px rgba(0,0,0,.18);font-size:11.5px;white-space:nowrap';
+  b.innerHTML='<span style="overflow:hidden;text-overflow:ellipsis">📲 安裝到主畫面</span>'+
+    '<button data-ok style="flex:0 0 auto;white-space:nowrap;border:none;background:var(--accent,#c23b6a);color:#fff;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer">安裝</button>'+
+    '<button data-no style="flex:0 0 auto;border:none;background:none;color:var(--muted,#967f89);font-size:16px;cursor:pointer;padding:0 3px">✕</button>';
+  document.body.appendChild(b);
+  b.querySelector('[data-ok]').onclick=function(){
+    if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.then(function(){b.remove();deferredInstall=null;});}
+    else{toast('用瀏覽器選單「新增至主畫面」');b.remove();}
+    try{localStorage.setItem('jless_install_seen_v1','1');}catch(e){}
+  };
+  b.querySelector('[data-no]').onclick=function(){
+    try{localStorage.setItem('jless_install_seen_v1','1');}catch(e){}
+    b.remove();
+  };
+  setTimeout(function(){if(b.parentNode)b.remove();},12000);
+}
+function initInstall(){
+  try{if(localStorage.getItem('jless_install_seen_v1')==='1')return;}catch(e){}
+  if(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)return;
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault();deferredInstall=e;showInstallBar();
+  });
+  function offline(){toast('目前離線 · 資料仍可正常使用');}
+  window.addEventListener('offline',offline);
+}
+initInstall();
+
+J.search={open:openSearch,entries:entries,locate:locate,clear:clearHits};
 J.quick={open:openQuickAdd};
 J.undo=function(msg,fn){toast(msg,'復原',fn);};
 J.trash={snapshot:snapshot,open:openTrash,list:tlist};
 J.notify={enable:enable,schedule:schedule,cancel:function(id){nsave(nlist().filter(function(x){return x.id!==id;}));},check:check,list:nlist};
 J.badge={set:setBadge};
+J.book={add:voucherBook,remove:voucherUnbook,autoOn:autoBookOn,setAuto:setAutoBook};
 J.util={esc:esc,dateStr:dateStr,today:todayISO,uid:uid,toast:toast};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',autoLocate);
+else autoLocate();
 })();

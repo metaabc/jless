@@ -151,3 +151,9 @@ html[data-mode="dark"] .dopt-btns button.on{background:var(--accent-soft)!import
 html[data-mode="dark"] .soonbar{background:var(--red-bg)!important;border-color:var(--red-line)!important;color:var(--red)!important}
 html[data-mode="dark"] .pbar{background:var(--line2)!important}
 html[data-mode="dark"] .pbar>i{background:var(--accent)!important}
+
+/* 統一鍵盤焦點樣式（僅鍵盤操作時顯示，不影響滑鼠/觸控） */
+:focus-visible{outline:2px solid var(--accent,#c23b6a)!important;outline-offset:2px!important;border-radius:6px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{box-shadow:0 0 0 3px var(--accent-soft,#fdeaf2)!important}
+/* 浮動鍵最小觸控目標 44px */
+button.jhelp-fab,#jAddFab{min-width:44px;min-height:44px}

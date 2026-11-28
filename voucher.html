@@ -529,7 +529,7 @@ h1{margin:0;font-size:clamp(17px,5vw,21px);font-weight:800;letter-spacing:.5px;c
     <button class="clear-used" id="clearUsed" type="button">清空已使用</button>
   </div>
 
-  <div class="ver">單檔離線 · 版本 2026-11-28 v12</div>
+  <div class="ver">單檔離線 · 版本 2026-11-28 v13</div>
 </div>
 
 <!-- 底部手機菜單 -->
@@ -576,6 +576,10 @@ h1{margin:0;font-size:clamp(17px,5vw,21px);font-weight:800;letter-spacing:.5px;c
   <div class="set-row">
     <div><b>加入時自動辨識券面</b><small>首次須下載約 2MB 字庫，可略過</small></div>
     <input class="sw" type="checkbox" id="ocrAuto">
+  </div>
+  <div class="set-row">
+    <div><b>銷券時自動記入記帳</b><small>以券面金額記一筆支出；還原時自動移除</small></div>
+    <input class="sw" type="checkbox" id="vAutoBook">
   </div>
   <div class="set-row">
     <div><b>未讀到到期日，預設日數</b><small>未讀到到期日的新券，由今日起計</small></div>
@@ -1307,7 +1311,14 @@ function redeem(id,src){
   persist(v);renderAll();
   gaEvent('voucher_redeem',{source:src||'card'});
   if($('lightbox').classList.contains('on'))closeLB();
-  toast('已銷券',function(){v.status='active';v.usedAt=0;persist(v);renderAll();gaEvent('voucher_undo_redeem',{});toast('已復原');});
+  var qid='';
+  if(window.JLess&&JLess.book&&JLess.book.autoOn())
+    qid=JLess.book.add({amount:+v.amount||0,name:v.name,note:'團購券：'+(v.name||'未命名券'),src:'voucher',app:'voucher',id:v.id,ts:v.usedAt});
+  toast(qid?'已銷券，並記入記帳':'已銷券',function(){
+    v.status='active';v.usedAt=0;persist(v);renderAll();
+    if(qid&&window.JLess&&JLess.book)JLess.book.remove(qid);
+    gaEvent('voucher_undo_redeem',{});toast('已復原');
+  });
 }
 function restore(id){var v=vouchers.find(function(x){return x.id===id;});if(!v)return;v.status='active';v.usedAt=0;persist(v);renderAll();gaEvent('voucher_restore',{});toast('已還原到「待使用」');}
 function delVoucher(id){
@@ -1840,6 +1851,11 @@ $('ocrAuto').addEventListener('change',function(){
   lsSet(AUTO_KEY,this.checked?'1':'0');
   gaEvent('setting_auto_ocr',{enabled:this.checked?1:0});
 });
+$('vAutoBook').addEventListener('change',function(){
+  if(window.JLess&&JLess.book)JLess.book.setAuto(this.checked);
+  else lsSet('jless_voucher_autobook_v1',this.checked?'1':'0');
+  toast(this.checked?'銷券會自動記帳':'已關閉自動記帳');
+});
 $('defaultDays').addEventListener('change',function(){
   var n=parseInt(this.value,10);
   if(!isFinite(n)||n<1||n>3650){n=30;toast('日數需為 1–3650，已還原 30');}
@@ -1920,6 +1936,7 @@ loadNames();renderNames();refreshFilterNames();
 setTab('active');
 $('defaultDays').value=defaultDays();
 $('ocrAuto').checked=(lsGet(AUTO_KEY)==='1');
+$('vAutoBook').checked=!!(window.JLess&&JLess.book?JLess.book.autoOn():lsGet('jless_voucher_autobook_v1')==='1');
 idbGetAll().then(function(list){
   vouchers=list||[];
   applyTrashRestore();

@@ -1434,6 +1434,12 @@ h1{
     <button class="btn primary wide" id="payAddBtn" type="button" style="margin-top:12px">＋ 新增支付方式</button>
   </div>
 
+  <label class="lbl lbl-top" style="display:flex;align-items:center;gap:8px">
+    <input type="checkbox" id="autoBook" onchange="toggleAutoBook(this.checked)" style="width:20px;height:20px;accent-color:var(--accent)">
+    用券時自動記入記帳
+  </label>
+  <div class="chips-tip">標為「已消」時寫一筆支出到記帳；長按還原會一併移除。</div>
+
   <div class="lbl lbl-top">週數<span class="sec-tag">1–12</span></div>
   <div class="btn-row">
     <input class="inp w-in" id="weekInput" type="number" min="1" max="12" inputmode="numeric" />
@@ -1450,7 +1456,7 @@ h1{
   <input type="file" id="jbBakFile" accept="application/json,.json" style="display:none" onchange="jbOnFile(event)">
   <div class="chips-tip">匯入會取代本應用資料；建議先匯出。</div>
 
-  <div class="ver">版本 2026-11-28 · 點支付名編輯三格券數　·　設定內可調次序<br>綠＝未用　紅＝未用且 ≥50　灰＝已消</div>
+  <div class="ver">版本 2026-11-28 v2 · 點支付名編輯三格券數　·　設定可調次序／用券自動記帳<br>綠＝未用　紅＝未用且 ≥50　灰＝已消</div>
   </div>
 </div>
 
@@ -2003,6 +2009,11 @@ function handleTap(pi,i){
   save();
   renderSummary();
   renderGrid();
+  if(window.JLess&&JLess.book&&JLess.book.autoOn()){
+    var pay=(S.pays&&S.pays[pi])||'';
+    var qid=JLess.book.add({amount:+c.a||0,note:'消費券：'+pay+' 第 '+(pi+1)+' 渠道',src:'consume',app:'consume'});
+    if(qid){c.qbId=qid;save();toast('已標已消，並記入記帳');}
+  }
 }
 
 $('grid').addEventListener('click',function(e){
@@ -2028,7 +2039,11 @@ function startLP(el){
     lpFired=true;
     var pi=+lpCell.dataset.pi, i=+lpCell.dataset.i;
     var w=curW(), c=w.cells[pi*PER+i];
-    if(c&&c.u){ c.u=false; save(); renderSummary(); renderGrid(); }
+    if(c&&c.u){
+      c.u=false;
+      if(c.qbId&&window.JLess&&JLess.book)JLess.book.remove(c.qbId);
+      c.qbId='';save();renderSummary();renderGrid();
+    }
     lpCell=null;
   }, LP_MS);
 }
@@ -2269,8 +2284,14 @@ $('amtConfirm').addEventListener('click',function(){
 });
 
 /* ---------------- 週管理 ---------------- */
+function toggleAutoBook(on){
+  if(window.JLess&&JLess.book)JLess.book.setAuto(on);
+  else{try{localStorage.setItem('jless_voucher_autobook_v1',on?'1':'0');}catch(e){}}
+  toast(on?'用券會自動記帳':'已關閉自動記帳');
+}
 $('menuBtn').addEventListener('click',function(){
   var wi=$('weekInput'); if(wi) wi.value=S.weeks.length;
+  var ab=$('autoBook');if(ab)ab.checked=!!(window.JLess&&JLess.book?JLess.book.autoOn():localStorage.getItem('jless_voucher_autobook_v1')==='1');
   renderChips();
   updateWeekTip();
   openPage('menuSheet');
