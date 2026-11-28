@@ -1085,8 +1085,11 @@ function delMember() {
   if(!editId)return;
   var m=memberById(editId);if(!m)return;
   var n=txnsOf(editId).length;
-  if(!confirm('刪除會員「'+m.name+'」'+(n?'及其 '+n+' 筆記錄':'')+'？此動作無法復原。'))return;
-  if(window.JLess&&JLess.trash&&JLess.trash.snapshot){try{JLess.trash.snapshot(KEY,'會員：'+m.name);}catch(e){}}
+  /* 無 confirm + Undo：一次還原會員、交易與連動的記帳列 */
+  if(window.JLess&&JLess.undoDelete){
+    JLess.undoDelete([KEY,'jless_quickbook_v1'],'會員：'+m.name,
+      '已刪除「'+m.name+'」'+(n?'及 '+n+' 筆記錄':''));
+  }else if(!confirm('刪除會員「'+m.name+'」'+(n?'及其 '+n+' 筆記錄':'')+'？'))return;
   S.txns.filter(function(t){return t.mid===editId&&t.qbId;}).forEach(function(t){removeFromQuickbook(t.qbId);});
   S.members=S.members.filter(function(x){return x.id!==editId;});
   S.txns=S.txns.filter(function(t){return t.mid!==editId;});
@@ -1179,7 +1182,10 @@ function renderDetail(){
 }
 function delTx(id){
   var t=S.txns.find(function(x){return x.id===id;});if(!t)return;
-  if(!confirm('刪除這筆'+(t.type==='topup'?'充值':'消費')+' '+money(t.amt)+'（'+fmtDate(t.date)+'）？'))return;
+  if(window.JLess&&JLess.undoDelete){
+    JLess.undoDelete([KEY,'jless_quickbook_v1'],'會員交易：'+(t.type==='topup'?'充值':'消費')+' '+money(t.amt),
+      '已刪除這筆'+(t.type==='topup'?'充值':'消費'));
+  }else if(!confirm('刪除這筆'+(t.type==='topup'?'充值':'消費')+' '+money(t.amt)+'（'+fmtDate(t.date)+'）？'))return;
   if(t.qbId)removeFromQuickbook(t.qbId);
   S.txns=S.txns.filter(function(x){return x.id!==id;});
   save();renderDetail();renderMembers();

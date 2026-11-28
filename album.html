@@ -1157,6 +1157,20 @@ function removePhotos(ids){
 }
 function delPhoto(id){
   var p=photoById(id);if(!p)return;
+  if(window.JLess&&JLess.undo){
+    /* 先抓好IDB本體與中繼，Undo 時一併寫回 */
+    /* init() 已把 IDB 本體載入 p.data（DB 降級時 p.data 本身就是 dataURL） */
+    var backup=JSON.parse(JSON.stringify(p));
+    var before=null;try{before=localStorage.getItem(KEY);}catch(e){}
+    removePhotos([id]);
+    JLess.undo('已刪除相片「'+(p.name||'未命名')+'」',function(){
+      /* before 是刪除前的完整中繼（含這張），直接還原即可；本體另外寫回 IDB */
+      if(before!==null){try{localStorage.setItem(KEY,before);}catch(e){}}
+      if(db&&backup.data)idbPut(backup.id,backup.data);
+      location.reload();
+    });
+    return;
+  }
   if(!confirm('刪除相片「'+(p.name||'未命名')+'」？此動作無法復原。'))return;
   removePhotos([id]);toast('已刪除');
 }

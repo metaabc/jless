@@ -210,10 +210,17 @@ function idbEntries(){
           r.onsuccess=function(){
             var out=[];
             (r.result||[]).forEach(function(v){
-              [v.name,v.note,v.code,v.shop].forEach(function(x){
+              /* 券的實際欄位：name/expiry/decoded(OCR)/ocrText/note/code/shop 都索引 */
+              [v.name,v.note,v.code,v.shop,v.merchant,v.amount&&('面額 $'+v.amount),
+               v.expiry&&('到期 '+v.expiry),v.usedAt&&'已使用',v.status==='used'&&'已使用'].forEach(function(x){
                 if(typeof x==='string'&&x.trim())out.push({app:'團購券',file:'voucher.html',text:x.trim()});
               });
-              if(v.amount)out.push({app:'團購券',file:'voucher.html',text:'面額 $'+v.amount});
+              /* OCR 內文可能很長，只取前 240 字，避免搜尋索引爆量 */
+              [v.decoded,v.ocrText].forEach(function(x){
+                if(typeof x!=='string')return;
+                var s=x.replace(/\s+/g,' ').trim().slice(0,240);
+                if(s)out.push({app:'團購券',file:'voucher.html',text:s});
+              });
             });
             res(out.slice(0,600));
           };
@@ -359,32 +366,36 @@ function qbState(){
   var d=null;try{d=JSON.parse(lsGet('jless_quickbook_v1'));}catch(e){}
   return (d&&typeof d==='object')?d:null;
 }
-function addExpense(amount,catId,note){
+function addExpense(amount,catId,note,type){
+  type=type==='income'?'income':'expense';
   var d=qbState();
-  if(!d||!Array.isArray(d.expense)||!d.expense.length)return false;
+  var arr=type==='income'?d&&d.income:d&&d.expense;
+  if(!d||!Array.isArray(arr)||!arr.length)return false;
   if(!Array.isArray(d.txns))d.txns=[];
-  var c=d.expense.filter(function(x){return x.id===catId;})[0]||d.expense[0];
+  var c=arr.filter(function(x){return x.id===catId;})[0]||arr[0];
   var date=todayISO();
-  d.txns.push({id:uid('x'),type:'expense',catId:c.id,accId:d.defAcc||'a_none',amount:Math.round(amount*100)/100,
+  d.txns.push({id:uid('x'),type:type,catId:c.id,accId:d.defAcc||'a_none',amount:Math.round(amount*100)/100,
     note:String(note||'').slice(0,60),ts:new Date(date+'T12:00:00').getTime(),date:date,receipt:'',tplId:'',period:''});
   return lsSet('jless_quickbook_v1',JSON.stringify(d));
 }
 function openQuickAdd(type){
   if(document.getElementById('jQuick'))return;
   var curFile=fileOf();
-  var tab=type==='note'?'note':(type==='expense'?'expense':'todo');
+  var tab=type==='note'?'note':(type==='expense'?'expense':(type==='income'?'income':'todo'));
   var mask=document.createElement('div');mask.id='jQuick';
   mask.style.cssText='position:fixed;inset:0;z-index:530;background:rgba(30,16,24,.48);display:flex;align-items:flex-end;justify-content:center';
   var box=document.createElement('div');
   box.style.cssText='width:100%;max-width:560px;background:var(--bg,#fffaf3);border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom) + 18px);box-shadow:0 -10px 34px rgba(0,0,0,.2)';
   var qb=qbState();
-  var cats=(qb&&Array.isArray(qb.expense))?qb.expense:[];
+  var expCats=(qb&&Array.isArray(qb.expense))?qb.expense:[];
+  var incCats=(qb&&Array.isArray(qb.income))?qb.income:[];
   var last={};try{last=JSON.parse(lsGet('jless_quick_last_v1')||'{}')||{};}catch(e){}
+  var lastInc={};try{lastInc=JSON.parse(lsGet('jless_quick_last_inc_v1')||'{}')||{};}catch(e){}
   box.innerHTML=
     '<div style="display:flex;align-items:center;margin-bottom:12px"><b style="font-size:16px;color:var(--ink)">快速新增</b>'+
     '<button data-x style="margin-left:auto;width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);cursor:pointer">✕</button></div>'+
     '<div id="jqTabs" style="display:flex;gap:6px;margin-bottom:12px">'+
-      ['todo:待辦','note:筆記','expense:支出'].map(function(x){
+      ['todo:待辦','note:筆記','expense:支出','income:收入'].map(function(x){
         var k=x.split(':')[0];
         return '<button data-t="'+k+'" class="'+((k===tab)?'on':'')+'" style="flex:1;min-height:44px;border-radius:11px;border:1px solid var(--line);background:'+((k===tab)?'var(--accent)':'var(--panel)')+';color:'+((k===tab)?'#fff':'var(--ink2)')+';font-weight:700;font-size:13px;cursor:pointer">'+x.split(':')[1]+'</button>';
       }).join('')+'</div>'+
@@ -393,17 +404,24 @@ function openQuickAdd(type){
       '<div style="display:flex;gap:8px"><input id="jqAmt" type="number" inputmode="decimal" step="any" min="0" placeholder="金額" value="'+(last.amount||'')+'" style="flex:1;min-height:44px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:11px;font-size:14px;outline:none">'+
       '<input id="jqNote" placeholder="備註（可選）" list="jqNotes" style="flex:1.4;min-height:44px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:11px;font-size:13px;outline:none">'+
       '<datalist id="jqNotes">'+(Array.isArray(last.notes)?last.notes.slice(0,8).map(function(x){return '<option value="'+esc(x)+'">';}).join(''):'')+'</datalist></div>'+
-      '<div id="jqCats" style="display:flex;gap:6px;overflow-x:auto;margin-top:9px;padding-bottom:2px">'+cats.map(function(c,i){
-        var on=c.id===last.cat;
-        return '<button data-c="'+esc(c.id)+'" aria-label="'+esc(c.name)+'" style="flex:0 0 auto;min-height:38px;border:1px solid var(--line);background:'+(on?'var(--accent-soft)':'var(--panel)')+';color:'+(on?'var(--accent)':'var(--ink2)')+';border-radius:999px;padding:7px 11px;font-size:12px;cursor:pointer;white-space:nowrap">'+esc(c.icon||'')+' '+esc(c.name)+'</button>';
-      }).join('')+'</div>'+
+      '<div id="jqCats" style="display:flex;gap:6px;overflow-x:auto;margin-top:9px;padding-bottom:2px"></div>'+
     '</div>'+
     '<button id="jqSave" style="width:100%;margin-top:12px;min-height:46px;border:none;border-radius:13px;background:var(--accent);color:#fff;font-size:15px;font-weight:800;cursor:pointer">儲存</button>'+
     '<div style="font-size:10.5px;color:var(--muted);text-align:center;margin-top:7px">Enter 儲存 · Esc 關閉</div>';
   mask.appendChild(box);document.body.appendChild(mask);
   var ta=box.querySelector('#jqText'),exp=box.querySelector('#jqExp'),amt=box.querySelector('#jqAmt'),note=box.querySelector('#jqNote');
-  var selCat=(last.cat&&cats.some(function(c){return c.id===last.cat;}))?last.cat:(cats.length?cats[0].id:'');
-  [].slice.call(box.querySelectorAll('#jqCats button')).forEach(function(b){b.classList.toggle('on',b.getAttribute('data-c')===selCat);});
+  var catBox=box.querySelector('#jqCats');
+  var selCat='', selInc='';
+  function catsOf(k){return k==='income'?incCats:expCats;}
+  function renderCats(k){
+    var arr=catsOf(k), remembered=(k==='income'?lastInc.cat:last.cat);
+    if(k==='income')selInc=(remembered&&arr.some(function(c){return c.id===remembered;}))?remembered:(arr.length?arr[0].id:'');
+    else selCat=(remembered&&arr.some(function(c){return c.id===remembered;}))?remembered:(arr.length?arr[0].id:'');
+    catBox.innerHTML=arr.map(function(c){
+      var on=c.id===(k==='income'?selInc:selCat);
+      return '<button data-c="'+esc(c.id)+'" aria-label="'+esc(c.name)+'" style="flex:0 0 auto;min-height:38px;border:1px solid var(--line);background:'+(on?'var(--accent-soft)':'var(--panel)')+';color:'+(on?'var(--accent)':'var(--ink2)')+';border-radius:999px;padding:7px 11px;font-size:12px;cursor:pointer;white-space:nowrap">'+esc(c.icon||'')+' '+esc(c.name)+'</button>';
+    }).join('');
+  }
   function setTab(k){
     tab=k;
     box.querySelectorAll('#jqTabs button').forEach(function(b){
@@ -411,42 +429,54 @@ function openQuickAdd(type){
       b.style.background=on?'var(--accent)':'var(--panel)';
       b.style.color=on?'#fff':'var(--ink2)';
     });
-    exp.style.display=k==='expense'?'block':'none';
-    ta.style.display=k==='expense'?'none':'block';
+    var money=(k==='expense'||k==='income');
+    exp.style.display=money?'block':'none';
+    ta.style.display=money?'none':'block';
     ta.placeholder=k==='todo'?'一句話…例如：明天 3點 交作業 #工作':'隨手記下想法…';
-    if(k==='expense')setTimeout(function(){amt.focus();},50);else setTimeout(function(){ta.focus();},50);
+    if(money){
+      amt.value=(k==='income'?lastInc.amount:last.amount)||'';
+      renderCats(k);
+    }
+    if(money)setTimeout(function(){amt.focus();},50);else setTimeout(function(){ta.focus();},50);
   }
   box.querySelector('#jqTabs').addEventListener('click',function(e){
     var b=e.target.closest&&e.target.closest('[data-t]');if(b)setTab(b.getAttribute('data-t'));
   });
   box.querySelector('#jqCats').addEventListener('click',function(e){
     var b=e.target.closest&&e.target.closest('[data-c]');if(!b)return;
-    selCat=b.getAttribute('data-c');
+    var cid=b.getAttribute('data-c');
+    if(tab==='income')selInc=cid;else selCat=cid;
     box.querySelectorAll('#jqCats button').forEach(function(x){
       var on=x===b;x.style.background=on?'var(--accent-soft)':'var(--panel)';x.style.color=on?'var(--accent)':'var(--ink2)';
     });
   });
-  function remember(){
-    var l={};try{l=JSON.parse(lsGet('jless_quick_last_v1')||'{}')||{};}catch(e){}
+  function remember(isInc){
+    var key=isInc?'jless_quick_last_inc_v1':'jless_quick_last_v1';
+    var l={};try{l=JSON.parse(lsGet(key)||'{}')||{};}catch(e){}
     if(isFinite(parseFloat(amt.value)))l.amount=parseFloat(amt.value);
-    l.cat=selCat;
+    l.cat=isInc?selInc:selCat;
     var nt=note.value.trim(),ns=Array.isArray(l.notes)?l.notes.slice():[];
     if(nt&&ns.indexOf(nt)<0){ns.unshift(nt);l.notes=ns.slice(0,8);}
-    lsSet('jless_quick_last_v1',JSON.stringify(l));
+    lsSet(key,JSON.stringify(l));
   }
   function close(){if(mask.parentNode)mask.parentNode.removeChild(mask);}
   mask.addEventListener('click',function(e){if(e.target===mask||e.target.hasAttribute('data-x'))close();});
   box.querySelector('#jqSave').onclick=function(){
     var text=ta.value.trim(),v=parseFloat(amt.value);
-    if(tab==='expense'){
+    if(tab==='expense'||tab==='income'){
+      var isInc=tab==='income';
       if(!isFinite(v)||v<=0){toast('請輸入金額');amt.focus();return;}
       if(curFile==='quickbook.html'&&typeof window.openSheet==='function'){
-        close();window.openSheet();try{window.expr=String(v);if(window.renderSDisp)window.renderSDisp();}catch(e){}
+        close();
+        /* quickbook 的 openSheet(catId) 只收分類 id，收入型別用 setType 切換（若頁面有提供） */
+        try{if(isInc&&typeof window.switchType==='function')window.switchType('income');}catch(e){}
+        window.openSheet();
+        try{window.expr=String(v);if(window.renderSDisp)window.renderSDisp();}catch(e){}
         return;
       }
-      if(!cats.length){toast('請先在記帳建立支出分類');close();location.href='quickbook.html';return;}
-      if(!addExpense(v,selCat,note.value.trim())){toast('儲存失敗');return;}
-      remember();toast('已記支出 $'+v);
+      if(!catsOf(tab).length){toast('請先在記帳建立'+(isInc?'收入':'支出')+'分類');close();location.href='quickbook.html';return;}
+      if(!addExpense(v,isInc?selInc:selCat,note.value.trim(),tab)){toast('儲存失敗');return;}
+      remember(isInc);toast('已記'+(isInc?'收入':'支出')+' $'+v);
     }else if(tab==='todo'){
       if(!text){toast('請輸入內容');ta.focus();return;}
       /* 在待辦頁就用原生編輯器，避免與頁面記憶體狀態衝突 */
@@ -634,6 +664,23 @@ function clearHits(){
   }catch(e){}
   hitTerm='';
 }
+/* 展開命中祖先：details / hidden 面板 / 折疊分類，避免「找到 N 處」但畫面看不到 */
+function expandForSearch(node){
+  var p=node.parentNode,steps=0;
+  while(p&&p!==document.body&&steps++<12){
+    if(p.nodeType===1){
+      if(p.tagName==='DETAILS'&&!p.open){try{p.open=true;}catch(e){}}
+      var cls=String(p.className||'');
+      if(/\b(hidden|collapsed|fold|hide)\b/.test(cls)){
+        p.classList.remove('hidden','collapsed','fold','hide');
+        p.style.display='';
+      }
+      var st=String(p.style&&p.style.display||'');
+      if(st==='none')p.style.display='block';
+    }
+    p=p.parentNode;
+  }
+}
 function markHits(term){
   clearHits();
   term=String(term||'').trim();if(term.length<1)return 0;
@@ -645,6 +692,8 @@ function markHits(term){
       var tag=String(p.nodeName||'').toLowerCase();
       if(tag==='script'||tag==='style'||tag==='mark'||tag==='input'||tag==='textarea')return NodeFilter.FILTER_REJECT;
       if(!node.nodeValue||node.nodeValue.toLowerCase().indexOf(low)<0)return NodeFilter.FILTER_REJECT;
+      /* 只展開「包含命中文字」的祖先，不打亂其他收合狀態 */
+      expandForSearch(p);
       return NodeFilter.FILTER_ACCEPT;
     }
   });
@@ -747,6 +796,23 @@ initInstall();
 J.search={open:openSearch,entries:entries,locate:locate,clear:clearHits};
 J.quick={open:openQuickAdd};
 J.undo=function(msg,fn){toast(msg,'復原',fn);};
+/* 通用刪除 Undo：keys 可為字串或字串陣列，先記住各 key 的整份快照，回復時一併還原
+ * 用法：J.undoDelete(['jless_member_v1','jless_quickbook_v1'],'會員：X','已刪除',fn)
+ * 注意：必須在實際刪除前呼叫（此刻 localStorage 仍是刪除前狀態）。 */
+J.undoDelete=function(keys,label,msg,after){
+  var list=Array.isArray(keys)?keys:[keys],snap=[];
+  list.forEach(function(k){
+    var v=null;try{v=lsGet(k);}catch(e){}
+    if(v!==null){snap.push({k:k,v:v});try{if(J.trash&&J.trash.snapshot)J.trash.snapshot(k,label);}catch(e){}}
+  });
+  if(!snap.length){toast('無法建立復原點');return false;}
+  toast(msg,'復原',function(){
+    snap.forEach(function(s){try{lsSet(s.k,s.v);}catch(e){}});
+    try{window.dispatchEvent(new CustomEvent('jless:data',{detail:{type:'restore'}}));}catch(e){}
+    if(typeof after==='function')after();else location.reload();
+  });
+  return true;
+};
 J.trash={snapshot:snapshot,open:openTrash,list:tlist};
 J.notify={enable:enable,schedule:schedule,cancel:function(id){nsave(nlist().filter(function(x){return x.id!==id;}));},check:check,list:nlist};
 J.badge={set:setBadge};

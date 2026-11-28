@@ -727,6 +727,24 @@ function renderChips(){
 }
 /* ===== 今日頁：可勾完成、快速新增、跨應用摘要 ===== */
 function pad2(n){return (n<10?'0':'')+n;}
+/* 重複待辦：首頁與待辦頁共用同一套產生下一次的規則（與 todo.html nextDue 一致） */
+function homeNextDue(due,repeat){
+  var base=due&&/^\d{4}-\d{2}-\d{2}$/.test(due)?new Date(due+'T12:00:00'):new Date();
+  base.setHours(12,0,0,0);
+  if(repeat==='daily')base.setDate(base.getDate()+1);
+  else if(repeat==='weekly')base.setDate(base.getDate()+7);
+  else if(repeat==='monthly')base.setMonth(base.getMonth()+1);
+  return base.getFullYear()+'-'+pad2(base.getMonth()+1)+'-'+pad2(base.getDate());
+}
+function homeRepeatTask(t){
+  var o={};Object.keys(t).forEach(function(k){o[k]=t[k];});
+  o.id='t'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  o.due=homeNextDue(t.due,t.repeat);
+  o.done=false;o.completedAt=0;
+  if(Array.isArray(t.tags))o.tags=t.tags.slice();
+  if(Array.isArray(t.attach))o.attach=t.attach.slice();
+  return o;
+}
 function isoToday(){var d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
 function readJSON(k){try{var o=JSON.parse(localStorage.getItem(k));return (o&&typeof o==='object')?o:null;}catch(e){return null;}}
 function writeJSON(k,o){try{localStorage.setItem(k,JSON.stringify(o));return true;}catch(e){return false;}}
@@ -745,12 +763,18 @@ function completeAllOverdue(){
   var ids={};list.forEach(function(x){ids[x.listId+'>'+x.task.id]=1;});
   var moved=[];
   d.lists.forEach(function(l){
-    var keep=[];
+    var keep=[],fresh=[];
     (l.tasks||[]).forEach(function(t){
-      if(ids[l.id+'>'+t.id]){t.done=true;t.completedAt=Date.now();if(!Array.isArray(l.completed))l.completed=[];l.completed.unshift(t);moved.push({listId:l.id,t:t});}
+      if(ids[l.id+'>'+t.id]){
+        t.done=true;t.completedAt=Date.now();if(!Array.isArray(l.completed))l.completed=[];l.completed.unshift(t);
+        var nt=(t.repeat&&t.repeat!=='none')?homeRepeatTask(t):null;
+        moved.push({listId:l.id,t:t,next:nt});
+        try{if(window.JLess&&JLess.notify&&JLess.notify.cancel)JLess.notify.cancel('todo_'+t.id);}catch(e){}
+        if(nt)fresh.push(nt);
+      }
       else keep.push(t);
     });
-    l.tasks=keep;
+    l.tasks=fresh.concat(keep);
   });
   if(!writeJSON('jless_todo_v1',d))return;
   renderFocus();
@@ -759,6 +783,7 @@ function completeAllOverdue(){
     moved.forEach(function(x){
       dd.lists.forEach(function(l){
         if(l.id!==x.listId)return;
+        if(x.next)l.tasks=(l.tasks||[]).filter(function(y){return y.id!==x.next.id;});
         l.completed=(l.completed||[]).filter(function(y){return y.id!==x.t.id;});
         x.t.done=false;x.t.completedAt=0;l.tasks.unshift(x.t);
       });
@@ -790,17 +815,21 @@ function completeTodo(listId,taskId){
   var t=null;
   for(i=0;i<l.tasks.length;i++)if(l.tasks[i].id===taskId){t=l.tasks[i];break;}
   if(!t)return;
+  var next=(t.repeat&&t.repeat!=='none')?homeRepeatTask(t):null;
   l.tasks.splice(i,1);
+  if(next)l.tasks.unshift(next);
   t.done=true;t.completedAt=Date.now();
   if(!Array.isArray(l.completed))l.completed=[];
   l.completed.unshift(t);
+  try{if(window.JLess&&JLess.notify&&JLess.notify.cancel)JLess.notify.cancel('todo_'+taskId);}catch(e){}
   if(writeJSON('jless_todo_v1',d)){
     renderFocus();
     if(window.JLess&&JLess.undo){
-      JLess.undo('已完成「'+t.title+'」',function(){
+      JLess.undo('已完成「'+t.title+'」'+(next?'，已產生下一次':''),function(){
         var dd=readJSON('jless_todo_v1');if(!dd)return;
         dd.lists.forEach(function(x){
           if(x.id!==listId)return;
+          if(next)x.tasks=(x.tasks||[]).filter(function(y){return y.id!==next.id;});
           x.completed=(x.completed||[]).filter(function(y){return y.id!==taskId;});
           t.done=false;t.completedAt=0;x.tasks.unshift(t);
         });
@@ -889,7 +918,8 @@ function renderFocus(){
     var late=x.task.due<isoToday();
     lines.push('<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed var(--line)">'+
       '<button onclick="completeTodo(\''+x.listId+'\',\''+x.task.id+'\')" aria-label="完成 '+(x.task.title||'待辦')+'" style="width:32px;height:32px;border-radius:50%;flex:0 0 auto;cursor:pointer;border:1.5px solid var(--line);background:var(--panel);color:var(--muted);font-size:14px"></button>'+
-      '<div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+hEsc(x.task.title)+'</div>'+
+      '<div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+hEsc(x.task.title)+
+        (x.task.repeat&&x.task.repeat!=='none'?'<span style="font-size:10.5px;color:var(--green,#2e8f7e);margin-left:6px">↻ '+({daily:'每日',weekly:'每週',monthly:'每月'}[x.task.repeat]||'重複')+'</span>':'')+'</div>'+
       '<span style="font-size:10.5px;flex:0 0 auto;color:'+(late?'#d9534f':'var(--muted)')+'">'+(late?'逾期':'今天')+(x.task.time?' '+x.task.time:'')+'</span>'+
     '</div>');
   });
@@ -1202,7 +1232,7 @@ function exportAll(){
 }
 function importAll(){
   var msg=importMode==='merge'
-    ? '「合併」會保留目前資料，只加入備份中未有的項目（待辦／筆記／記帳／會員／小習慣／相片／券）。\n確定匯入？'
+    ? '「合併」保留目前資料，只加入備份中未有的項目（待辦／筆記／記帳／會員／習慣／相簿／券／消費券／書籤／記憶卡／指標／年假／缺勤／財富）。\n主題、提醒、搜尋記錄等個人偏好一律保留本機，不被覆蓋。\n確定匯入？'
     : '「取代」會以備份覆蓋目前所有應用的設定與資料。\n建議先匯出備份。確定匯入？';
   if(!confirm(msg)) return;
   document.getElementById('allFile').click();

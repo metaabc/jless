@@ -1,5 +1,5 @@
 /* JLess 離線外殼：只快取程式碼，不快取任何個人資料或相片 */
-var CACHE='jless-shell-v9';
+var CACHE='jless-shell-v10';
 var SHELL=[
   './','./index.html','./theme.css','./theme.js','./share.js','./backup.js','./ga.js','./help.js','./jless-common.js',
   './favicon.svg','./manifest.json','./album-manifest.json','./jless-logo.svg','./jless-og.png',

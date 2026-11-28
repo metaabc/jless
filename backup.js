@@ -186,23 +186,59 @@ function mergeAlbum(cur,inc){
   if(Array.isArray(inc.photos))cur.photos=unionById(cur.photos,inc.photos);
   return cur;
 }
+/* 通用深層合併：逐層把 inc 的陣列按 id/k 聯集、物件補上缺少的鍵；
+ * 純值（數字/字串/布林，例如偏好設定）保留本機，不被備份覆蓋。 */
+function mergeGeneric(cur,inc){
+  if(!cur||typeof cur!=='object'||!inc||typeof inc!=='object')return cur||inc;
+  if(Array.isArray(cur)&&Array.isArray(inc))return unionById(cur,inc);
+  var added=0;
+  Object.keys(inc).forEach(function(k){
+    var a=cur[k],b=inc[k];
+    if(Array.isArray(a)&&Array.isArray(b)){
+      var m=unionById(a,b);
+      if(m.length!==a.length){cur[k]=m;added++;}
+    }else if(a&&b&&typeof a==='object'&&typeof b==='object'){
+      var before=JSON.stringify(a);
+      cur[k]=mergeGeneric(a,b);
+      if(JSON.stringify(cur[k])!==before)added++;
+    }else if(a==null&&b!=null){
+      cur[k]=b;added++;
+    }
+  });
+  cur.__mergeAdded=added;
+  return cur;
+}
 var MERGE={
   'jless_todo_v1':mergeTodo,
   'jless_note_v1':mergeNote,
   'jless_quickbook_v1':mergeQuickbook,
   'jless_member_v1':mergeMember,
   'habit_checkin_v1':mergeHabit,
-  'jless_album_v1':mergeAlbum
+  'jless_album_v1':mergeAlbum,
+  /* 其餘 app 資料：用通用合併，避免「本機有資料就整包跳過」 */
+  'coupon_book_v1':mergeGeneric,
+  'jless_metric_v1':mergeGeneric,
+  'jless_leave_v1':mergeGeneric,
+  'jless_absence_v1':mergeGeneric,
+  'flashcard_list_v1':mergeGeneric,
+  'bookmark_mgr_v1':mergeGeneric,
+  'jless_wealth_v1':mergeGeneric
 };
+/* 偏好/設定類：合併模式一律保留本機（主題、提醒、開關、搜尋記錄…） */
+function isPreferenceKey(k){
+  return /_v1$/.test(k)&&(/theme|remind|notify|install|search_recent|wallet|quick_last|cont|skin|layout|order|launcher|help_fab|backup_meta|trash|adv|from_home|autobook|show|seen/i).test(k);
+}
 function mergeItems(items){
   var changed=0,kept=0;
   Object.keys(items||{}).forEach(function(k){
     var inc=null;try{inc=JSON.parse(items[k]);}catch(e){return;}
     var raw=lsGet(k);
     if(!raw){lsSet(k,items[k]);changed++;return;}
+    if(isPreferenceKey(k)){kept++;return;}
     var cur=null;try{cur=JSON.parse(raw);}catch(e){cur=null;}
-    if(!cur||!MERGE[k]){kept++;return;}
-    var merged=MERGE[k](cur,inc);
+    if(!cur){kept++;return;}
+    var merged=(MERGE[k]||mergeGeneric)(cur,inc);
+    if(merged&&typeof merged==='object')delete merged.__mergeAdded;
     try{lsSet(k,JSON.stringify(merged));changed++;}catch(e){kept++;}
   });
   return {changed:changed,kept:kept};

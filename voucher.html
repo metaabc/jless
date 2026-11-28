@@ -529,7 +529,7 @@ h1{margin:0;font-size:clamp(17px,5vw,21px);font-weight:800;letter-spacing:.5px;c
     <button class="clear-used" id="clearUsed" type="button">清空已使用</button>
   </div>
 
-  <div class="ver">單檔離線 · 版本 2026-11-28 v13</div>
+  <div class="ver">單檔離線 · 版本 2026-11-28 v14</div>
 </div>
 
 <!-- 底部手機菜單 -->
@@ -1322,7 +1322,22 @@ function redeem(id,src){
 }
 function restore(id){var v=vouchers.find(function(x){return x.id===id;});if(!v)return;v.status='active';v.usedAt=0;persist(v);renderAll();gaEvent('voucher_restore',{});toast('已還原到「待使用」');}
 function delVoucher(id){
-  var v=vouchers.find(function(x){return x.id===id;});if(!v)return false;
+  var idx=vouchers.findIndex(function(x){return x.id===id;});if(idx<0)return false;
+  var v=vouchers[idx];
+  if(window.JLess&&JLess.undo){
+    var backup=v, at=idx;
+    trashSnap('團購券：'+(v.name||'未命名券'));
+    vouchers=vouchers.filter(function(x){return x.id!==id;});
+    idbDel(id).catch(function(){});revoke(id);renderAll();refreshFilterNames();
+    gaEvent('voucher_delete',{});
+    JLess.undo('已刪除「'+(v.name||'未命名券')+'」',function(){
+      idbPut(backup).then(function(){
+        vouchers.splice(Math.min(at,vouchers.length),0,backup);
+        renderAll();refreshFilterNames();gaEvent('voucher_undo_delete',{});toast('已復原');
+      }).catch(function(){toast('復原失敗，請由回收桶還原');});
+    });
+    return true;
+  }
   if(!confirm('刪除呢張券？無法復原。'))return false;
   trashSnap('團購券：'+(v.name||'未命名券'));
   vouchers=vouchers.filter(function(x){return x.id!==id;});

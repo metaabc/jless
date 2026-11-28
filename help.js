@@ -158,11 +158,17 @@
       ['到期提醒','可設 7 日／3 日／當日提醒，頁內亦有即將過期列表。'],
       ['銷券自動記帳','設定勾選「銷券時自動記入記帳」後，核銷會寫一筆支出（用券面金額）；Undo 會一併移除。'],
     ]},
+    'wealth.html':{name:'財富',scenes:[
+      ['新增持仓','輸入股票／基金代碼、數量與成本，可選市場（美股／港股）與幣別。'],
+      ['損益試算','填入現價即時顯示市值、損益與報酬率；紅色為獲利、綠色為虧損。'],
+      ['批次更新','可一次貼上多筆現價，或由設定匯入 API 憑證自動更新（憑證只存本機、不進備份）。'],
+      ['開啟權限','此頁屬進階功能，需先在首頁設定解鎖後才會顯示。'],
+    ]},
     'remember_extra_placeholder':null
   };
 
   var info=DATA[file];
-  if(!info||!info.scenes||!info.scenes.length) return; /* 沒有說明（含 wealth）則不顯示 */
+  if(!info||!info.scenes||!info.scenes.length) return; /* 沒有說明的頁面不顯示 */
 
   /* ---- 樣式（independent，使用 theme 變數 + fallback）---- */
   var css=''
